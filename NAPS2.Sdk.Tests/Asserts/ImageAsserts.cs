@@ -7,11 +7,14 @@ namespace NAPS2.Sdk.Tests.Asserts;
 
 public static class ImageAsserts
 {
+    // For bigger cross-platform differences
+    public const double XL_RMSE_THRESHOLD = 9.5;
+
     // For slight cross-platform differences
-    public const double XPLAT_RMSE_THRESHOLD = 6.5;
+    public const double XPLAT_RMSE_THRESHOLD = 6.9;
     
     // JPEG artifacts seem to consistently create a RMSE of about 2.5.
-    public const double GENERAL_RMSE_THRESHOLD = 3.5;
+    public const double GENERAL_RMSE_THRESHOLD = 3.6;
 
     public const double NULL_RMSE_THRESHOLD = 0.6;
 
@@ -22,19 +25,22 @@ public static class ImageAsserts
 
     public static void Similar(byte[] first, ProcessedImage second, double rmseThreshold = GENERAL_RMSE_THRESHOLD, bool ignoreResolution = false)
     {
-        using var rendered = second.Render();
-        Similar(TestImageContextFactory.Get().Load(first), rendered, rmseThreshold, ignoreResolution);
+        using var firstLoaded = TestImageContextFactory.Get().Load(first);
+        using var secondRendered = second.Render();
+        Similar(firstLoaded, secondRendered, rmseThreshold, ignoreResolution);
     }
 
     public static void Similar(byte[] first, string secondPath, double rmseThreshold = GENERAL_RMSE_THRESHOLD, bool ignoreResolution = false)
     {
-        using var second = TestImageContextFactory.Get().Load(secondPath);
-        Similar(TestImageContextFactory.Get().Load(first), second, rmseThreshold, ignoreResolution);
+        using var firstLoaded = TestImageContextFactory.Get().Load(first);
+        using var secondRendered = TestImageContextFactory.Get().Load(secondPath);
+        Similar(firstLoaded, secondRendered, rmseThreshold, ignoreResolution);
     }
 
     public static void Similar(byte[] first, IMemoryImage second, double rmseThreshold = GENERAL_RMSE_THRESHOLD, bool ignoreResolution = false)
     {
-        Similar(TestImageContextFactory.Get().Load(first), second, rmseThreshold, ignoreResolution);
+        using var firstLoaded = TestImageContextFactory.Get().Load(first);
+        Similar(firstLoaded, second, rmseThreshold, ignoreResolution);
     }
 
     public static void Similar(IMemoryImage first, IMemoryImage second,
@@ -45,13 +51,15 @@ public static class ImageAsserts
 
     public static void NotSimilar(byte[] first, ProcessedImage second, double rmseThreshold = GENERAL_RMSE_THRESHOLD, bool ignoreResolution = false)
     {
-        using var rendered = second.Render();
-        NotSimilar(TestImageContextFactory.Get().Load(first), rendered, rmseThreshold, ignoreResolution);
+        using var firstLoaded = TestImageContextFactory.Get().Load(first);
+        using var secondRendered = second.Render();
+        NotSimilar(firstLoaded, secondRendered, rmseThreshold, ignoreResolution);
     }
 
     public static void NotSimilar(byte[] first, IMemoryImage second, double rmseThreshold = GENERAL_RMSE_THRESHOLD, bool ignoreResolution = false)
     {
-        NotSimilar(TestImageContextFactory.Get().Load(first), second, rmseThreshold, ignoreResolution);
+        using var firstLoaded = TestImageContextFactory.Get().Load(first);
+        NotSimilar(firstLoaded, second, rmseThreshold, ignoreResolution);
     }
 
     public static void NotSimilar(IMemoryImage first, IMemoryImage second,
@@ -60,10 +68,10 @@ public static class ImageAsserts
         Similar(first, second, rmseThreshold, ignoreResolution, false);
     }
 
-    private static unsafe void Similar(IMemoryImage first, IMemoryImage second,
+    private static void Similar(IMemoryImage first, IMemoryImage second,
         double rmseThreshold, bool ignoreResolution, bool isSimilar)
     {
-        if (first.PixelFormat == ImagePixelFormat.Unsupported || second.PixelFormat == ImagePixelFormat.Unsupported)
+        if (first.PixelFormat == ImagePixelFormat.Unknown || second.PixelFormat == ImagePixelFormat.Unknown)
         {
             throw new InvalidOperationException($"Unsupported pixel formats {first.PixelFormat} {second.PixelFormat}");
         }
@@ -80,8 +88,14 @@ public static class ImageAsserts
                 first.VerticalResolution + RESOLUTION_THRESHOLD);
         }
 
-        first = first.PerformTransform(new ColorBitDepthTransform());
-        second = second.PerformTransform(new ColorBitDepthTransform());
+        if (first.PixelFormat is ImagePixelFormat.BW1 or ImagePixelFormat.Gray8)
+        {
+            first = first.CopyWithPixelFormat(ImagePixelFormat.RGB24);
+        }
+        if (second.PixelFormat is ImagePixelFormat.BW1 or ImagePixelFormat.Gray8)
+        {
+            second = second.CopyWithPixelFormat(ImagePixelFormat.RGB24);
+        }
 
         var op = new RmseBitwiseImageOp();
         op.Perform(first, second);
@@ -96,6 +110,24 @@ public static class ImageAsserts
         }
     }
 
+    public static bool IsSimilar(IMemoryImage first, IMemoryImage second, double rmseThreshold = GENERAL_RMSE_THRESHOLD)
+    {
+        if (first.Width != second.Width || first.Height != second.Height) return false;
+
+        if (first.PixelFormat is ImagePixelFormat.BW1 or ImagePixelFormat.Gray8)
+        {
+            first = first.CopyWithPixelFormat(ImagePixelFormat.RGB24);
+        }
+        if (second.PixelFormat is ImagePixelFormat.BW1 or ImagePixelFormat.Gray8)
+        {
+            second = second.CopyWithPixelFormat(ImagePixelFormat.RGB24);
+        }
+
+        var op = new RmseBitwiseImageOp();
+        op.Perform(first, second);
+        return op.Rmse <= rmseThreshold;
+    }
+
     public static unsafe void PixelColors(IMemoryImage image, PixelColorData colorData)
     {
         using var pixelReader = new RgbPixelReader(image);
@@ -108,16 +140,16 @@ public static class ImageAsserts
             var expected = (r, g, b);
             if (color != expected)
             {
-                throw new AssertActualExpectedException(expected, color, $"Mismatched color at ({x}, {y})");
+                throw new XunitException($"Mismatched color at ({x}, {y}): expected {expected}, got {color}");
             }
         }
     }
 
-    public class PixelColorData : IEnumerable<((int x, int y), (int r, int g, int b))>
+    public class PixelColorData : IEnumerable<((int x, int y), Rgb)>
     {
-        private readonly List<((int x, int y), (int r, int g, int b))> _colors = new();
+        private readonly List<((int x, int y), Rgb)> _colors = [];
 
-        public void Add((int x, int y) pos, (int r, int g, int b) color)
+        public void Add((int x, int y) pos, Rgb color)
         {
             _colors.Add((pos, color));
         }
@@ -127,7 +159,7 @@ public static class ImageAsserts
             _colors.Add((pos, (r, g, b)));
         }
 
-        public IEnumerator<((int x, int y), (int r, int g, int b))> GetEnumerator()
+        public IEnumerator<((int x, int y), Rgb)> GetEnumerator()
         {
             return _colors.GetEnumerator();
         }

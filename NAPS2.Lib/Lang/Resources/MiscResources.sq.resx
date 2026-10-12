@@ -73,7 +73,7 @@
     <value>Skedar TIFF (*.tiff, *.tif)</value>
   </data>
   <data name="FileTypeJp2" xml:space="preserve">
-    <value>JPEG2000 File (*.jp2, *.jpx)</value>
+    <value>Skedar JPEG2000 (*.jp2, *.jpx)</value>
   </data>
   <data name="NameMissing" xml:space="preserve">
     <value>Emri mungon.</value>
@@ -190,7 +190,7 @@
     <value>nga {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>Ndodhi një gabim i panjohur gjatë skanimit në grup.</value>
+    <value>Ndodhi një gabim i panjohur gjatë ekzekutimit të skanimit në grup.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Grupi u anulua.</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>A je i sigurt se dëshiron të fshish "{0}"?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>Skedari nuk mund të mbishkruhej sepse aktualisht është në përdorim.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 is tërësisht falas. Mendoni të dhuroni.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Lër një vlerësim</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>A të pëlqen NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>Drejtuesi SANE nuk është i disponueshëm. Sigurohuni të instaloni paketat e duhura:</value>
@@ -367,7 +373,7 @@
     <value>Po kontrollon...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>Kontrolli i përditësimit është çaktivizuar.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
     <value>Ndodhi një gabim gjatë instalimit të përditësimit.</value>

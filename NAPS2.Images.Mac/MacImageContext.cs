@@ -9,9 +9,8 @@ public class MacImageContext : ImageContext
 
     private readonly MacImageTransformer _imageTransformer;
 
-    public MacImageContext(IPdfRenderer? pdfRenderer = null) : base(typeof(MacImage), pdfRenderer)
+    public MacImageContext() : base(typeof(MacImage))
     {
-        // TODO: Not sure if this is truly thread safe.
         NSApplication.CheckForIllegalCrossThreadCalls = false;
         _imageTransformer = new MacImageTransformer(this);
     }
@@ -29,13 +28,24 @@ public class MacImageContext : ImageContext
     {
         lock (ConstructorLock)
         {
-            var image = new NSImage(NSData.FromStream(stream) ?? throw new ArgumentException(nameof(stream)));
+            var image = NSImage.FromStream(stream)!;
             var reps = image.Representations();
-            if (reps.Length > 1)
+            try
             {
-                return CreateImage(reps[0]);
+                if (reps.Length > 1)
+                {
+                    image.Dispose();
+                    return CreateImage(reps[0]);
+                }
+                return new MacImage(image);
             }
-            return new MacImage(this, image);
+            finally
+            {
+                foreach (var rep in reps)
+                {
+                    rep.Dispose();
+                }
+            }
         }
     }
 
@@ -48,16 +58,32 @@ public class MacImageContext : ImageContext
             image = new NSImage(NSData.FromStream(stream) ?? throw new ArgumentException(nameof(stream)));
         }
         var reps = image.Representations();
-        for (int i = 0; i < reps.Length; i++)
+        try
         {
-            progress.Report(i, reps.Length);
-            if (progress.IsCancellationRequested) break;
-            produceImage(CreateImage(reps[i]));
+            for (int i = 0; i < reps.Length; i++)
+            {
+                progress.Report(i, reps.Length);
+                if (progress.IsCancellationRequested) break;
+                produceImage(CreateImage(reps[i]));
+            }
+            progress.Report(reps.Length, reps.Length);
         }
-        progress.Report(reps.Length, reps.Length);
+        finally
+        {
+            image.Dispose();
+            foreach (var rep in reps)
+            {
+                rep.Dispose();
+            }
+        }
     }
 
     public override ITiffWriter TiffWriter { get; } = new MacTiffWriter();
+
+    public NSImage RenderToNsImage(IRenderableImage image)
+    {
+        return ((MacImage) Render(image)).NsImage;
+    }
 
     private IMemoryImage CreateImage(NSImageRep rep)
     {
@@ -67,7 +93,7 @@ public class MacImageContext : ImageContext
             frame = new NSImage(rep.Size);
         }
         frame.AddRepresentation(rep);
-        return new MacImage(this, frame);
+        return new MacImage(frame);
     }
 
     public override IMemoryImage Create(int width, int height, ImagePixelFormat pixelFormat)
@@ -77,7 +103,8 @@ public class MacImageContext : ImageContext
             var rep = MacBitmapHelper.CreateRep(width, height, pixelFormat);
             var image = new NSImage(rep.Size);
             image.AddRepresentation(rep);
-            return new MacImage(this, image);
+            rep.Dispose();
+            return new MacImage(image);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace NAPS2.Util;
 
-public class ExpFallback
+internal class ExpFallback
 {
     public ExpFallback(int min, int max)
     {
@@ -16,6 +16,8 @@ public class ExpFallback
     public int Max { get; }
 
     public int Value { get; private set; }
+
+    public bool IsAtMax => Value == Max;
 
     public void Reset()
     {

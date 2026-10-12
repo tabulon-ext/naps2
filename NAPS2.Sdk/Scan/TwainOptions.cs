@@ -1,5 +1,8 @@
 ﻿namespace NAPS2.Scan;
 
+/// <summary>
+/// Scanning options specific to the TWAIN driver.
+/// </summary>
 public class TwainOptions
 {
     /// <summary>
@@ -10,18 +13,10 @@ public class TwainOptions
     public TwainDsm Dsm { get; set; }
 
     /// <summary>
-    /// The adapter used for TWAIN, either the modern NTwain or the Legacy implementation used in very old versions of
-    /// NAPS2. NTwain is better for the vast majority of scanners, but a few (e.g. Kyocera brand) may only work with
-    /// Legacy for unknown reasons.  
-    /// </summary>
-    public TwainAdapter Adapter { get; set; }
-
-    /// <summary>
-    /// The transfer mode used for TWAIN, either Native or Memory. By default Native is used, but Memory might have
-    /// work better with some scanners.
+    /// The transfer mode used for TWAIN, either Native or Memory. By default Memory is used.
     /// </summary>
     public TwainTransferMode TransferMode { get; set; }
-    
+
     /// <summary>
     /// Whether to show the TWAIN progress UI. This only matters when ScanOptions.UseNativeUI is false (otherwise the
     /// full UI is shown regardless).
@@ -36,22 +31,46 @@ public class TwainOptions
     public bool IncludeWiaDevices { get; set; }
 }
 
-public enum TwainAdapter
-{
-    NTwain,
-    Legacy
-}
-
+/// <summary>
+/// The data source manager (DSM) to use for TWAIN.
+/// </summary>
 public enum TwainDsm
 {
+    /// <summary>
+    /// The modern 32-bit twaindsm.dll. Recommended.
+    /// </summary>
     New,
-    // TODO: Consider dropping support for x64 twain, it's not tested and I don't think anyone can use it anyway
+
+    /// <summary>
+    /// The modern 64-bit twaindsm.dll. Choose this if you want to use a 64-bit TWAIN data source.
+    /// </summary>
     NewX64,
+
+    /// <summary>
+    /// The old 32-bit twain32.dll. Some data sources have compatibility issues with the newer DSM.
+    /// </summary>
     Old
 }
 
+/// <summary>
+/// The transfer mode to use for TWAIN.
+/// </summary>
 public enum TwainTransferMode
 {
-    Native,
-    Memory
+    /// <summary>
+    /// Transfers the image using the recommended mode. Usually this is Memory, but some scanner drivers have known bugs
+    /// with that mode, and where we can detect that we use Native instead.
+    /// </summary>
+    Default,
+
+    /// <summary>
+    /// Transfers the image in strips.
+    /// </summary>
+    Memory,
+
+    /// <summary>
+    /// Transfers the entire image at once. This may fail with very high-resolution images if they exceed the memory
+    /// limits of the 32-bit worker.
+    /// </summary>
+    Native
 }

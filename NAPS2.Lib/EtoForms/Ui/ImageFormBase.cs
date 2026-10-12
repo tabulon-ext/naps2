@@ -1,44 +1,56 @@
 using Eto.Drawing;
 using Eto.Forms;
 using NAPS2.EtoForms.Layout;
+using NAPS2.EtoForms.Widgets;
 
 namespace NAPS2.EtoForms.Ui;
 
 public abstract class ImageFormBase : EtoDialogBase
 {
-    private readonly ThumbnailController _thumbnailController;
-
     private readonly ImageView _imageView = new();
-    private readonly CheckBox _applyToSelected = new();
-    private readonly Button _revert = C.Button(UiStrings.Revert);
+    private readonly HelpWidget _help = new();
 
     private readonly RefreshThrottle _renderThrottle;
 
     // Image bounds in the coordinate space of the overlay control
     protected float _overlayT, _overlayL, _overlayR, _overlayB, _overlayW, _overlayH;
 
-    public ImageFormBase(Naps2Config config, ThumbnailController thumbnailController) : base(config)
+    protected ImageFormBase(Naps2Config config, UiImageList imageList, ThumbnailController thumbnailController) :
+        base(config)
     {
-        _thumbnailController = thumbnailController;
-        _revert.Click += Revert;
+        ImageList = imageList;
+        ThumbnailController = thumbnailController;
         _renderThrottle = new RefreshThrottle(RenderImage);
         Overlay.Paint += PaintOverlay;
+        Overlay.SizeChanged += (_, _) => UpdateImageCoords();
         FormStateController.DefaultExtraLayoutSize = new Size(400, 400);
+        Maximizable = true;
     }
+
+    public UiImage Image { get; set; } = null!;
+    public List<UiImage> SelectedImages { get; set; } = null!;
+
+    protected UiImageList ImageList { get; }
+    protected ThumbnailController ThumbnailController { get; }
+
+    protected int DisplayImageHeight { get; set; }
+    protected int DisplayImageWidth { get; set; }
+
+    protected IMemoryImage? DisplayImage { get; set; }
+    protected Drawable Overlay { get; } = new();
+    protected int OverlayBorderSize { get; set; }
+    protected string? HelpText { get; set; }
 
     protected override void BuildLayout()
     {
-        foreach (var slider in Sliders)
-        {
-            slider.ValueChanged += UpdatePreviewBox;
-        }
-
+        _help.Text = HelpText ?? "";
         LayoutController.Content = L.Column(
             Overlay.Scale(),
             CreateControls(),
-            SelectedImages is { Count: > 1 } ? _applyToSelected : C.None(),
+            HelpText == null ? C.None() : _help.Label,
             L.Row(
-                _revert,
+                CreateExtraButtons(),
+                HelpText == null ? C.None() : _help.Button,
                 C.Filler(),
                 L.OkCancel(
                     C.OkButton(this, beforeClose: Apply),
@@ -47,15 +59,26 @@ public abstract class ImageFormBase : EtoDialogBase
         );
     }
 
-    protected int ImageHeight { get; set; }
-    protected int ImageWidth { get; set; }
+    protected override void OnPreLoad(EventArgs e)
+    {
+        base.OnPreLoad(e);
+        InitDisplayImage();
+        DisplayImageWidth = DisplayImage!.Width;
+        DisplayImageHeight = DisplayImage.Height;
+    }
 
-    protected IMemoryImage? WorkingImage { get; private set; }
-    protected IMemoryImage? DisplayImage { get; private set; }
-    protected Drawable Overlay { get; } = new();
-    protected int OverlayBorderSize { get; set; }
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        UpdatePreviewBox();
+    }
 
-    protected SliderWithTextBox[] Sliders { get; set; } = Array.Empty<SliderWithTextBox>();
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        DisplayImage?.Dispose();
+        _imageView.Image?.Dispose();
+    }
 
     protected override void OnSizeChanged(EventArgs e)
     {
@@ -66,14 +89,20 @@ public abstract class ImageFormBase : EtoDialogBase
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        SetDefaultFocus();
         UpdateImageCoords();
+    }
+
+    protected virtual void SetDefaultFocus()
+    {
+        DefaultButton.Focus();
     }
 
     private void UpdateImageCoords()
     {
         if (!Overlay.Loaded) return;
-        var widthRatio = ImageWidth / (float) (Overlay.Width - OverlayBorderSize * 2);
-        var heightRatio = ImageHeight / (float) (Overlay.Height - OverlayBorderSize * 2);
+        var widthRatio = DisplayImageWidth / (float) (Overlay.Width - OverlayBorderSize * 2);
+        var heightRatio = DisplayImageHeight / (float) (Overlay.Height - OverlayBorderSize * 2);
         var ratio = widthRatio / heightRatio;
         if (ratio > 1)
         {
@@ -98,76 +127,36 @@ public abstract class ImageFormBase : EtoDialogBase
 
     protected virtual void PaintOverlay(object? sender, PaintEventArgs e)
     {
-        e.Graphics.DrawImage(DisplayImage!.ToEtoImage(), _overlayL, _overlayT, _overlayW, _overlayH);
+        using var etoImage = DisplayImage!.ToEtoImage();
+        e.Graphics.DrawImage(etoImage, _overlayL, _overlayT, _overlayW, _overlayH);
     }
 
     private void RenderImage()
     {
         var bitmap = RenderPreview();
-        Invoker.Current.SafeInvoke(() =>
+        Invoker.Current.Invoke(() =>
         {
             DisplayImage?.Dispose();
             DisplayImage = bitmap;
-            if (DisplayImage.Width != ImageWidth || DisplayImage.Height != ImageHeight)
+            if (DisplayImage.Width != DisplayImageWidth || DisplayImage.Height != DisplayImageHeight)
             {
-                ImageWidth = DisplayImage.Width;
-                ImageHeight = DisplayImage.Height;
+                DisplayImageWidth = DisplayImage.Width;
+                DisplayImageHeight = DisplayImage.Height;
                 UpdateImageCoords();
             }
             Overlay.Invalidate();
         });
     }
 
-    protected virtual LayoutElement CreateControls()
-    {
-        return L.Column(Sliders.Select(x => (LayoutElement) x).ToArray());
-    }
+    protected abstract LayoutElement CreateControls();
 
-    public UiImage Image { get; set; } = null!;
+    protected virtual LayoutElement CreateExtraButtons() => C.None();
 
-    public List<UiImage>? SelectedImages { get; set; }
+    protected abstract IMemoryImage RenderPreview();
 
-    protected virtual IEnumerable<Transform> Transforms => throw new NotImplementedException();
+    protected abstract void InitDisplayImage();
 
-    private bool TransformMultiple => SelectedImages != null && _applyToSelected.IsChecked();
-
-    private IEnumerable<UiImage> ImagesToTransform => TransformMultiple ? SelectedImages! : Enumerable.Repeat(Image, 1);
-
-    protected virtual IMemoryImage RenderPreview()
-    {
-        var result = WorkingImage!.Clone();
-        return result.PerformAllTransforms(Transforms);
-    }
-
-    protected virtual void InitTransform()
-    {
-    }
-
-    protected virtual void ResetTransform()
-    {
-        foreach (var slider in Sliders)
-        {
-            slider.Value = 0;
-        }
-    }
-
-    protected virtual void TransformSaved()
-    {
-    }
-
-    protected override void OnLoad(EventArgs e)
-    {
-        base.OnLoad(e);
-        _applyToSelected.Text = string.Format(UiStrings.ApplyToSelected, SelectedImages?.Count);
-
-        using var imageToRender = Image.GetClonedImage();
-        WorkingImage = imageToRender.Render();
-        DisplayImage = WorkingImage.Clone();
-        ImageWidth = DisplayImage.Width;
-        ImageHeight = DisplayImage.Height;
-        InitTransform();
-        UpdatePreviewBox();
-    }
+    protected abstract void Apply();
 
     protected void UpdatePreviewBox()
     {
@@ -175,37 +164,22 @@ public abstract class ImageFormBase : EtoDialogBase
         _renderThrottle.RunAction();
     }
 
-    private void Apply()
+    protected RectangleF GetScreenWorkingArea()
     {
-        if (Transforms.Any(x => !x.IsNull))
+        try
         {
-            foreach (var img in ImagesToTransform)
+            var screen = Screen ?? Screen.PrimaryScreen;
+            if (screen != null)
             {
-                IMemoryImage? updatedThumb = null;
-                if (img == Image && WorkingImage != null)
-                {
-                    // Optimize thumbnail rendering for the first (or only) image since we already have it loaded into memory
-                    var transformed = WorkingImage.Clone().PerformAllTransforms(Transforms);
-                    updatedThumb =
-                        transformed.PerformTransform(new ThumbnailTransform(_thumbnailController.RenderSize));
-                }
-                img.AddTransforms(Transforms, updatedThumb);
+                return screen.WorkingArea;
             }
         }
-        TransformSaved();
-    }
+        catch (Exception)
+        {
+            // On Linux sometimes we can't get the working area
+        }
 
-    private void Revert(object? sender, EventArgs e)
-    {
-        ResetTransform();
-        UpdatePreviewBox();
-    }
-
-    protected override void OnClosed(EventArgs e)
-    {
-        base.OnClosed(e);
-        WorkingImage?.Dispose();
-        DisplayImage?.Dispose();
-        _imageView.Image?.Dispose();
+        // Assume 1080p screen by default
+        return new RectangleF(0, 0, 1920, 1080);
     }
 }

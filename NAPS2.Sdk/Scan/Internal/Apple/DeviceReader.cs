@@ -22,6 +22,11 @@ internal class DeviceReader : ICDeviceBrowserDelegate
         _browser.Start();
     }
 
+    public void Stop()
+    {
+        _browser.Stop();
+    }
+
     public event EventHandler<DeviceEventArgs>? DeviceFound;
 
     public override void DidAddDevice(ICDeviceBrowser browser, ICDevice device, bool moreComing)
@@ -43,8 +48,9 @@ internal class DeviceReader : ICDeviceBrowserDelegate
     {
         if (disposing)
         {
-            // _browser.Stop();
-            // _browser.Dispose();
+            _browser.Delegate = null;
+            _browser.Stop();
+            _browser.Dispose();
         }
         base.Dispose(disposing);
     }

@@ -14,24 +14,39 @@ internal class AppleScanDriver : IScanDriver
         _scanningContext = scanningContext;
     }
 
-    public async Task<List<ScanDevice>> GetDeviceList(ScanOptions options)
+    public async Task GetDevices(ScanOptions options, CancellationToken cancelToken, Action<ScanDevice> callback)
     {
         using var reader = new DeviceReader();
+        reader.DeviceFound += (_, args) =>
+        {
+            var device = args.Device;
+            if (device.Uuid != null && device.Name != null)
+            {
+                callback(new ScanDevice(Driver.Apple, device.Uuid, device.Name));
+            }
+        };
         reader.Start();
-        await Task.Delay(2000);
-        return reader.Devices
-            .Where(x => x.Uuid != null && x.Name != null)
-            .Select(x => new ScanDevice(x.Uuid!, x.Name!))
-            .ToList();
+        await Task.Delay(2000, cancelToken);
+    }
+
+    public async Task<ScanCaps> GetCaps(ScanOptions options, CancellationToken cancelToken)
+    {
+        using var reader = new DeviceReader();
+        // Note we don't want to dispose the device, as the ICDeviceBrowser manages its lifetime.
+        var device = await GetDevice(reader, options.Device!);
+        using var oper =
+            new DeviceOperator(_scanningContext, device, reader, options, cancelToken, null!, null!);
+        return await oper.GetCaps();
     }
 
     public async Task Scan(ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents,
         Action<IMemoryImage> callback)
     {
         using var reader = new DeviceReader();
-        using var device = await GetDevice(reader, options.Device!);
+        // Note we don't want to dispose the device, as the ICDeviceBrowser manages its lifetime.
+        var device = await GetDevice(reader, options.Device!);
         using var oper =
-            new DeviceOperator(_scanningContext, device, options, cancelToken, scanEvents, callback);
+            new DeviceOperator(_scanningContext, device, reader, options, cancelToken, scanEvents, callback);
         await oper.Scan();
     }
 
@@ -53,7 +68,7 @@ internal class AppleScanDriver : IScanDriver
         }
         catch (TaskCanceledException)
         {
-            throw new DeviceException(SdkResources.DeviceOffline);
+            throw new DeviceOfflineException();
         }
     }
 }

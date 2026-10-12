@@ -25,7 +25,7 @@
     <value>Opravdu si přejete smazat položky {0}?</value>
   </data>
   <data name="ConfirmDeleteMultipleProfiles" xml:space="preserve">
-    <value>Jste si jisti, že chcete smazat profily {0}? </value>
+    <value>Jste si jisti, že chcete smazat profily {0}?</value>
   </data>
   <data name="ConfirmDeleteSingleProfile" xml:space="preserve">
     <value>Jste si jisti, že chcete smazat profil {0}?</value>
@@ -61,7 +61,7 @@
     <value>Soubor GIF (*.gif)</value>
   </data>
   <data name="FileTypeJpeg" xml:space="preserve">
-    <value>Soubor JPEG (*.jpg, *.jpeg) </value>
+    <value>Soubor JPEG (*.jpg, *.jpeg)</value>
   </data>
   <data name="FileTypePdf" xml:space="preserve">
     <value>PDF dokument (*.pdf)</value>
@@ -73,7 +73,7 @@
     <value>Soubor TIFF (*.tiff, *.tif)</value>
   </data>
   <data name="FileTypeJp2" xml:space="preserve">
-    <value>JPEG2000 File (*.jp2, *.jpx)</value>
+    <value>Soubor JPEG2000 (*.jp2, *.jpx)</value>
   </data>
   <data name="NameMissing" xml:space="preserve">
     <value>Název chybí.</value>
@@ -307,10 +307,10 @@
     <value>PDF uloženo.</value>
   </data>
   <data name="NamedPageSizeFormat" xml:space="preserve">
-    <value>{0} ({1} × {2} {3})</value>
+    <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>Opravdu chcete smazat "{0}"?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>Soubor nemůže být přepsán, protože je právě používán.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 je zcela zdarma. Zvažte poskytnutí daru.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Napsat recenzi</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Líbí se vám NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>Ovladač SANE není dostupný. Ověřte instalaci požadovaných balíčků:</value>
@@ -367,10 +373,10 @@
     <value>Vyhledávání...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>Kontrola aktualizací je vypnuta.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
-    <value>Při pokusu o aktualizaci došlo k chybě..</value>
+    <value>Při pokusu o aktualizaci došlo k chybě.</value>
   </data>
   <data name="Install" xml:space="preserve">
     <value>Instalovat {0}</value>

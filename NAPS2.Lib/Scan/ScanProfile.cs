@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Xml.Serialization;
 using NAPS2.ImportExport;
+using NAPS2.Serialization;
 
 namespace NAPS2.Scan;
 
@@ -19,18 +20,23 @@ public class ScanProfile
         BitDepth = ScanBitDepth.C24Bit;
         PageAlign = ScanHorizontalAlign.Right;
         PageSize = ScanPageSize.Letter;
-        Resolution = ScanDpi.Dpi200;
+        Resolution.Dpi = 200;
         PaperSource = ScanSource.Glass;
         Quality = 75;
         BlankPageWhiteThreshold = 70;
-        BlankPageCoverageThreshold = 25;
+        BlankPageCoverageThreshold = 15;
         WiaDelayBetweenScansSeconds = 2.0;
     }
 
     public ScanProfile Clone()
     {
-        var profile = (ScanProfile) MemberwiseClone();
-        return profile;
+        // Easy deep copy. Ideally we'd do this in a more efficient way.
+        var copy = this.ToXml().FromXml<ScanProfile>();
+        // Copy XmlIgnore properties
+        copy.UpgradedFrom = UpgradedFrom;
+        copy.IsLocked = IsLocked;
+        copy.IsDeviceLocked = IsDeviceLocked;
+        return copy;
     }
 
     public override string ToString() => DisplayName;
@@ -47,13 +53,11 @@ public class ScanProfile
     [XmlIgnore]
     public bool IsDeviceLocked { get; set; }
 
-    public ScanDevice? Device { get; set; }
+    public ScanProfileDevice? Device { get; set; }
+
+    public ScanProfileCaps? Caps { get; set; }
 
     public string? DriverName { get; set; }
-
-    public ScanProxyConfig? ProxyConfig { get; set; }
-
-    public string? ProxyDriverName { get; set; }
 
     public string DisplayName { get; set; } = "";
 
@@ -75,13 +79,21 @@ public class ScanProfile
 
     public ScanHorizontalAlign PageAlign { get; set; }
 
-    public ScanPageSize PageSize { get; set; }
+    public ScanPageSize PageSize
+    {
+        get;
+        // SystemDefault is only a placeholder, so store the actual page size. We only use Letter/A4 as other sizes
+        // (e.g. A3) may not be supported by the scanner.
+        set => field = value != ScanPageSize.SystemDefault ? value
+            : Images.PageSize.SystemDefault == Images.PageSize.A4 ? ScanPageSize.A4
+            : ScanPageSize.Letter;
+    }
 
     public string? CustomPageSizeName { get; set; }
 
     public PageDimensions? CustomPageSize { get; set; }
 
-    public ScanDpi Resolution { get; set; }
+    public ScanResolution Resolution { get; set; } = new();
 
     public ScanSource PaperSource { get; set; }
 
@@ -93,6 +105,12 @@ public class ScanProfile
 
     public bool AutoDeskew { get; set; }
 
+    public bool AutoCrop { get; set; }
+
+    public bool DocumentCorrection { get; set; }
+
+    public double RotateDegrees { get; set; }
+
     public bool BrightnessContrastAfterScan { get; set; }
 
     public bool ForcePageSize { get; set; }
@@ -100,6 +118,8 @@ public class ScanProfile
     public bool ForcePageSizeCrop { get; set; }
 
     public TwainImpl TwainImpl { get; set; }
+
+    public bool TwainProgress { get; set; }
 
     public bool ExcludeBlankPages { get; set; }
 
@@ -122,13 +142,6 @@ public class ScanProfile
     public KeyValueScanOptions? KeyValueOptions { get; set; }
 }
 
-public record ScanProxyConfig
-{
-    public string Name { get; init; } = "";
-    public string Ip { get; init; } = "";
-    public int? Port { get; init; }
-}
-
 /// <summary>
 /// User configuration for the Auto Save feature, which saves to a file immediately after scanning.
 /// </summary>
@@ -145,8 +158,11 @@ public record AutoSaveSettings
 /// </summary>
 public enum TwainImpl
 {
+    // The default is currently equivalent ot MemXfer
     [LocalizedDescription(typeof(SettingsResources), "TwainImpl_Default")]
     Default,
+    [LocalizedDescription(typeof(SettingsResources), "TwainImpl_NativeXfer")]
+    NativeXfer,
     [LocalizedDescription(typeof(SettingsResources), "TwainImpl_MemXfer")]
     MemXfer,
     [LocalizedDescription(typeof(SettingsResources), "TwainImpl_OldDsm")]
@@ -188,22 +204,16 @@ public enum ScanBitDepth
 /// </summary>
 public enum ScanDpi
 {
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_100")]
     Dpi100,
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_150")]
     Dpi150,
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_200")]
     Dpi200,
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_300")]
     Dpi300,
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_400")]
     Dpi400,
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_600")]
     Dpi600,
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_800")]
     Dpi800,
-    [LocalizedDescription(typeof(SettingsResources), "Dpi_1200")]
-    Dpi1200
+    Dpi1200,
+    Dpi2400,
+    Dpi4800
 }
 
 /// <summary>
@@ -261,7 +271,12 @@ public enum ScanPageSize
     [PageDimensions("250", "353", LocalizedPageSizeUnit.Millimetre)]
     B4,
     [LocalizedDescription(typeof(SettingsResources), "PageSize_Custom")]
-    Custom
+    Custom,
+    /// <summary>
+    /// A placeholder for config files (e.g. appsettings.xml) that is replaced with the system's default page size
+    /// (Letter or A4) when set on a ScanProfile. It isn't a selectable page size.
+    /// </summary>
+    SystemDefault
 }
 
 /// <summary>
@@ -325,6 +340,11 @@ public static class ScanEnumExtensions
         return attrs.Select(x => x.PageDimensions).SingleOrDefault();
     }
 
+    public static PageSize ToPageSize(this PageDimensions pageDimensions)
+    {
+        return new PageSize(pageDimensions.Width, pageDimensions.Height, (PageSizeUnit) pageDimensions.Unit);
+    }
+
     public static int ToIntDpi(this ScanDpi enumValue)
     {
         switch (enumValue)
@@ -345,6 +365,10 @@ public static class ScanEnumExtensions
                 return 800;
             case ScanDpi.Dpi1200:
                 return 1200;
+            case ScanDpi.Dpi2400:
+                return 2400;
+            case ScanDpi.Dpi4800:
+                return 4800;
             default:
                 throw new ArgumentException();
         }
@@ -372,7 +396,7 @@ public static class ScanEnumExtensions
         object[] attrs =
             enumValue.GetType().GetField(enumValue.ToString())!.GetCustomAttributes(typeof(DescriptionAttribute),
                 false);
-        return attrs.Cast<DescriptionAttribute>().Select(x => x.Description).Single();
+        return attrs.Cast<DescriptionAttribute>().Select(x => x.Description).SingleOrDefault() ?? "";
     }
 
     public static BitDepth ToBitDepth(this ScanBitDepth bitDepth)

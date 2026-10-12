@@ -1,11 +1,10 @@
 ﻿using Autofac;
 using NAPS2.ImportExport.Email;
-using NAPS2.ImportExport.Email.Mapi;
 using NAPS2.ImportExport.Email.Oauth;
 
 namespace NAPS2;
 
-public class AutofacEmailProviderFactory : IEmailProviderFactory
+internal class AutofacEmailProviderFactory : IEmailProviderFactory
 {
     private readonly IComponentContext _container;
 
@@ -20,10 +19,16 @@ public class AutofacEmailProviderFactory : IEmailProviderFactory
         {
             case EmailProviderType.Gmail:
                 return _container.Resolve<GmailEmailProvider>();
+            case EmailProviderType.OutlookNew:
+                return _container.Resolve<OutlookNewEmailProvider>();
             case EmailProviderType.OutlookWeb:
                 return _container.Resolve<OutlookWebEmailProvider>();
+            case EmailProviderType.Thunderbird:
+                return _container.Resolve<ThunderbirdEmailProvider>();
+            case EmailProviderType.AppleMail:
+                return _container.Resolve<IAppleMailEmailProvider>();
             default:
-                return _container.Resolve<MapiEmailProvider>();
+                return _container.Resolve<IEmailProvider>(new NamedParameter("systemDefault", true));
         }
     }
 

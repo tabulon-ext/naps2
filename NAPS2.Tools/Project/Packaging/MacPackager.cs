@@ -14,7 +14,7 @@ public static class MacPackager
         Output.Info($"Packaging installer: {pkgPath}");
 
         Output.Verbose("Building bundle");
-        var basePath = Path.Combine(Paths.SolutionRoot, "NAPS2.App.Mac", "bin", "Release", "net7-macos10.15");
+        var basePath = Path.Combine(Paths.SolutionRoot, "NAPS2.App.Mac", "bin", "Release", "net10.0-macos");
         string bundlePath = packageInfo.Platform switch
         {
             Platform.Mac => Path.Combine(basePath, "NAPS2.app"),
@@ -26,12 +26,12 @@ public static class MacPackager
         {
             Directory.Delete(bundlePath, true);
         }
-        if (packageInfo.Platform == Platform.Mac)
+        Cli.Run("dotnet", $"build NAPS2.App.Mac -c Release");
+        if (packageInfo.Platform != Platform.Mac)
         {
-            Cli.Run("dotnet", $"build NAPS2.App.Mac -c Release");
-        }
-        else
-        {
+            // By default resource files are only copied into the universal bundle.
+            // We also need to run this to copy into the arch-specific bundle.
+            // (And we still have to build above as weirdly this command on its own ONLY copies resources.)
             var runtimeId = packageInfo.Platform == Platform.MacArm ? "osx-arm64" : "osx-x64";
             Cli.Run("dotnet", $"build NAPS2.App.Mac -c Release -r {runtimeId}");
         }
@@ -57,6 +57,18 @@ public static class MacPackager
             Cli.Run("codesign",
                 $"-s \"{applicationIdentity}\" \"{mainExe}\" -f --options runtime --entitlements \"{entitlements}\"");
         }
+
+        var tesseractPath1 = Path.Combine(bundlePath, "Contents", "Resources", "_mac", "tesseract");
+        if (Path.Exists(tesseractPath1))
+        {
+            Cli.Run("chmod", $"+x \"{tesseractPath1}\"");
+        }
+        var tesseractPath2 = Path.Combine(bundlePath, "Contents", "Resources", "_macarm", "tesseract");
+        if (Path.Exists(tesseractPath2))
+        {
+            Cli.Run("chmod", $"+x \"{tesseractPath2}\"");
+        }
+
         var signArgs = string.IsNullOrEmpty(installerIdentity) ? "" : $"--sign \"{installerIdentity}\"";
         Cli.Run("productbuild", $"--component \"{bundlePath}\" /Applications {signArgs} \"{pkgPath}\"");
 

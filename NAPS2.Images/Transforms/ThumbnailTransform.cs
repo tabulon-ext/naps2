@@ -1,9 +1,8 @@
-﻿
-// ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
+﻿// ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 
 namespace NAPS2.Images.Transforms;
 
-public class ThumbnailTransform : Transform
+public record ThumbnailTransform : Transform
 {
     public const int DEFAULT_SIZE = 256;
 
@@ -30,7 +29,7 @@ public class ThumbnailTransform : Transform
             width = Size;
             left = 0;
             // Scale the drawing height to match the original bitmap's aspect ratio
-            height = (int)(originalHeight * (Size / (double)originalWidth));
+            height = (int) Math.Max(originalHeight * (Size / (double) originalWidth), 1);
             // Center the drawing vertically
             top = (Size - height) / 2;
         }
@@ -40,7 +39,7 @@ public class ThumbnailTransform : Transform
             height = Size;
             top = 0;
             // Scale the drawing width to match the original bitmap's aspect ratio
-            width = (int)(originalWidth * (Size / (double)originalHeight));
+            width = (int) Math.Max(originalWidth * (Size / (double) originalHeight), 1);
             // Center the drawing horizontally
             left = (Size - width) / 2;
         }

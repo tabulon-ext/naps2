@@ -1,18 +1,19 @@
 using System.Threading;
+using NAPS2.Scan;
 
 namespace NAPS2.Remoting.Worker;
 
-public class WorkerPool : IDisposable
+internal class WorkerPool : IDisposable
 {
     private const int TICK_INTERVAL = 5000;
-        
-    private readonly IWorkerFactory _workerFactory;
+
+    private readonly ScanningContext _scanningContext;
     private readonly Timer _timer;
     private List<PoolEntry> _entries = new();
 
-    public WorkerPool(IWorkerFactory workerFactory)
+    public WorkerPool(ScanningContext scanningContext)
     {
-        _workerFactory = workerFactory;
+        _scanningContext = scanningContext;
         _timer = new Timer(Tick, null, 0, TICK_INTERVAL);
     }
 
@@ -31,8 +32,12 @@ public class WorkerPool : IDisposable
         }
     }
 
-    public T Use<T>(Func<WorkerContext, T> func)
+    public T Use<T>(WorkerType workerType, Func<WorkerContext, T> func)
     {
+        if (workerType != WorkerType.Native)
+        {
+            throw new NotSupportedException("WorkerPool only supports native workers");
+        }
         var worker = Take();
         T result;
         try
@@ -58,7 +63,7 @@ public class WorkerPool : IDisposable
                 _entries.RemoveAt(_entries.Count - 1);
                 return entry.Worker;
             }
-            return _workerFactory.Create();
+            return _scanningContext.CreateWorker(WorkerType.Native)!;
         }
     }
 

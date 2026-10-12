@@ -1,91 +1,116 @@
 using System.Collections.Immutable;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NAPS2.Ocr;
 using NAPS2.Remoting.Worker;
 
 namespace NAPS2.Scan;
 
+/// <summary>
+/// A ScanningContext object is needed for most NAPS2 operations. Set it up with the corresponding ImageContext type
+/// for image type you expect (e.g. GdiImageContext for System.Drawing.Bitmap, if you're using Windows Forms). You can
+/// also set various other properties that affect scanning and image processing.
+/// <para/>
+/// When the ScanningContext is disposed, all ProcessedImage objects that were generating from scanning or importing
+/// with that ScanningContext object will be automatically disposed.
+/// </summary>
 public class ScanningContext : IDisposable
 {
     private readonly ProcessedImageOwner _processedImageOwner = new();
 
-    // TODO: Make sure properties are initialized by callers (or something equivalent)
+    static ScanningContext()
+    {
+        // Use jpegli for JPEG encoding if the NAPS2.Jpeg.Binaries package is present
+        if (JpegliEncoder.TryCreate() is { } jpegliEncoder)
+        {
+            ImageContext.BundledEncoders.TryAdd(ImageFileFormat.Jpeg, jpegliEncoder);
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the ScanningContext class with the specified ImageContext.
+    /// </summary>
+    /// <param name="imageContext">The corresponding ImageContext type for the image type you expect (e.g.
+    /// GdiImageContext for System.Drawing.Bitmap, if you're using Windows Forms).</param>
     public ScanningContext(ImageContext imageContext)
     {
         ImageContext = imageContext;
     }
 
-    public ScanningContext(ImageContext imageContext, FileStorageManager fileStorageManager)
-    {
-        ImageContext = imageContext;
-        FileStorageManager = fileStorageManager;
-    }
-
-    public ScanningContext(ImageContext imageContext, FileStorageManager fileStorageManager, IOcrEngine ocrEngine,
-        IWorkerFactory workerFactory)
-    {
-        ImageContext = imageContext;
-        FileStorageManager = fileStorageManager;
-        OcrEngine = ocrEngine;
-        WorkerFactory = workerFactory;
-    }
-
-    // TODO: Figure out initialization etc.
+    /// <summary>
+    /// Gets the context's ImageContext. This corresponds to the image type used (e.g. GdiImageContext for
+    /// System.Drawing.Bitmap, if you're using Windows Forms).
+    /// </summary>
     public ImageContext ImageContext { get; }
 
+    /// <summary>
+    /// Gets or sets the context's FileStorageManager. If non-null, ProcessedImage objects from scanning or importing
+    /// with this ScanningContext will store the actual image data on disk instead of in memory.
+    /// </summary>
     public FileStorageManager? FileStorageManager { get; set; }
 
-    public string TempFolderPath { get; set; } = Path.GetTempPath();
+    /// <summary>
+    /// Gets or sets the context's WorkerFactory. This is required for some operations that need to happen in a worker
+    /// process (e.g. to scan with 32-bit TWAIN from a 64-bit process).
+    /// </summary>
+    internal IWorkerFactory? WorkerFactory { get; set; }
 
-    public string? RecoveryPath { get; set; }
-
-    public IWorkerFactory? WorkerFactory { get; set; }
-
-    public OcrRequestQueue OcrRequestQueue { get; } = new();
-
+    /// <summary>
+    /// Gets or sets the context's OcrEngine. This is used to perform the OCR (optical character recognition) operation
+    /// if OCR is requested for PDF export.
+    /// </summary>
     public IOcrEngine? OcrEngine { get; set; }
 
-    public ProcessedImage CreateProcessedImage(IImageStorage storage)
+    /// <summary>
+    /// Gets or sets the path to a temp folder where transient files can be stored. Defaults to Path.GetTempPath().
+    /// </summary>
+    public string TempFolderPath { get; set; } = Path.GetTempPath();
+
+    /// <summary>
+    /// Gets or sets the logger used for detailed diagnostics.
+    /// </summary>
+    public ILogger Logger { get; set; } = NullLogger.Instance;
+
+    internal string? RecoveryPath { get; set; }
+
+    internal OcrRequestQueue OcrRequestQueue { get; } = new();
+
+    public void Dispose()
     {
-        return CreateProcessedImage(storage, Enumerable.Empty<Transform>());
+        _processedImageOwner.Dispose();
+        FileStorageManager?.Dispose();
     }
 
-    public ProcessedImage CreateProcessedImage(IImageStorage storage, IEnumerable<Transform> transforms)
+    internal WorkerContext? CreateWorker(WorkerType workerType)
     {
-        var bitDepth = storage switch
-        {
-            IMemoryImage { LogicalPixelFormat: ImagePixelFormat.BW1 } => BitDepth.BlackAndWhite,
-            IMemoryImage { LogicalPixelFormat: ImagePixelFormat.Gray8 } => BitDepth.Grayscale,
-            _ => BitDepth.Color
-        };
-        return CreateProcessedImage(storage, bitDepth, false, -1, transforms);
+        return WorkerFactory?.Create(this, workerType);
     }
 
-    public ProcessedImage CreateProcessedImage(IImageStorage storage, BitDepth bitDepth, bool lossless, int quality)
+    internal ProcessedImage CreateProcessedImage(IImageStorage storage, bool lossless = false, int quality = -1,
+        PageSize? pageSize = null, IEnumerable<Transform>? transforms = null,
+        RefCount? refCount = null)
     {
-        return CreateProcessedImage(storage, bitDepth, lossless, quality, Enumerable.Empty<Transform>());
-    }
-
-    public ProcessedImage CreateProcessedImage(IImageStorage storage, BitDepth bitDepth, bool lossless, int quality,
-        IEnumerable<Transform> transforms)
-    {
-        var convertedStorage = ConvertStorageIfNeeded(storage, bitDepth, lossless, quality);
-        var metadata = new ImageMetadata(bitDepth, lossless);
+        var convertedStorage = ConvertStorageIfNeeded(storage, lossless, quality);
+        var metadata = new ImageMetadata(lossless, pageSize, quality);
+        var postProcessingData = new PostProcessingData();
+        refCount ??=
+            new RefCount(
+                new ProcessedImage.InternalDisposer(convertedStorage, postProcessingData, _processedImageOwner));
         var image = new ProcessedImage(
             ImageContext,
             convertedStorage,
             metadata,
-            new PostProcessingData(),
-            new TransformState(transforms.ToImmutableList()),
-            _processedImageOwner);
+            postProcessingData,
+            new TransformState(transforms?.ToImmutableList() ?? []),
+            refCount);
         return image;
     }
 
-    private IImageStorage ConvertStorageIfNeeded(IImageStorage storage, BitDepth bitDepth, bool lossless, int quality)
+    private IImageStorage ConvertStorageIfNeeded(IImageStorage storage, bool lossless, int quality)
     {
-        // TODO: We should revisit existing tests and make sure we have coverage for both filestorage and non
         if (FileStorageManager != null)
         {
-            return ConvertToFileStorage(storage, bitDepth, lossless, quality);
+            return ConvertToFileStorage(storage, lossless, quality);
         }
         return ConvertToMemoryStorage(storage);
     }
@@ -110,12 +135,12 @@ public class ScanningContext : IDisposable
         }
     }
 
-    private IImageStorage ConvertToFileStorage(IImageStorage storage, BitDepth bitDepth, bool lossless, int quality)
+    private IImageStorage ConvertToFileStorage(IImageStorage storage, bool lossless, int quality)
     {
         switch (storage)
         {
             case IMemoryImage image:
-                return WriteImageToBackingFile(image, bitDepth, lossless, quality);
+                return WriteImageToBackingFile(image, lossless, quality);
             case ImageFileStorage fileStorage:
                 return fileStorage;
             case ImageMemoryStorage memoryStorage:
@@ -125,7 +150,7 @@ public class ScanningContext : IDisposable
                 }
                 // TODO: Can we just write this to a file directly? Is there any case where SaveSmallestFormat is really needed?
                 var loadedImage = ImageContext.Load(memoryStorage.Stream);
-                return WriteImageToBackingFile(loadedImage, bitDepth, lossless, quality);
+                return WriteImageToBackingFile(loadedImage, lossless, quality);
             default:
                 // The only case that should hit this is a test with a mock
                 return storage;
@@ -144,35 +169,27 @@ public class ScanningContext : IDisposable
         return new ImageFileStorage(path, false);
     }
 
-    private IImageStorage WriteImageToBackingFile(IMemoryImage image, BitDepth bitDepth, bool lossless, int quality)
+    private IImageStorage WriteImageToBackingFile(IMemoryImage image, bool lossless, int quality)
     {
         if (FileStorageManager == null)
         {
             throw new InvalidOperationException();
         }
         var path = FileStorageManager.NextFilePath();
-        var fullPath = new ImageExportHelper()
-            .SaveSmallestFormat(path, image, bitDepth, lossless, quality, out _);
+        var fullPath = ImageExportHelper.SaveSmallestFormat(path, image, lossless, quality, out _);
         return new ImageFileStorage(fullPath, false);
     }
 
-    public string SaveToTempFile(IMemoryImage image, BitDepth bitDepth = BitDepth.Color)
+    internal string SaveToTempFile(IMemoryImage image)
     {
         var path = Path.Combine(TempFolderPath, Path.GetRandomFileName());
-        return new ImageExportHelper()
-            .SaveSmallestFormat(path, image, bitDepth, false, -1, out _);
+        return ImageExportHelper.SaveSmallestFormat(path, image, false, -1, out _);
     }
 
-    public string SaveToTempFile(ProcessedImage image, BitDepth bitDepth = BitDepth.Color)
+    internal string SaveToTempFile(ProcessedImage image)
     {
         using var rendered = image.Render();
-        return SaveToTempFile(rendered, bitDepth);
-    }
-
-    public void Dispose()
-    {
-        _processedImageOwner.Dispose();
-        FileStorageManager?.Dispose();
+        return SaveToTempFile(rendered);
     }
 
     private class ProcessedImageOwner : IProcessedImageOwner, IDisposable

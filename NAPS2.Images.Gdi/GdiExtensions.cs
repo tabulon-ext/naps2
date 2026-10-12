@@ -3,9 +3,7 @@ using System.Drawing.Imaging;
 
 namespace NAPS2.Images.Gdi;
 
-#if NET6_0_OR_GREATER
 [System.Runtime.Versioning.SupportedOSPlatform("windows7.0")]
-#endif
 public static class GdiExtensions
 {
     public static Bitmap RenderToBitmap(this IRenderableImage image)
@@ -63,7 +61,7 @@ public static class GdiExtensions
         {
             return ImageFileFormat.Tiff;
         }
-        return ImageFileFormat.Unspecified;
+        return ImageFileFormat.Unknown;
     }
 
     public static PixelFormat AsPixelFormat(this ImagePixelFormat pixelFormat)
@@ -95,7 +93,7 @@ public static class GdiExtensions
             case PixelFormat.Format1bppIndexed:
                 return ImagePixelFormat.BW1;
             default:
-                return ImagePixelFormat.Unsupported;
+                return ImagePixelFormat.Unknown;
         }
     }
 

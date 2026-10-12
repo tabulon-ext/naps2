@@ -19,22 +19,24 @@ public class KeyboardShortcuts
     public string? BatchScan { get; set; }
 
     public string? Profiles { get; set; }
-
+    public string? ScannerSharing { get; set; }
     public string? Ocr { get; set; }
-
     public string? Import { get; set; }
 
     public string? SavePDF { get; set; }
     public string? SavePDFAll { get; set; }
     public string? SavePDFSelected { get; set; }
+    public string? PDFSettings { get; set; }
 
     public string? SaveImages { get; set; }
     public string? SaveImagesAll { get; set; }
     public string? SaveImagesSelected { get; set; }
+    public string? ImageSettings { get; set; }
 
     public string? EmailPDF { get; set; }
     public string? EmailPDFAll { get; set; }
     public string? EmailPDFSelected { get; set; }
+    public string? EmailSettings { get; set; }
 
     public string? Print { get; set; }
 
@@ -46,16 +48,24 @@ public class KeyboardShortcuts
     public string? ImageHue { get; set; }
     public string? ImageSaturation { get; set; }
     public string? ImageSharpen { get; set; }
+    public string? ImageDocumentCorrection { get; set; }
+    public string? ImageCompress { get; set; }
+    public string? ImageSplit { get; set; }
+    public string? ImageCombine { get; set; }
+    public string? ImageEditWith { get; set; }
     public string? ImageReset { get; set; }
 
     public string? RotateLeft { get; set; }
     public string? RotateRight { get; set; }
     public string? RotateFlip { get; set; }
+    public string? RotateDeskew { get; set; }
     public string? RotateCustom { get; set; }
 
     public string? MoveUp { get; set; }
     public string? MoveDown { get; set; }
 
+    public string? ReorderManualDuplex { get; set; }
+    public string? ReorderManualDuplexPreview { get; set; }
     public string? ReorderInterleave { get; set; }
     public string? ReorderDeinterleave { get; set; }
     public string? ReorderAltInterleave { get; set; }
@@ -64,9 +74,8 @@ public class KeyboardShortcuts
     public string? ReorderReverseSelected { get; set; }
 
     public string? Delete { get; set; }
-
     public string? Clear { get; set; }
-
+    public string? Settings { get; set; }
     public string? About { get; set; }
 
     public string? ZoomIn { get; set; }

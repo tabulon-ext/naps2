@@ -1,9 +1,10 @@
-using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
+using Eto.Drawing;
 using Eto.Forms;
 using NAPS2.Config.Model;
 using NAPS2.EtoForms.Layout;
+using NAPS2.EtoForms.Widgets;
 using NAPS2.ImportExport;
 using NAPS2.Scan;
 using NAPS2.Scan.Batch;
@@ -28,13 +29,13 @@ public class BatchScanForm : EtoDialogBase
     private readonly Label _status = new() { Text = UiStrings.PressStartWhenReady };
     private readonly Button _start = new() { Text = UiStrings.Start };
     private readonly Button _cancel = new() { Text = UiStrings.Cancel };
-    private readonly DropDown _profile = C.DropDown();
+    private readonly DropDownWidget<ScanProfile> _profile = new();
     private readonly RadioButton _singleScan;
     private readonly RadioButton _multipleScansPrompt;
     private readonly RadioButton _multipleScansDelay;
     private readonly LayoutVisibility _delayVis = new(false);
-    private readonly NumericMaskedTextBox<int> _numberOfScans = new();
-    private readonly NumericMaskedTextBox<decimal> _timeBetweenScans = new();
+    private readonly UndoableNumericMaskedTextBox<int> _numberOfScans = new();
+    private readonly UndoableNumericMaskedTextBox<decimal> _timeBetweenScans = new();
     private readonly RadioButton _load;
     private readonly RadioButton _saveToSingleFile;
     private readonly RadioButton _saveToMultipleFiles;
@@ -52,9 +53,12 @@ public class BatchScanForm : EtoDialogBase
     private CancellationTokenSource _cts = new();
 
     public BatchScanForm(Naps2Config config, DialogHelper dialogHelper, IProfileManager profileManager,
-        IBatchScanPerformer batchScanPerformer, ErrorOutput errorOutput)
+        IBatchScanPerformer batchScanPerformer, ErrorOutput errorOutput, IIconProvider iconProvider)
         : base(config)
     {
+        Title = UiStrings.BatchScanFormTitle;
+        IconName = "application_cascade_small";
+
         _profileManager = profileManager;
         _batchScanPerformer = batchScanPerformer;
         _errorOutput = errorOutput;
@@ -68,6 +72,7 @@ public class BatchScanForm : EtoDialogBase
         _filePerPage = new RadioButton(_filePerScan) { Text = UiStrings.OneFilePerPage };
         _separateByPatchT = new RadioButton(_filePerScan) { Text = UiStrings.SeparateByPatchT };
         _filePath = new(this, dialogHelper);
+        _profile.Format = x => x.DisplayName;
 
         _start.Click += Start;
         _cancel.Click += Cancel;
@@ -78,13 +83,20 @@ public class BatchScanForm : EtoDialogBase
         _userTransact = Config.User.BeginTransaction();
         _transactionConfig = Config.WithTransaction(_userTransact);
 
-        EditProfileCommand = new ActionCommand(EditProfile) { Image = Icons.pencil_small.ToEtoImage() };
-        NewProfileCommand = new ActionCommand(NewProfile) { Image = Icons.add_small.ToEtoImage() };
+        EditProfileCommand = new ActionCommand(EditProfile)
+        {
+            ToolTip = UiStrings.Edit,
+            IconName = "pencil_small"
+        };
+        NewProfileCommand = new ActionCommand(NewProfile)
+        {
+            ToolTip = UiStrings.New,
+            IconName = "add_small"
+        };
     }
 
     private void UpdateVisibility(object? sender, EventArgs e)
     {
-        // TODO: Bundle multiple updates together before invalidating somehow
         _delayVis.IsVisible = _multipleScansDelay.Checked;
         _multiVis.IsVisible = _saveToMultipleFiles.Checked;
         _fileVis.IsVisible = _saveToSingleFile.Checked || _saveToMultipleFiles.Checked;
@@ -93,9 +105,9 @@ public class BatchScanForm : EtoDialogBase
 
     public Action<ProcessedImage> ImageCallback { get; set; } = null!;
 
-    private Command NewProfileCommand { get; }
+    private ActionCommand NewProfileCommand { get; }
 
-    private Command EditProfileCommand { get; }
+    private ActionCommand EditProfileCommand { get; }
 
     protected override void BuildLayout()
     {
@@ -103,9 +115,8 @@ public class BatchScanForm : EtoDialogBase
             !(Config.Get(c => c.NoUserProfiles) && _profileManager.Profiles.Any(x => x.IsLocked));
         UpdateUIFromSettings();
 
-        Title = UiStrings.BatchScanFormTitle;
-
         FormStateController.FixedHeightLayout = true;
+        AbortButton = _cancel;
 
         LayoutController.Content = L.Column(
             L.Row(
@@ -120,19 +131,19 @@ public class BatchScanForm : EtoDialogBase
                 L.Column(
                     C.Label(UiStrings.ProfileLabel),
                     L.Row(
-                        _profile.Scale(),
-                        C.Button(EditProfileCommand, ButtonImagePosition.Overlay),
-                        C.Button(NewProfileCommand, ButtonImagePosition.Overlay)
+                        _profile.AsControl().Scale().NaturalWidth(100),
+                        C.Button(EditProfileCommand, ButtonImagePosition.Overlay).Width(30),
+                        C.Button(NewProfileCommand, ButtonImagePosition.Overlay).Width(30)
                     ),
                     _singleScan,
                     _multipleScansPrompt,
                     _multipleScansDelay,
                     L.Column(
-                        C.Label(UiStrings.NumberOfScansLabel).Visible(_delayVis),
-                        _numberOfScans.Width(50).Visible(_delayVis),
-                        C.Label(UiStrings.TimeBetweenScansLabel).Visible(_delayVis),
-                        _timeBetweenScans.Width(50).Visible(_delayVis)
-                    ).Padding(left: 20)
+                        C.Label(UiStrings.NumberOfScansLabel),
+                        _numberOfScans.Width(50),
+                        C.Label(UiStrings.TimeBetweenScansLabel),
+                        _timeBetweenScans.Width(50)
+                    ).Padding(left: 20).Visible(_delayVis)
                 )
             ),
             L.GroupBox(
@@ -141,17 +152,16 @@ public class BatchScanForm : EtoDialogBase
                     _load,
                     _saveToSingleFile,
                     _saveToMultipleFiles,
-                    // TODO: Support visibility on rows/columns
                     L.Column(
-                        _filePerScan.Visible(_multiVis),
-                        _filePerPage.Visible(_multiVis),
-                        _separateByPatchT.Visible(_multiVis),
-                        _moreInfo.Visible(_multiVis)
-                    ).Padding(left: 20),
+                        _filePerScan,
+                        _filePerPage,
+                        _separateByPatchT,
+                        _moreInfo
+                    ).Padding(left: 20).Visible(_multiVis),
                     L.Column(
-                        C.Label(UiStrings.FilePathLabel).Visible(_fileVis),
-                        _filePath.Visible(_fileVis)
-                    )
+                        C.Label(UiStrings.FilePathLabel),
+                        _filePath
+                    ).Visible(_fileVis)
                 )
             )
         );
@@ -191,11 +201,11 @@ public class BatchScanForm : EtoDialogBase
     {
         bool ok = true;
 
-        _userTransact.Set(c => c.BatchSettings.ProfileDisplayName, _profile.SelectedKey);
-        if (_profile.SelectedIndex == -1)
+        _userTransact.Set(c => c.BatchSettings.ProfileDisplayName, _profile.SelectedItem?.DisplayName);
+        if (_profile.SelectedItem == null)
         {
             ok = false;
-            _profile.Focus();
+            _profile.AsControl().Focus();
         }
 
         _userTransact.Set(c => c.BatchSettings.ScanType, _multipleScansPrompt.Checked
@@ -244,32 +254,17 @@ public class BatchScanForm : EtoDialogBase
 
     private void UpdateProfiles()
     {
-        _profile.Items.Clear();
-        _profile.Items.AddRange(_profileManager.Profiles.Select(profile => new ListItem
-        {
-            Text = profile.DisplayName,
-            Key = profile.DisplayName,
-            Tag = profile
-        }));
-        if (!string.IsNullOrEmpty(_transactionConfig.Get(c => c.BatchSettings.ProfileDisplayName)) &&
-            _profileManager.Profiles.Any(x =>
-                x.DisplayName == _transactionConfig.Get(c => c.BatchSettings.ProfileDisplayName)))
-        {
-            _profile.SelectedKey = _transactionConfig.Get(c => c.BatchSettings.ProfileDisplayName);
-        }
-        else if (_profileManager.DefaultProfile != null)
-        {
-            _profile.SelectedKey = _profileManager.DefaultProfile.DisplayName;
-        }
-        else
-        {
-            _profile.SelectedKey = null;
-        }
+        _profile.Items = _profileManager.Profiles;
+        var selectedName = _transactionConfig.Get(c => c.BatchSettings.ProfileDisplayName);
+        var selectedProfile = selectedName != null
+            ? _profileManager.Profiles.FirstOrDefault(x => x.DisplayName == selectedName)
+            : null;
+        _profile.SelectedItem = selectedProfile ?? _profileManager.DefaultProfile;
     }
 
     private void EditProfile()
     {
-        var originalProfile = (ScanProfile) ((ListItem) _profile.SelectedValue).Tag;
+        var originalProfile = _profile.SelectedItem;
         if (originalProfile != null)
         {
             var fedit = FormFactory.Create<EditProfileForm>();
@@ -290,6 +285,7 @@ public class BatchScanForm : EtoDialogBase
         if (!(Config.Get(c => c.NoUserProfiles) && _profileManager.Profiles.Any(x => x.IsLocked)))
         {
             var fedit = FormFactory.Create<EditProfileForm>();
+            fedit.NewProfile = true;
             fedit.ScanProfile = Config.DefaultProfileSettings();
             fedit.ShowModal();
             if (fedit.Result)
@@ -334,7 +330,7 @@ public class BatchScanForm : EtoDialogBase
     {
         var controls = new Control[]
         {
-            _profile, _singleScan, _multipleScansPrompt, _multipleScansDelay, _numberOfScans,
+            _profile.AsControl(), _singleScan, _multipleScansPrompt, _multipleScansDelay, _numberOfScans,
             _timeBetweenScans, _load, _saveToSingleFile, _saveToMultipleFiles, _filePerScan, _filePerPage,
             _separateByPatchT, _moreInfo
         };
@@ -351,9 +347,9 @@ public class BatchScanForm : EtoDialogBase
     {
         try
         {
-            await _batchScanPerformer.PerformBatchScan(Config.Get(c => c.BatchSettings), this,
-                image => Invoker.Current.SafeInvoke(() => ImageCallback(image)), ProgressCallback, _cts.Token);
-            Invoker.Current.SafeInvoke(() =>
+            await _batchScanPerformer.PerformBatchScan(_transactionConfig.Get(c => c.BatchSettings), this,
+                image => Invoker.Current.Invoke(() => ImageCallback(image)), ProgressCallback, _cts.Token);
+            Invoker.Current.Invoke(() =>
             {
                 _status.Text = _cts.IsCancellationRequested
                     ? MiscResources.BatchStatusCancelled
@@ -376,9 +372,9 @@ public class BatchScanForm : EtoDialogBase
         {
             Log.ErrorException("Error in batch scan", ex);
             _errorOutput.DisplayError(MiscResources.BatchError, ex);
-            Invoker.Current.SafeInvoke(() => { _status.Text = MiscResources.BatchStatusError; });
+            Invoker.Current.Invoke(() => { _status.Text = MiscResources.BatchStatusError; });
         }
-        Invoker.Current.SafeInvoke(() =>
+        Invoker.Current.Invoke(() =>
         {
             _batchRunning = false;
             _cts = new CancellationTokenSource();
@@ -392,7 +388,7 @@ public class BatchScanForm : EtoDialogBase
 
     private void ProgressCallback(string status)
     {
-        Invoker.Current.SafeInvoke(() => { _status.Text = status; });
+        Invoker.Current.Invoke(() => { _status.Text = status; });
     }
 
     private void Cancel(object? sender, EventArgs e)
@@ -400,7 +396,7 @@ public class BatchScanForm : EtoDialogBase
         if (_batchRunning)
         {
             if (MessageBox.Show(MiscResources.ConfirmCancelBatch, MiscResources.CancelBatch, MessageBoxButtons.YesNo,
-                    MessageBoxType.Question) == DialogResult.Yes)
+                    MessageBoxType.Question, MessageBoxDefaultButton.Yes) == DialogResult.Yes)
             {
                 _cts.Cancel();
                 _cancel.Enabled = false;
@@ -410,15 +406,6 @@ public class BatchScanForm : EtoDialogBase
         else
         {
             Close();
-        }
-    }
-
-    protected override void OnClosing(CancelEventArgs e)
-    {
-        if (_cts.IsCancellationRequested)
-        {
-            // Keep dialog open while cancel is in progress to avoid concurrency issues
-            e.Cancel = true;
         }
     }
 }

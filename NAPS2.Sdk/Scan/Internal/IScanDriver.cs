@@ -4,7 +4,10 @@ namespace NAPS2.Scan.Internal;
 
 internal interface IScanDriver
 {
-    Task<List<ScanDevice>> GetDeviceList(ScanOptions options);
+    Task GetDevices(ScanOptions options, CancellationToken cancelToken, Action<ScanDevice> callback);
 
-    Task Scan(ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents, Action<IMemoryImage> callback);
+    Task<ScanCaps> GetCaps(ScanOptions options, CancellationToken cancelToken);
+
+    Task Scan(ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents,
+        Action<IMemoryImage> callback);
 }

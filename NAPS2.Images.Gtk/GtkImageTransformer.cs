@@ -4,7 +4,7 @@ using NAPS2.Images.Bitwise;
 
 namespace NAPS2.Images.Gtk;
 
-public class GtkImageTransformer : AbstractImageTransformer<GtkImage>
+internal class GtkImageTransformer : AbstractImageTransformer<GtkImage>
 {
     public GtkImageTransformer(ImageContext imageContext) : base(imageContext)
     {
@@ -31,11 +31,9 @@ public class GtkImageTransformer : AbstractImageTransformer<GtkImage>
         context.Translate(-image.Width / 2.0, -image.Height / 2.0);
         CairoHelper.SetSourcePixbuf(context, image.Pixbuf, 0, 0);
         context.Paint();
-        var newImage = new GtkImage(ImageContext, new Pixbuf(surface, 0, 0, width, height));
-        // TODO: In Gdi, we convert this back to BW1. Should we do the same?
-        newImage.LogicalPixelFormat = image.LogicalPixelFormat == ImagePixelFormat.BW1
-            ? ImagePixelFormat.Gray8
-            : image.LogicalPixelFormat;
+        var newImage = new GtkImage(new Pixbuf(surface, 0, 0, width, height));
+        OptimizePixelFormat(image, ref newImage);
+        newImage.LogicalPixelFormat = image.LogicalPixelFormat;
         newImage.SetResolution(xres, yres);
         image.Dispose();
         return newImage;
@@ -43,13 +41,15 @@ public class GtkImageTransformer : AbstractImageTransformer<GtkImage>
 
     protected override GtkImage PerformTransform(GtkImage image, ResizeTransform transform)
     {
+        // TODO: Can we improve interpolation? Somehow integrate Cairo.Filter.Bilinear or Cairo.Filter.Best, though
+        // it's not clear how to reconcile that with SetSourcePixbuf.
         var format = image.PixelFormat == ImagePixelFormat.ARGB32 ? Format.Argb32 : Format.Rgb24;
         using var surface = new ImageSurface(format, transform.Width, transform.Height);
         using var context = new Context(surface);
         context.Scale(transform.Width / (double) image.Width, transform.Height / (double) image.Height);
         CairoHelper.SetSourcePixbuf(context, image.Pixbuf, 0, 0);
         context.Paint();
-        var newImage = new GtkImage(ImageContext, new Pixbuf(surface, 0, 0, transform.Width, transform.Height));
+        var newImage = new GtkImage(new Pixbuf(surface, 0, 0, transform.Width, transform.Height));
         newImage.LogicalPixelFormat = image.LogicalPixelFormat == ImagePixelFormat.BW1
             ? ImagePixelFormat.Gray8
             : image.LogicalPixelFormat;
@@ -67,6 +67,16 @@ public class GtkImageTransformer : AbstractImageTransformer<GtkImage>
             BlackWhiteThreshold = (transform.Threshold + 1000) / 2000f
         }.Perform(image);
         image.LogicalPixelFormat = ImagePixelFormat.BW1;
+        return image;
+    }
+
+    protected override GtkImage PerformTransform(GtkImage image, GrayscaleTransform transform)
+    {
+        new DecolorBitwiseImageOp(false).Perform(image);
+        if (image.LogicalPixelFormat != ImagePixelFormat.Unknown)
+        {
+            image.LogicalPixelFormat = ImagePixelFormat.Gray8;
+        }
         return image;
     }
 }

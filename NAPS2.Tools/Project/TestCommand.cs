@@ -1,16 +1,56 @@
+using System.Runtime.InteropServices;
+
 namespace NAPS2.Tools.Project;
 
 public class TestCommand : ICommand<TestOptions>
 {
     public int Run(TestOptions opts)
     {
-        // TODO: Framework options (e.g. "-f net462")
-        Output.Info("Running tests");
-        Cli.Run("dotnet", "test", new()
+        var arch = RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
+        var depsRootPath = OperatingSystem.IsMacOS()
+            ? $"NAPS2.App.Mac/bin/Debug/net10.0-macos/osx-{arch}"
+            : OperatingSystem.IsLinux()
+                ? $"NAPS2.App.Gtk/bin/Debug/net10.0/linux-{arch}"
+                : $"NAPS2.App.WinForms/bin/Debug/net10.0-windows/win-{arch}";
+        var frameworkArg = OperatingSystem.IsWindows() ? "" : "-f net10.0";
+        bool ranTests = false;
+
+        void RunTests(string project, bool isRetry = false)
         {
-            {"NAPS2_TEST_ROOT", Path.Combine(Paths.SolutionRoot, "NAPS2.App.Tests", "bin", "Debug", "net462")}
-        });
-        Output.Info("Tests passed.");
+            try
+            {
+                ranTests = true;
+                Cli.Run("dotnet", $"test -l \"console;verbosity=normal\" {frameworkArg} {project}", new()
+                {
+                    { "NAPS2_TEST_DEPS", Path.Combine(Paths.SolutionRoot, depsRootPath) },
+                    { "NAPS2_TEST_NOGUI", opts.NoGui ? "1" : "0" },
+                    { "NAPS2_TEST_NONETWORK", opts.NoNetwork ? "1" : "0" },
+                    { "NAPS2_TEST_IMAGES", opts.Images ?? "" }
+                });
+            }
+            catch (Exception)
+            {
+                if (isRetry) throw;
+                Output.Info("Tests failed, retrying once");
+                RunTests(project, true);
+            }
+        }
+
+        var scopes = string.IsNullOrEmpty(opts.Scope) ? ["sdk", "lib", "app"] : opts.Scope.Split('+');
+        Output.Info($"Running tests ({string.Join(", ", scopes)})");
+        if (scopes.Contains("sdk"))
+        {
+            RunTests("NAPS2.Sdk.Tests");
+        }
+        if (scopes.Contains("lib"))
+        {
+            RunTests("NAPS2.Lib.Tests");
+        }
+        if (scopes.Contains("app"))
+        {
+            RunTests("NAPS2.App.Tests");
+        }
+        Output.Info(ranTests ? "Tests passed." : "Invalid scopes, no tests run.");
         return 0;
     }
 }

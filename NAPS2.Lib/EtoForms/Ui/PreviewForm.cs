@@ -1,48 +1,149 @@
 using Eto.Drawing;
 using Eto.Forms;
+using NAPS2.EtoForms.Desktop;
+using NAPS2.EtoForms.Widgets;
 
 namespace NAPS2.EtoForms.Ui;
 
 public class PreviewForm : EtoDialogBase
 {
     private readonly DesktopCommands _desktopCommands;
+    private readonly IIconProvider _iconProvider;
+    private readonly KeyboardShortcutManager _previewKsm;
 
-    private readonly ImageView _imageView = new();
+    private readonly ButtonToolItem _pageNumberButton = new();
+    private readonly ButtonToolItem _zoomPercentButton = new();
     private UiImage? _currentImage;
 
     public PreviewForm(Naps2Config config, DesktopCommands desktopCommands, UiImageList imageList,
-        IIconProvider iconProvider) : base(config)
+        IIconProvider iconProvider, ColorScheme colorScheme) : base(config)
     {
+        Title = UiStrings.PreviewFormTitle;
+        Icon = EtoPlatform.Current.IsGtk ? new Icon(1f, Icons.scanner_128.ToEtoImage()) : Icons.favicon.ToEtoIcon();
+        Maximizable = true;
+
         _desktopCommands = desktopCommands;
         ImageList = imageList;
+        _iconProvider = iconProvider;
+
+        ImageViewer.ColorScheme = colorScheme;
+        ImageViewer.ZoomChanged += ImageViewerZoomChanged;
+        ImageList.ImagesUpdated += ImageList_ImagesUpdated;
 
         GoToPrevCommand = new ActionCommand(() => GoTo(ImageIndex - 1))
         {
             Text = UiStrings.Previous,
-            Image = iconProvider.GetIcon("arrow_left")
+            IconName = "arrow_left_small"
         };
         GoToNextCommand = new ActionCommand(() => GoTo(ImageIndex + 1))
         {
             Text = UiStrings.Next,
-            Image = iconProvider.GetIcon("arrow_right")
+            IconName = "arrow_right_small"
         };
+        ZoomInCommand = new ActionCommand(() => ImageViewer.ChangeZoom(1))
+        {
+            Text = UiStrings.ZoomIn,
+            IconName = "zoom_in_small"
+        };
+        ZoomOutCommand = new ActionCommand(() => ImageViewer.ChangeZoom(-1))
+        {
+            Text = UiStrings.ZoomOut,
+            IconName = "zoom_out_small"
+        };
+        ZoomWindowCommand = new ActionCommand(ImageViewer.ZoomToContainer)
+        {
+            // TODO: Update this string as it's now a button and not a toggle
+            Text = UiStrings.ScaleWithWindow,
+            IconName = "arrow_out_small"
+        };
+        ZoomActualCommand = new ActionCommand(ImageViewer.ZoomToActual)
+        {
+            Text = UiStrings.ZoomActual,
+            IconName = "zoom_actual_small"
+        };
+        DeleteCurrentImageCommand = new ActionCommand(DeleteCurrentImage)
+        {
+            Text = UiStrings.Delete,
+            IconName = "cross_small"
+        };
+
+        _previewKsm = new KeyboardShortcutManager();
+        EtoPlatform.Current.HandleKeyDown(this, _previewKsm.Perform);
+    }
+
+    private void ImageList_ImagesUpdated(object? sender, ImageListEventArgs e)
+    {
+        Invoker.Current.InvokeDispatch(async () =>
+        {
+            bool shouldClose = false;
+            lock (ImageList)
+            {
+                if (ImageList.Images.Contains(CurrentImage))
+                {
+                    UpdateImageIndex();
+                    UpdatePage();
+                    return;
+                }
+                if (ImageList.Images.Any())
+                {
+                    // Update the GUI for the newly displayed image
+                    var nextIndex = ImageIndex >= ImageList.Images.Count ? ImageList.Images.Count - 1 : ImageIndex;
+                    CurrentImage = ImageList.Images[nextIndex];
+                    ImageList.UpdateSelection(ListSelection.Of(CurrentImage));
+                }
+                else
+                {
+                    shouldClose = true;
+                    ImageList.UpdateSelection(ListSelection.Empty<UiImage>());
+                }
+            }
+            if (shouldClose)
+            {
+                // No images left to display, so no point keeping the form open
+                Close();
+            }
+            else
+            {
+                UpdatePage();
+                await UpdateImage();
+            }
+        });
+    }
+
+    private void UpdateImageIndex()
+    {
+        var index = ImageList.Images.IndexOf(CurrentImage);
+        if (index == -1)
+        {
+            index = 0;
+        }
+        ImageIndex = index;
+    }
+
+    protected ScrollZoomImageViewer ImageViewer { get; } = new();
+
+    private void ImageViewerZoomChanged(object? sender, ZoomChangedEventArgs e)
+    {
+        _zoomPercentButton.Text = e.Zoom.ToString("P0");
     }
 
     protected override void BuildLayout()
     {
-        Title = UiStrings.PreviewFormTitle;
-        Icon = new Icon(1f, Icons.picture.ToEtoImage());
-
         FormStateController.AutoLayoutSize = false;
         FormStateController.DefaultClientSize = new Size(800, 600);
 
         LayoutController.RootPadding = 0;
-        LayoutController.Content = _imageView;
+        LayoutController.Content = ImageViewer;
     }
 
     protected DesktopCommands Commands { get; set; } = null!;
+    protected ActionCommand DeleteCurrentImageCommand { get; }
     protected ActionCommand GoToPrevCommand { get; }
     protected ActionCommand GoToNextCommand { get; }
+    protected ActionCommand ZoomInCommand { get; }
+    protected ActionCommand ZoomOutCommand { get; }
+    protected ActionCommand ZoomWindowCommand { get; }
+    protected ActionCommand ZoomActualCommand { get; }
 
     protected UiImageList ImageList { get; }
 
@@ -56,45 +157,24 @@ public class PreviewForm : EtoDialogBase
                 _currentImage.ThumbnailInvalidated -= ImageThumbnailInvalidated;
             }
             _currentImage = value;
-            Commands = _desktopCommands.WithSelection(ListSelection.Of(_currentImage));
+            UpdateImageIndex();
+            Commands = _desktopCommands.WithSelection(() => ListSelection.Of(_currentImage));
             _currentImage.ThumbnailInvalidated += ImageThumbnailInvalidated;
         }
     }
 
     private void ImageThumbnailInvalidated(object? sender, EventArgs e)
     {
-        Invoker.Current.SafeInvoke(() => UpdateImage().AssertNoAwait());
+        Invoker.Current.InvokeDispatch(() => UpdateImage().AssertNoAwait());
     }
 
-    protected int ImageIndex
-    {
-        get
-        {
-            var index = ImageList!.Images.IndexOf(CurrentImage);
-            if (index == -1)
-            {
-                index = 0;
-            }
-            return index;
-        }
-    }
+    protected int ImageIndex { get; private set; }
 
     protected override async void OnLoad(EventArgs eventArgs)
     {
         base.OnLoad(eventArgs);
-        // TODO: Implement
-        // _tbPageCurrent.Visible = PlatformCompat.Runtime.IsToolbarTextboxSupported;
-        // if (Config.Get(c => c.HiddenButtons).HasFlag(ToolbarButtons.SavePdf))
-        // {
-        //     _toolStrip1.Items.Remove(_tsSavePdf);
-        // }
-        // if (Config.Get(c => c.HiddenButtons).HasFlag(ToolbarButtons.SaveImages))
-        // {
-        //     _toolStrip1.Items.Remove(_tsSaveImage);
-        // }
 
-        // TODO: Implement mouse and keyboard controls
-        // AssignKeyboardShortcuts();
+        AssignKeyboardShortcuts();
 
         // TODO: We should definitely start with separate image forms, but it might be fairly trivial to, when opened
         // from the preview form, have the temporary rendering be propagated back to the viewer form and have the
@@ -102,8 +182,14 @@ public class PreviewForm : EtoDialogBase
         // desktop form should still open the full image editing form (for now at least).
         CreateToolbar();
 
-        UpdatePage();
         await UpdateImage();
+        UpdatePage();
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        ImageViewer.ZoomToContainer();
     }
 
     protected virtual void CreateToolbar()
@@ -112,9 +198,20 @@ public class PreviewForm : EtoDialogBase
         {
             Items =
             {
-                new DropDownToolItem
+                // TODO: Either embed an editable textbox, or make this button pop up a window or widget to enter a page number
+                _pageNumberButton,
+                MakeToolButton(GoToPrevCommand),
+                MakeToolButton(GoToNextCommand),
+                new SeparatorToolItem(),
+                MakeToolButton(ZoomWindowCommand),
+                MakeToolButton(ZoomActualCommand),
+                MakeToolButton(ZoomInCommand),
+                MakeToolButton(ZoomOutCommand),
+                _zoomPercentButton,
+                new SeparatorToolItem(),
+                WithToolItemIcon(new DropDownToolItem
                 {
-                    Image = Commands.RotateMenu.Image,
+                    ToolTip = UiStrings.Rotate,
                     Items =
                     {
                         Commands.RotateLeft,
@@ -123,19 +220,52 @@ public class PreviewForm : EtoDialogBase
                         Commands.Deskew,
                         Commands.CustomRotate
                     }
-                },
-                Commands.Crop,
-                Commands.BrightCont,
-                Commands.HueSat,
-                Commands.BlackWhite,
-                Commands.Sharpen,
+                }, "arrow_rotate_anticlockwise_small"),
+                MakeToolButton(Commands.Crop),
+                MakeToolButton(Commands.BrightCont),
+                MakeToolButton(Commands.HueSat),
+                MakeToolButton(Commands.BlackWhite),
+                MakeToolButton(Commands.Sharpen),
+                MakeToolButton(Commands.DocumentCorrection),
+                MakeToolButton(Commands.Compress),
                 new SeparatorToolItem(),
-                Commands.SaveSelectedPdf,
-                Commands.SaveSelectedImages,
+                MakeToolButton(Commands.Split),
+                MakeToolButton(Commands.Combine),
+                MakeToolButton(Commands.EditWithApp),
                 new SeparatorToolItem(),
-                Commands.Delete
+                MakeToolButton(Commands.SaveSelectedPdf, "file_extension_pdf"),
+                MakeToolButton(Commands.SaveSelectedImages, "picture_small"),
+                new SeparatorToolItem(),
+                MakeToolButton(DeleteCurrentImageCommand),
             }
         };
+        if (Config.Get(c => c.HiddenButtons).HasFlag(ToolbarButtons.SavePdf))
+        {
+            ToolBar.Items.Remove(ToolBar.Items.Single(x => x.Command == Commands.SaveSelectedPdf));
+        }
+        if (Config.Get(c => c.HiddenButtons).HasFlag(ToolbarButtons.SaveImages))
+        {
+            ToolBar.Items.Remove(ToolBar.Items.Single(x => x.Command == Commands.SaveSelectedImages));
+        }
+    }
+
+    private ToolItem MakeToolButton(ActionCommand command, string? iconName = null) =>
+        WithToolItemIcon(new ButtonToolItem
+        {
+            Command = command,
+            Text = null,
+            ToolTip = command.Text
+        }, iconName ?? command.IconName!);
+
+    private ToolItem WithToolItemIcon(ToolItem toolItem, string iconName)
+    {
+        EtoPlatform.Current.AttachDpiDependency(this,
+            scale =>
+            {
+                EtoPlatform.Current.SetImageSize(toolItem, (int) (16 * scale));
+                toolItem.Image = EtoPlatform.Current.IconProvider.GetIcon(iconName, scale);
+            });
+        return toolItem;
     }
 
     private async Task GoTo(int index)
@@ -149,160 +279,118 @@ public class PreviewForm : EtoDialogBase
             CurrentImage = ImageList.Images[index];
             ImageList.UpdateSelection(ListSelection.Of(CurrentImage));
         }
-        UpdatePage();
         await UpdateImage();
+        UpdatePage();
     }
 
     protected virtual void UpdatePage()
     {
-        // TODO: Implement
-        // _tbPageCurrent.Text = (ImageIndex + 1).ToString(CultureInfo.CurrentCulture);
-        // _lblPageTotal.Text = string.Format(MiscResources.OfN, _imageList.Images.Count);
-        // if (!PlatformCompat.Runtime.IsToolbarTextboxSupported)
-        // {
-        //     _lblPageTotal.Text = _tbPageCurrent.Text + ' ' + _lblPageTotal.Text;
-        // }
+        _pageNumberButton.Text = string.Format(UiStrings.XOfY, ImageIndex + 1, ImageList.Images.Count);
     }
 
     private async Task UpdateImage()
     {
-        // TODO: Implement
-        // _tiffViewer1.Image?.Dispose();
-        // _tiffViewer1.Image = null;
         using var imageToRender = CurrentImage.GetClonedImage();
-        var rendered = await Task.Run(() => imageToRender.Render());
-        _imageView.Image = rendered.ToEtoImage();
-        // _tiffViewer1.Image = imageToRender.RenderToBitmap();
+        using var rendered = await Task.Run(() => imageToRender.Render());
+        ImageViewer.Image?.Dispose();
+        ImageViewer.Image = rendered.ToEtoImage();
+        ImageViewer.ZoomToContainer();
+    }
+
+    protected override void OnSizeChanged(EventArgs e)
+    {
+        base.OnSizeChanged(e);
+        if (EtoPlatform.Current.IsGtk)
+        {
+            // Gtk delays adjusting the imageview size after the container size changes, which messes this up unless
+            // we queue it after the current UI thread options.
+            // We don't want to do this on Windows/Mac as it results in the render size lagging the window size.
+            Invoker.Current.InvokeDispatch(ImageViewer.ZoomToContainer);
+        }
+        else
+        {
+            ImageViewer.ZoomToContainer();
+        }
+    }
+
+    private void DeleteCurrentImage()
+    {
+        if (MessageBox.Show(this,
+                string.Format(MiscResources.ConfirmDeleteItems, 1),
+                MiscResources.Delete, MessageBoxButtons.OKCancel,
+                MessageBoxType.Question, MessageBoxDefaultButton.OK) == DialogResult.Ok)
+        {
+            // We don't want to run Commands.Delete as that runs on DesktopController and uses that selection.
+            Commands.ImageListActions.DeleteSelected();
+        }
+    }
+
+    private void AssignKeyboardShortcuts()
+    {
+        // Unconfigurable defaults
+
+        _previewKsm.Assign("Esc", Close);
+        _previewKsm.Assign("Del", DeleteCurrentImageCommand);
+        _previewKsm.Assign("Mod+0", ZoomActualCommand);
+        _previewKsm.Assign("Mod+Z", Commands.Undo);
+        _previewKsm.Assign(EtoPlatform.Current.IsWinForms ? "Mod+Y" : "Mod+Shift+Z", Commands.Redo);
+
+        _previewKsm.Assign("PageDown", () => _ = GoTo(ImageIndex + 1));
+        _previewKsm.Assign("Right", () => _ = GoTo(ImageIndex + 1));
+        _previewKsm.Assign("Down", () => _ = GoTo(ImageIndex + 1));
+
+        _previewKsm.Assign("PageUp", () => _ = GoTo(ImageIndex - 1));
+        _previewKsm.Assign("Left", () => _ = GoTo(ImageIndex - 1));
+        _previewKsm.Assign("Up", () => _ = GoTo(ImageIndex - 1));
+
+        // Configured defaults
+
+        var ks = Config.Get(c => c.KeyboardShortcuts);
+
+        _previewKsm.Assign(ks.Delete, DeleteCurrentImageCommand);
+        _previewKsm.Assign(ks.ImageBlackWhite, Commands.BlackWhite);
+        _previewKsm.Assign(ks.ImageBrightness, Commands.BrightCont);
+        _previewKsm.Assign(ks.ImageContrast, Commands.BrightCont);
+        _previewKsm.Assign(ks.ImageCrop, Commands.Crop);
+        _previewKsm.Assign(ks.ImageHue, Commands.HueSat);
+        _previewKsm.Assign(ks.ImageSaturation, Commands.HueSat);
+        _previewKsm.Assign(ks.ImageSharpen, Commands.Sharpen);
+        _previewKsm.Assign(ks.ImageDocumentCorrection, Commands.DocumentCorrection);
+        _previewKsm.Assign(ks.ImageCompress, Commands.Compress);
+        _previewKsm.Assign(ks.ImageSplit, Commands.Split);
+        _previewKsm.Assign(ks.ImageCombine, Commands.Combine);
+        _previewKsm.Assign(ks.ImageEditWith, Commands.EditWithApp);
+
+        _previewKsm.Assign(ks.RotateCustom, Commands.CustomRotate);
+        _previewKsm.Assign(ks.RotateDeskew, Commands.Deskew);
+        _previewKsm.Assign(ks.RotateFlip, Commands.Flip);
+        _previewKsm.Assign(ks.RotateLeft, Commands.RotateLeft);
+        _previewKsm.Assign(ks.RotateRight, Commands.RotateRight);
+
+        if (PlatformCompat.System.CombinedPdfAndImageSaving)
+        {
+            _previewKsm.Assign(ks.SavePDFAll, Commands.SaveSelected);
+        }
+        else
+        {
+            _previewKsm.Assign(ks.SavePDF, Commands.SaveSelectedPdf);
+            _previewKsm.Assign(ks.SaveImages, Commands.SaveSelectedImages);
+            _previewKsm.Assign(ks.SavePDFAll, Commands.SaveSelectedPdf);
+            _previewKsm.Assign(ks.SaveImagesAll, Commands.SaveSelectedImages);
+        }
+
+        _previewKsm.Assign(ks.ZoomIn, ZoomInCommand);
+        _previewKsm.Assign(ks.ZoomOut, ZoomOutCommand);
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            // TODO: Implement
-            // _components?.Dispose();
-            // _tiffViewer1?.Image?.Dispose();
-            // _tiffViewer1?.Dispose();
+            ImageViewer.Image?.Dispose();
+            ImageViewer.Image = null;
+            ImageList.ImagesUpdated -= ImageList_ImagesUpdated;
         }
         base.Dispose(disposing);
     }
-
-    // private async void tbPageCurrent_TextChanged(object sender, EventArgs e)
-    // {
-    //     if (int.TryParse(_tbPageCurrent.Text, out int indexOffBy1))
-    //     {
-    //         await GoTo(indexOffBy1 - 1);
-    //     }
-    // }
-
-    // private async Task DeleteCurrentImage()
-    // {
-    //     // TODO: Are the file access issues still a thing?
-    //     // Need to dispose the bitmap first to avoid file access issues
-    //     _tiffViewer1.Image?.Dispose();
-    //
-    //     var lastIndex = ImageIndex;
-    //     await _imageList.MutateAsync(new ImageListMutation.DeleteSelected(),
-    //         ListSelection.Of(CurrentImage));
-    //
-    //     bool shouldClose = false;
-    //     lock (_imageList)
-    //     {
-    //         if (_imageList.Images.Any())
-    //         {
-    //             // Update the GUI for the newly displayed image
-    //             var nextIndex = lastIndex >= _imageList.Images.Count ? _imageList.Images.Count - 1 : lastIndex;
-    //             CurrentImage = _imageList.Images[nextIndex];
-    //         }
-    //         else
-    //         {
-    //             shouldClose = true;
-    //         }
-    //     }
-    //     if (shouldClose)
-    //     {
-    //         // No images left to display, so no point keeping the form open
-    //         Close();
-    //     }
-    //     else
-    //     {
-    //         UpdatePage();
-    //         await UpdateImage();
-    //     }
-    // }
-
-    // private async void tiffViewer1_KeyDown(object sender, KeyEventArgs e)
-    // {
-    //     if (!(e.Control || e.Shift || e.Alt))
-    //     {
-    //         switch (e.KeyCode)
-    //         {
-    //             case Keys.Escape:
-    //                 Close();
-    //                 return;
-    //             case Keys.PageDown:
-    //             case Keys.Right:
-    //             case Keys.Down:
-    //                 await GoTo(ImageIndex + 1);
-    //                 return;
-    //             case Keys.PageUp:
-    //             case Keys.Left:
-    //             case Keys.Up:
-    //                 await GoTo(ImageIndex - 1);
-    //                 return;
-    //         }
-    //     }
-    //
-    //     e.Handled = _ksm.Perform(e.KeyData);
-    // }
-    //
-    // private async void tbPageCurrent_KeyDown(object sender, KeyEventArgs e)
-    // {
-    //     if (!(e.Control || e.Shift || e.Alt))
-    //     {
-    //         switch (e.KeyCode)
-    //         {
-    //             case Keys.PageDown:
-    //             case Keys.Right:
-    //             case Keys.Down:
-    //                 await GoTo(ImageIndex + 1);
-    //                 return;
-    //             case Keys.PageUp:
-    //             case Keys.Left:
-    //             case Keys.Up:
-    //                 await GoTo(ImageIndex - 1);
-    //                 return;
-    //         }
-    //     }
-    //
-    //     e.Handled = _ksm.Perform(e.KeyData);
-    // }
-    //
-    // private void AssignKeyboardShortcuts()
-    // {
-    //     // Defaults
-    //
-    //     _ksm.Assign("Del", _tsDelete);
-    //
-    //     // Configured
-    //
-    //     // TODO: Granular
-    //     var ks = Config.Get(c => c.KeyboardShortcuts);
-    //
-    //     _ksm.Assign(ks.Delete, _tsDelete);
-    //     _ksm.Assign(ks.ImageBlackWhite, _tsBlackWhite);
-    //     _ksm.Assign(ks.ImageBrightness, _tsBrightnessContrast);
-    //     _ksm.Assign(ks.ImageContrast, _tsBrightnessContrast);
-    //     _ksm.Assign(ks.ImageCrop, _tsCrop);
-    //     _ksm.Assign(ks.ImageHue, _tsHueSaturation);
-    //     _ksm.Assign(ks.ImageSaturation, _tsHueSaturation);
-    //     _ksm.Assign(ks.ImageSharpen, _tsSharpen);
-    //
-    //     _ksm.Assign(ks.RotateCustom, _tsCustomRotation);
-    //     _ksm.Assign(ks.RotateFlip, _tsFlip);
-    //     _ksm.Assign(ks.RotateLeft, _tsRotateLeft);
-    //     _ksm.Assign(ks.RotateRight, _tsRotateRight);
-    //     _ksm.Assign(ks.SaveImages, _tsSaveImage);
-    //     _ksm.Assign(ks.SavePDF, _tsSavePdf);
-    // }
 }

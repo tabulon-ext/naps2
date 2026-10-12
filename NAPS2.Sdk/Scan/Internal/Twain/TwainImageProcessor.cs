@@ -1,4 +1,6 @@
 #if !MAC
+using Microsoft.Extensions.Logging;
+using NAPS2.Images.Bitwise;
 using NAPS2.Remoting.Worker;
 
 namespace NAPS2.Scan.Internal.Twain;
@@ -10,9 +12,12 @@ namespace NAPS2.Scan.Internal.Twain;
 internal class TwainImageProcessor : ITwainEvents, IDisposable
 {
     private readonly ScanningContext _scanningContext;
+    private readonly ILogger _logger;
     private readonly Action<IMemoryImage> _callback;
     private TwainImageData? _currentImageData;
-    private IMemoryImage? _currentMemoryImage;
+    private IMemoryImage? _currentImage;
+    private int _transferredWidth;
+    private int _transferredHeight;
     private long _transferredPixels;
     private long _totalPixels;
     private readonly TwainProgressEstimator _progressEstimator;
@@ -21,15 +26,19 @@ internal class TwainImageProcessor : ITwainEvents, IDisposable
         Action<IMemoryImage> callback)
     {
         _scanningContext = scanningContext;
+        _logger = scanningContext.Logger;
         _callback = callback;
         _progressEstimator = new TwainProgressEstimator(options, scanEvents);
     }
 
     public void PageStart(TwainPageStart pageStart)
     {
+        Flush();
         _currentImageData = pageStart.ImageData;
-        _currentMemoryImage?.Dispose();
-        _currentMemoryImage = null;
+        _currentImage?.Dispose();
+        _currentImage = null;
+        _transferredWidth = 0;
+        _transferredHeight = 0;
         _transferredPixels = 0;
         _totalPixels = _currentImageData == null ? 0 : _currentImageData.Width * (long) _currentImageData.Height;
         _progressEstimator.MarkStart(_totalPixels);
@@ -48,29 +57,94 @@ internal class TwainImageProcessor : ITwainEvents, IDisposable
         {
             throw new InvalidOperationException();
         }
-
-        var pixelFormat = _currentImageData.BitsPerPixel == 1 ? ImagePixelFormat.BW1 : ImagePixelFormat.RGB24;
-        _currentMemoryImage ??= _scanningContext.ImageContext.Create(
-            _currentImageData.Width, _currentImageData.Height, pixelFormat);
-        _currentMemoryImage.SetResolution((float) _currentImageData.XRes, (float) _currentImageData.YRes);
+        if (memoryBuffer.Columns == 0 && memoryBuffer.BytesPerRow > 0)
+        {
+            // Workaround for bug with Kyocera drivers where Columns is unspecified
+            memoryBuffer.Columns = memoryBuffer.BytesPerRow * 8 / _currentImageData.BitsPerPixel;
+            _logger.LogDebug(
+                "NAPS2.TW - Correcting memory buffer columns to {w} based on bytes/row {bpr}, bits/pixel {bpp}",
+                memoryBuffer.Columns, memoryBuffer.BytesPerRow, _currentImageData.BitsPerPixel);
+        }
+        if (memoryBuffer.Columns <= 0 || memoryBuffer.Rows <= 0 || memoryBuffer.BytesPerRow <= 0)
+        {
+            var b = memoryBuffer;
+            _logger.LogError(
+                "NAPS2.TW - Invalid memory buffer: w {w}, h {h}, bpr {bpr}, len {len}, x {x}, y {y}",
+                b.Columns, b.Rows, b.BytesPerRow, b.Buffer.Length, b.XOffset, b.YOffset);
+            return;
+        }
 
         _transferredPixels += memoryBuffer.Columns * (long) memoryBuffer.Rows;
+        _transferredWidth = Math.Max(_transferredWidth, memoryBuffer.Columns + memoryBuffer.XOffset);
+        _transferredHeight = Math.Max(_transferredHeight, memoryBuffer.Rows + memoryBuffer.YOffset);
 
-        TwainMemoryBufferReader.CopyBufferToImage(memoryBuffer, _currentImageData, _currentMemoryImage);
-        _progressEstimator.MarkProgress(_transferredPixels, _totalPixels);
+        var pixelFormat = _currentImageData.BitsPerPixel == 1 ? ImagePixelFormat.BW1 : ImagePixelFormat.RGB24;
+        _currentImage ??= _scanningContext.ImageContext.Create(
+            Math.Max(_currentImageData.Width, _transferredWidth),
+            Math.Max(_currentImageData.Height, _transferredHeight),
+            pixelFormat);
+        _currentImage.SetResolution((float) _currentImageData.XRes, (float) _currentImageData.YRes);
 
-        if (_transferredPixels == _totalPixels)
+        // In case the real image dimensions don't match the specified image dimensions, we may need to get more memory.
+        // The image will be realloc'd to the real size once we're done and know what that is.
+        if (_transferredWidth > _currentImage.Width)
         {
+            ReallocImage(Math.Max(_currentImage.Width * 2, _transferredWidth), _currentImage.Height);
+        }
+        if (_transferredHeight > _currentImage.Height)
+        {
+            ReallocImage(_currentImage.Width, Math.Max(_currentImage.Height * 2, _transferredHeight));
+        }
+
+        TwainMemoryBufferReader.CopyBufferToImage(memoryBuffer, _currentImageData, _currentImage);
+        _progressEstimator.MarkProgress(Math.Min(_transferredPixels, _totalPixels), _totalPixels);
+    }
+
+    private void ReallocImage(int width, int height)
+    {
+        _logger.LogDebug($"NAPS2.TW - Realloc image {_currentImage!.Width}x{_currentImage.Height} -> {width}x{height}");
+        var copy = _scanningContext.ImageContext.Create(width, height, _currentImage!.PixelFormat);
+        new CopyBitwiseImageOp
+        {
+            Columns = Math.Min(width, _currentImage.Width),
+            Rows = Math.Min(height, _currentImage.Height)
+        }.Perform(_currentImage, copy);
+        _currentImage.Dispose();
+        _currentImage = copy;
+    }
+
+    public void TransferCanceled(TwainTransferCanceled transferCanceled)
+    {
+        _currentImage?.Dispose();
+        _currentImage = null;
+    }
+
+    public void Flush()
+    {
+        if (_currentImage != null && _transferredWidth > 0 && _transferredHeight > 0)
+        {
+            if (_transferredWidth != _currentImage.Width || _transferredHeight != _currentImage.Height)
+            {
+                // The real image dimensions don't match the specified image dimensions, so we have to realloc.
+                ReallocImage(_transferredWidth, _transferredHeight);
+            }
             _progressEstimator.MarkCompletion();
-            // TODO: Throw an error if there's a pixel mismatch, i.e. we go to the next page / finish with too few, or have too many
-            _callback(_currentMemoryImage);
-            _currentMemoryImage = null;
+            _callback(_currentImage);
+            _currentImage = null;
         }
     }
 
     public void Dispose()
     {
-        _currentMemoryImage?.Dispose();
+        if (_currentImage != null && _transferredPixels == _totalPixels &&
+            _transferredWidth == _currentImageData?.Width && _transferredHeight == _currentImageData?.Height)
+        {
+            // If we have an error after a successful scan (so Flush isn't called normally) we still want to flush.
+            // Obviously this won't work if the image dimensions are off (as we can't tell if the scan is complete or
+            // not) but that should be a rare case.
+            Flush();
+        }
+        _currentImage?.Dispose();
     }
 }
 #endif

@@ -2,12 +2,19 @@ using System.Threading;
 
 namespace NAPS2.Images;
 
-// TODO: We need to use the thumbnail when appropriate. Although we do need to consider thumbnail invalidation.
-// TODO: We need to do OCR cancellation when the image is deleted or whatever. 
-public record PostProcessingData(IMemoryImage? Thumbnail, TransformState? ThumbnailTransformState,
-    BarcodeDetection BarcodeDetection, CancellationTokenSource? OcrCts)
+/// <summary>
+/// Represents information about an image obtained during post-processing (e.g. thumbnail image, barcode).
+/// </summary>
+public record PostProcessingData(
+    IMemoryImage? Thumbnail,
+    TransformState? ThumbnailTransformState,
+    int PageNumber,
+    PageSide PageSide,
+    Barcode Barcode,
+    CancellationTokenSource? OcrCts,
+    string? OriginalFilePath)
 {
-    public PostProcessingData() : this(null, null, BarcodeDetection.NotAttempted, null)
+    public PostProcessingData() : this(null, null, 0, PageSide.Unknown, Barcode.NoDetection, null, null)
     {
     }
 }

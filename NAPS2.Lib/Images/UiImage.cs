@@ -9,13 +9,13 @@ public class UiImage : IDisposable
     private ProcessedImage _processedImage;
     private IMemoryImage? _thumbnail;
     private TransformState? _thumbnailTransformState;
-    private bool _disposed;
-    
-    public UiImage(ProcessedImage image)
+    private bool _saved;
+
+    public UiImage(ProcessedImage image, bool useThumbnail = true)
     {
         _processedImage = image;
         var ppd = _processedImage.PostProcessingData;
-        if (ppd.Thumbnail != null && ppd.ThumbnailTransformState != null)
+        if (useThumbnail && ppd.Thumbnail != null && ppd.ThumbnailTransformState != null)
         {
             _thumbnail = _processedImage.PostProcessingData.Thumbnail;
             _thumbnailTransformState = _processedImage.PostProcessingData.ThumbnailTransformState;
@@ -45,32 +45,41 @@ public class UiImage : IDisposable
             return _processedImage.GetWeakReference();
         }
     }
-    
+
+    public void MarkSaved(ProcessedImage state)
+    {
+        lock (this)
+        {
+            if (Equals(state, _processedImage))
+            {
+                _saved = true;
+            }
+        }
+    }
+
     public void Dispose()
     {
         lock (this)
         {
-            if (_disposed)
+            if (IsDisposed)
             {
                 return;
             }
-            _disposed = true;
+            IsDisposed = true;
             _processedImage.Dispose();
-        
+            EditorSessions.DisposeAll();
+
             if (_thumbnail != null)
             {
                 _thumbnail.Dispose();
                 _thumbnail = null;
             }
-        
-            // TODO: This shouldn't be here, OCR cancellation needs to be figured out
-            FullyDisposed?.Invoke(this, EventArgs.Empty);
         }
     }
 
     public void AddTransform(Transform transform, IMemoryImage? prerenderedThumbnail = null)
     {
-        AddTransforms(new[] { transform }, prerenderedThumbnail);
+        AddTransforms([transform], prerenderedThumbnail);
     }
 
     public void AddTransforms(IEnumerable<Transform> transforms, IMemoryImage? prerenderedThumbnail = null)
@@ -93,12 +102,53 @@ public class UiImage : IDisposable
                 _thumbnail = prerenderedThumbnail;
                 _thumbnailTransformState = _processedImage.TransformState;
             }
+            _saved = false;
         }
         ThumbnailInvalidated?.Invoke(this, EventArgs.Empty);
         if (prerenderedThumbnail != null)
         {
             ThumbnailChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    public void ReplaceTransformState(TransformState oldTransformState, TransformState newTransformState)
+    {
+        lock (this)
+        {
+            if (TransformState != oldTransformState)
+            {
+                return;
+            }
+            _processedImage = _processedImage.WithTransformState(newTransformState, true);
+            _saved = false;
+        }
+        ThumbnailInvalidated?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ReplaceMetadata(ImageMetadata metadata)
+    {
+        lock (this)
+        {
+            if (Metadata == metadata)
+            {
+                return;
+            }
+            _processedImage = _processedImage.WithMetadata(metadata, true);
+            _saved = false;
+        }
+        ThumbnailInvalidated?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ReplaceInternalImage(ProcessedImage newImage)
+    {
+        lock (this)
+        {
+            _processedImage.Dispose();
+            _processedImage = newImage;
+            _thumbnailTransformState = null;
+            _saved = false;
+        }
+        ThumbnailInvalidated?.Invoke(this, EventArgs.Empty);
     }
 
     public void ResetTransforms()
@@ -109,9 +159,8 @@ public class UiImage : IDisposable
             {
                 return;
             }
-            var newImage = _processedImage.WithNoTransforms();
-            _processedImage.Dispose();
-            _processedImage = newImage;
+            _processedImage = _processedImage.WithNoTransforms(true);
+            _saved = false;
         }
         ThumbnailInvalidated?.Invoke(this, EventArgs.Empty);
     }
@@ -151,14 +200,21 @@ public class UiImage : IDisposable
         ThumbnailChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public bool IsDisposed { get; private set; }
+
     public bool IsThumbnailDirty => _thumbnailTransformState != _processedImage.TransformState;
+
+    public bool HasUnsavedChanges => !_saved;
+
+    public TransformState TransformState => _processedImage.TransformState;
+
+    public ImageMetadata Metadata => _processedImage.Metadata;
+
+    public List<ExternalEditorSession> EditorSessions { get; } = new();
 
     public EventHandler? ThumbnailChanged;
 
     public EventHandler? ThumbnailInvalidated;
-
-    // TODO: Maybe delete depending on how we handle ocr cancellation
-    public EventHandler? FullyDisposed;
 
     public ImageRenderState GetImageRenderState()
     {

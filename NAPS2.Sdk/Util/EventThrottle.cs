@@ -2,7 +2,7 @@
 
 namespace NAPS2.Util;
 
-public class EventThrottle<T>
+internal class EventThrottle<T>
 {
     private readonly Action<T> _eventCallback;
 
@@ -13,6 +13,11 @@ public class EventThrottle<T>
     public EventThrottle(Action<T> eventCallback)
     {
         _eventCallback = eventCallback;
+    }
+
+    public void Reset()
+    {
+        _hasLastValue = false;
     }
 
     public void OnlyIfChanged(T value)

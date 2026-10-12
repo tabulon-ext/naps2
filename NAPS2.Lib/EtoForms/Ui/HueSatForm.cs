@@ -1,27 +1,30 @@
-using Eto.Drawing;
+using NAPS2.EtoForms.Widgets;
 
 namespace NAPS2.EtoForms.Ui;
 
-public class HueSatForm : ImageFormBase
+public class HueSatForm : UnaryImageFormBase
 {
     private readonly SliderWithTextBox _hueSlider = new();
     private readonly SliderWithTextBox _saturationSlider = new();
 
-    public HueSatForm(Naps2Config config, ThumbnailController thumbnailController, IIconProvider iconProvider) :
-        base(config, thumbnailController)
+    public HueSatForm(Naps2Config config, UiImageList imageList, ThumbnailController thumbnailController,
+        IIconProvider iconProvider) :
+        base(config, imageList, thumbnailController)
     {
-        Icon = new Icon(1f, Icons.color_management.ToEtoImage());
+        IconName = "color_management_small";
         Title = UiStrings.HueSaturation;
 
-        _hueSlider.Icon = iconProvider.GetIcon("color_wheel");
-        _saturationSlider.Icon = iconProvider.GetIcon("color_gradient");
-        Sliders = new[] { _hueSlider, _saturationSlider };
+        EtoPlatform.Current.AttachDpiDependency(this, scale =>
+        {
+            _hueSlider.Icon = iconProvider.GetIcon("color_wheel_small", scale);
+            _saturationSlider.Icon = iconProvider.GetIcon("color_gradient_small", scale);
+        });
+        Sliders = [_hueSlider, _saturationSlider];
     }
 
-    protected override IEnumerable<Transform> Transforms =>
-        new Transform[]
-        {
-            new HueTransform(_hueSlider.Value),
-            new SaturationTransform(_saturationSlider.Value)
-        };
+    protected override List<Transform> Transforms =>
+    [
+        new HueTransform(_hueSlider.IntValue),
+        new SaturationTransform(_saturationSlider.IntValue)
+    ];
 }

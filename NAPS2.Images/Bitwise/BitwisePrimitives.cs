@@ -1,6 +1,6 @@
 namespace NAPS2.Images.Bitwise;
 
-public static class BitwisePrimitives
+internal static class BitwisePrimitives
 {
     public static unsafe void Invert(BitwiseImageData data, int partStart = -1, int partEnd = -1)
     {
@@ -34,6 +34,7 @@ public static class BitwisePrimitives
     {
         if (partStart == -1) partStart = 0;
         if (partEnd == -1) partEnd = data.h;
+        if (data.invertColorSpace) value = (byte) ~value;
 
         var longCount = data.stride / 8;
         var remainingStart = longCount * 8;

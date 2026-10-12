@@ -10,16 +10,16 @@ public class AuthorizeForm : EtoDialogBase
     private readonly ErrorOutput _errorOutput;
     private CancellationTokenSource? _cancelTokenSource;
 
-    public AuthorizeForm(Naps2Config config, ErrorOutput errorOutput) : base(config)
+    public AuthorizeForm(Naps2Config config, IIconProvider iconProvider, ErrorOutput errorOutput) : base(config)
     {
+        Title = UiStrings.AuthorizeFormTitle;
+        IconName = "key_small";
+
         _errorOutput = errorOutput;
     }
 
     protected override void BuildLayout()
     {
-        Title = UiStrings.AuthorizeFormTitle;
-        Icon = new Icon(1f, Icons.key_small.ToEtoImage());
-
         FormStateController.FixedHeightLayout = true;
         FormStateController.RestoreFormState = false;
         FormStateController.Resizable = false;
@@ -46,7 +46,7 @@ public class AuthorizeForm : EtoDialogBase
             try
             {
                 OauthProvider.AcquireToken(_cancelTokenSource.Token);
-                Invoker.Current.SafeInvoke(() =>
+                Invoker.Current.Invoke(() =>
                 {
                     Result = true;
                     Close();
@@ -57,9 +57,12 @@ public class AuthorizeForm : EtoDialogBase
             }
             catch (Exception ex)
             {
-                _errorOutput.DisplayError(MiscResources.AuthError, ex);
-                Log.ErrorException("Error acquiring Oauth token", ex);
-                Invoker.Current.SafeInvoke(Close);
+                if (!_cancelTokenSource.IsCancellationRequested)
+                {
+                    _errorOutput.DisplayError(MiscResources.AuthError, ex);
+                    Log.ErrorException("Error acquiring Oauth token", ex);
+                }
+                Invoker.Current.Invoke(Close);
             }
         });
     }

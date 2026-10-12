@@ -1,13 +1,17 @@
-﻿namespace NAPS2.Scan.Internal;
+﻿using Microsoft.Extensions.Logging;
+using NAPS2.Images.Bitwise;
 
-// TODO: Add tests for this class
+namespace NAPS2.Scan.Internal;
+
 internal class RemotePostProcessor : IRemotePostProcessor
 {
     private readonly ScanningContext _scanningContext;
+    private readonly ILogger _logger;
 
     public RemotePostProcessor(ScanningContext scanningContext)
     {
         _scanningContext = scanningContext;
+        _logger = scanningContext.Logger;
     }
 
 
@@ -26,25 +30,28 @@ internal class RemotePostProcessor : IRemotePostProcessor
     //    return image;
     //}
 
-    public ProcessedImage? PostProcess(IMemoryImage image, ScanOptions options, PostProcessingContext postProcessingContext)
+    public ProcessedImage? PostProcess(IMemoryImage image, ScanOptions options,
+        PostProcessingContext postProcessingContext)
     {
         image = DoInitialTransforms(image, options);
         try
         {
-            if (options.ExcludeBlankPages &&
-                BlankDetector.IsBlank(image, options.BlankPageWhiteThreshold, options.BlankPageCoverageThreshold))
+            if (options.ExcludeBlankPages)
             {
-                // TODO: Consider annotating the image as blank via postprocessingdata rather than excluding here
-                // TODO: In theory we might want to add some functionality to allow the user to correct blank detection
-                return null;
+                var op = new BlankDetectionImageOp(options.BlankPageWhiteThreshold, options.BlankPageCoverageThreshold);
+                op.Perform(image);
+                if (op.IsBlank)
+                {
+                    // TODO: Consider annotating the image as blank via postprocessingdata rather than excluding here
+                    // TODO: In theory we might want to add some functionality to allow the user to correct blank detection
+                    return null;
+                }
             }
 
-            var bitDepth = options.UseNativeUI ? BitDepth.Color : options.BitDepth;
-            var scannedImage = _scanningContext.CreateProcessedImage(image, bitDepth, options.MaxQuality,
-                options.Quality);
+            var scannedImage = _scanningContext.CreateProcessedImage(image, options.MaxQuality,
+                options.Quality, options.PageSize);
             DoRevertibleTransforms(ref scannedImage, ref image, options, postProcessingContext);
             postProcessingContext.TempPath = SaveForBackgroundOcr(image, options);
-            // TODO: We need to attach the thumbnail to the scanned image
             return scannedImage;
         }
         finally
@@ -56,9 +63,9 @@ internal class RemotePostProcessor : IRemotePostProcessor
 
     private IMemoryImage DoInitialTransforms(IMemoryImage original, ScanOptions options)
     {
-        if (!PlatformCompat.System.CanUseWin32 && options.BitDepth == BitDepth.BlackAndWhite)
+        if (!options.UseNativeUI && options.BitDepth == BitDepth.BlackAndWhite)
         {
-            // TODO: Don't do this here, do it where BitmapHelper is used or something
+            // Ensure we actually have a black & white image (this is a no-op if we already do)
             original = original.PerformTransform(new BlackWhiteTransform(-options.Brightness));
         }
 
@@ -71,90 +78,136 @@ internal class RemotePostProcessor : IRemotePostProcessor
 
         if (!options.UseNativeUI && (options.StretchToPageSize || options.CropToPageSize))
         {
-            float width = original.Width / original.HorizontalResolution;
-            float height = original.Height / original.VerticalResolution;
-            if (float.IsNaN(width) || float.IsNaN(height))
-            {
-                width = original.Width;
-                height = original.Height;
-            }
+            scaled = CropAndStretch(original, options, scaled);
+        }
 
-            if (options.PageSize!.Width > options.PageSize.Height && width < height)
+        return scaled;
+    }
+
+    private IMemoryImage CropAndStretch(IMemoryImage original, ScanOptions options, IMemoryImage scaled)
+    {
+        if (original.HorizontalResolution <= 0 || original.VerticalResolution <= 0)
+        {
+            _logger.LogDebug("Skipping StretchToPageSize/CropToPageSize as there is no resolution data");
+            return scaled;
+        }
+
+        float width = original.Width / original.HorizontalResolution;
+        float height = original.Height / original.VerticalResolution;
+
+        if ((options.PageSize!.Width > options.PageSize.Height) ^ (width > height))
+        {
+            if (options.CropToPageSize)
             {
-                if (options.CropToPageSize)
-                {
-                    scaled = scaled.PerformTransform(new CropTransform(
-                        0,
-                        (int) ((width - (float) options.PageSize.HeightInInches) * original.HorizontalResolution),
-                        0,
-                        (int) ((height - (float) options.PageSize.WidthInInches) * original.VerticalResolution)
-                    ));
-                }
-                else
-                {
-                    scaled.SetResolution((float) (original.Width / options.PageSize.HeightInInches),
-                        (float) (original.Height / options.PageSize.WidthInInches));
-                }
+                scaled = scaled.PerformTransform(new CropTransform(
+                    0,
+                    (int) ((width - (float) options.PageSize.HeightInInches) * original.HorizontalResolution),
+                    0,
+                    (int) ((height - (float) options.PageSize.WidthInInches) * original.VerticalResolution)
+                ));
             }
             else
             {
-                if (options.CropToPageSize)
-                {
-                    scaled = scaled.PerformTransform(new CropTransform
-                    (
-                        0,
-                        (int) ((width - (float) options.PageSize.WidthInInches) * original.HorizontalResolution),
-                        0,
-                        (int) ((height - (float) options.PageSize.HeightInInches) * original.VerticalResolution)
-                    ));
-                }
-                else
-                {
-                    scaled.SetResolution((float) (original.Width / options.PageSize.WidthInInches), (float) (original.Height / options.PageSize.HeightInInches));
-                }
+                scaled.SetResolution((float) (original.Width / options.PageSize.HeightInInches),
+                    (float) (original.Height / options.PageSize.WidthInInches));
             }
         }
-
-        scaled.UpdateLogicalPixelFormat();
+        else
+        {
+            if (options.CropToPageSize)
+            {
+                scaled = scaled.PerformTransform(new CropTransform
+                (
+                    0,
+                    (int) ((width - (float) options.PageSize.WidthInInches) * original.HorizontalResolution),
+                    0,
+                    (int) ((height - (float) options.PageSize.HeightInInches) * original.VerticalResolution)
+                ));
+            }
+            else
+            {
+                scaled.SetResolution((float) (original.Width / options.PageSize.WidthInInches),
+                    (float) (original.Height / options.PageSize.HeightInInches));
+            }
+        }
         return scaled;
     }
 
     // TODO: This is more than just transforms.
-    private void DoRevertibleTransforms(ref ProcessedImage processedImage, ref IMemoryImage image, ScanOptions options, PostProcessingContext postProcessingContext)
+    private void DoRevertibleTransforms(ref ProcessedImage processedImage, ref IMemoryImage image, ScanOptions options,
+        PostProcessingContext postProcessingContext)
     {
-        var data = processedImage.PostProcessingData;
+        var data = processedImage.PostProcessingData with
+        {
+            PageNumber = postProcessingContext.PageNumber
+        };
+
+        if ((!options.UseNativeUI && options.BrightnessContrastAfterScan) ||
+            options.Driver is not (Driver.Wia or Driver.Twain))
+        {
+            processedImage = processedImage.WithTransform(new BrightnessTransform(options.Brightness), true);
+            processedImage = processedImage.WithTransform(new TrueContrastTransform(options.Contrast), true);
+        }
+
+        if (options.PaperSource == PaperSource.Duplex)
+        {
+            data = data with
+            {
+                PageSide = postProcessingContext.PageNumber % 2 == 0 ? PageSide.Back : PageSide.Front
+            };
+            if (options.FlipDuplexedPages && data.PageSide == PageSide.Back)
+            {
+                processedImage = processedImage.WithTransform(new RotationTransform(180), true);
+            }
+        }
+
+        if (options.RotateDegrees != 0)
+        {
+            processedImage = processedImage.WithTransform(new RotationTransform(options.RotateDegrees), true);
+        }
+
+        if (options.AutoDeskew)
+        {
+            processedImage = processedImage.WithTransform(Deskewer.GetDeskewTransform(image), true);
+        }
+
+        if (options.AutoCrop)
+        {
+            // Detect the page on the image with the transforms so far (e.g. deskewing) applied
+            using var transformed = image.Clone().PerformAllTransforms(processedImage.TransformState.Transforms);
+            var op = new EdgeDetectionImageOp();
+            op.Perform(transformed);
+            if (op.Left != 0 || op.Top != 0 || op.Right != 0 || op.Bottom != 0)
+            {
+                processedImage = processedImage.WithTransform(new CropTransform(
+                    op.Left, op.Right, op.Top, op.Bottom, transformed.Width, transformed.Height), true);
+            }
+        }
+
+        if (options.CorrectionMode != CorrectionMode.None)
+        {
+            processedImage = processedImage.WithTransform(new CorrectionTransform(options.CorrectionMode), true);
+        }
+
+        if (!data.Barcode.IsDetected)
+        {
+            // Even if barcode detection was attempted previously and failed, image adjustments may improve detection.
+            data = data with
+            {
+                Barcode = BarcodeDetector.Detect(image, options.BarcodeDetectionOptions)
+            };
+        }
         if (options.ThumbnailSize.HasValue)
         {
             data = data with
             {
                 // TODO: Maybe there's a way we can do this without needing to clone
-                Thumbnail = image.Clone().PerformTransform(new ThumbnailTransform(options.ThumbnailSize.Value))
+                Thumbnail = image.Clone()
+                    .PerformAllTransforms(processedImage.TransformState.Transforms)
+                    .PerformTransform(new ThumbnailTransform(options.ThumbnailSize.Value)),
+                ThumbnailTransformState = processedImage.TransformState
             };
         }
-
-        if (!options.UseNativeUI && options.BrightnessContrastAfterScan)
-        {
-            processedImage = AddTransformAndUpdateThumbnail(processedImage, ref image, new BrightnessTransform(options.Brightness), options);
-            processedImage = AddTransformAndUpdateThumbnail(processedImage, ref image, new TrueContrastTransform(options.Contrast), options);
-        }
-
-        // TODO: Do we need to restrict this to only when an actual duplex scan is happening?
-        if (options.FlipDuplexedPages && postProcessingContext.PageNumber % 2 == 0)
-        {
-            processedImage = AddTransformAndUpdateThumbnail(processedImage, ref image, new RotationTransform(180), options);
-        }
-
-        if (options.AutoDeskew)
-        {
-            processedImage = AddTransformAndUpdateThumbnail(processedImage, ref image, Deskewer.GetDeskewTransform(image), options);
-        }
-
-        if (!data.BarcodeDetection.IsBarcodePresent)
-        {
-            // Even if barcode detection was attempted previously and failed, image adjustments may improve detection.
-            data = data with { BarcodeDetection = BarcodeDetector.Detect(image, options.BarcodeDetectionOptions) };
-        }
-        data = data with { ThumbnailTransformState = processedImage.TransformState };
         processedImage = processedImage.WithPostProcessingData(data, true);
     }
 
@@ -164,34 +217,8 @@ internal class RemotePostProcessor : IRemotePostProcessor
         {
             // TODO: If we use tesseract as a library, this is something that that could potentially improve (i.e. not having to save to disk)
             // But then again, that doesn't make as much sense on systems (i.e. linux) where tesseract would be provided as an external package
-            return _scanningContext.SaveToTempFile(bitmap, options.BitDepth);
+            return _scanningContext.SaveToTempFile(bitmap);
         }
         return null;
-    }
-
-    private ProcessedImage AddTransformAndUpdateThumbnail(ProcessedImage processedImage, ref IMemoryImage image, Transform transform, ScanOptions options)
-    {
-        if (transform.IsNull)
-        {
-            return processedImage;
-        }
-        ProcessedImage transformed = processedImage.WithTransform(transform, true);
-        if (options.ThumbnailSize.HasValue)
-        {
-            // TODO: We may want to do the transform on the original thumbnail, maybe situationally?
-            // TODO: Should probably dispose the original image & thumbnail
-            // TODO: This should probably be done even without thumbnails, otherwise deskew/barcode might misfire
-            // TODO: If we're doing a number of transforms, this is redundant...
-            // TODO: So basically we should probably do ONE thumbnail render, after all transforms are determined.
-            // TODO: BUT we should have some kind of fast path (not just used here) that moves the thumbnail transform up the transform stack
-            // TODO: as long as subsequent transforms are size agnostic (i.e. 90 deg rotation).
-            image = image.PerformTransform(transform);
-            transformed = transformed.WithPostProcessingData(
-                transformed.PostProcessingData with
-                {
-                    Thumbnail = image.PerformTransform(new ThumbnailTransform(options.ThumbnailSize.Value))
-                }, true);
-        }
-        return transformed;
     }
 }

@@ -2,9 +2,9 @@ using System.Reflection;
 
 namespace NAPS2.Util;
 
-public class AssemblyHelper
+internal class AssemblyHelper
 {
-    public const string COPYRIGHT_YEARS = "2009, 2012-2022";
+    public const string COPYRIGHT_YEARS = "2009-2025";
 
     public static string GetFolder(Assembly? assembly)
     {
@@ -20,12 +20,28 @@ public class AssemblyHelper
         }
     }
 
-    // We can't use the assembly location, see
-    // https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview?tabs=cli#api-incompatibility
-    public static string EntryFolder { get; } = AppContext.BaseDirectory;
+    public static string EntryFolder { get; }
+
+    static AssemblyHelper()
+    {
+        // We can't use the assembly location, see
+        // https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview?tabs=cli#api-incompatibility
+        EntryFolder = AppContext.BaseDirectory;
+
+        // If this is inside the "lib" subfolder, the base path needs to be the parent folder
+        if (EntryFolder.EndsWith(@"\lib\"))
+        {
+            EntryFolder = EntryFolder.Substring(0, EntryFolder.Length - 4);
+        }
+    }
 
     public static string EntryFile =>
-        Assembly.GetEntryAssembly()?.Location ?? throw new InvalidOperationException("No entry file");
+#if NET6_0_OR_GREATER
+        Environment.ProcessPath
+#else
+        Assembly.GetEntryAssembly()?.Location
+#endif
+        ?? throw new InvalidOperationException("No entry file");
 
     private static string GetAssemblyAttributeValue<T>(Func<T, string> selector)
     {
@@ -39,7 +55,7 @@ public class AssemblyHelper
 
     public static string Title => GetAssemblyAttributeValue<AssemblyTitleAttribute>(x => x.Title);
 
-    public static string Version => Assembly.GetEntryAssembly()!.GetName().Version!.ToString();
+    public static Version Version => Assembly.GetEntryAssembly()!.GetName().Version!;
 
     public static string Description => GetAssemblyAttributeValue<AssemblyDescriptionAttribute>(x => x.Description);
 

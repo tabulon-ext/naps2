@@ -2,17 +2,29 @@ namespace NAPS2.Sdk.Tests;
 
 public static class TestImageContextFactory
 {
-    public static ImageContext Get(IPdfRenderer pdfRenderer = null)
+    public static ImageContext Get()
     {
+        return Environment.GetEnvironmentVariable("NAPS2_TEST_IMAGES") switch
+        {
+#if WINDOWS
+            "gdi" => new NAPS2.Images.Gdi.GdiImageContext(),
+            "wpf" => new NAPS2.Images.Wpf.WpfImageContext(),
+#endif
+            "is" or "imagesharp" => new NAPS2.Images.ImageSharp.ImageSharpImageContext(),
 #if MAC
-        return new NAPS2.Images.Mac.MacImageContext(pdfRenderer);
+            "mac" => new NAPS2.Images.Mac.MacImageContext(),
+#endif
+#if LINUX
+            "gtk" or "gdk" or "linux" => new NAPS2.Images.Gtk.GtkImageContext(),
+#endif
+            _ =>
+#if MAC
+                new NAPS2.Images.Mac.MacImageContext()
 #elif LINUX
-        return new NAPS2.Images.Gtk.GtkImageContext(pdfRenderer);
+                new NAPS2.Images.Gtk.GtkImageContext()
 #else
-#if NET6_0_OR_GREATER
-        if (!OperatingSystem.IsWindowsVersionAtLeast(7)) throw new InvalidOperationException();
+                new NAPS2.Images.Gdi.GdiImageContext()
 #endif
-        return new NAPS2.Images.Gdi.GdiImageContext(pdfRenderer);
-#endif
+        };
     }
 }

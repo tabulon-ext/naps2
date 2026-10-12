@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>Confirma a remoção de {0} item(s)?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>O Arquivo não pode ser sobrescrito porque está atualmente em uso.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 é totalmente gratuito. Considere fazer uma doação.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Deixe uma avaliação</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Gosta do NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>O driver SANE não está disponível. Certifique-se de instalar os pacotes necessários:</value>
@@ -367,7 +373,7 @@
     <value>Verificando...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>Verificação de atualizações está desativada.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
     <value>Ocorreu um erro ao tentar instalar a atualização.</value>

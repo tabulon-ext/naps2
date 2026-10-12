@@ -1,4 +1,4 @@
-﻿using NAPS2.ImportExport.Pdf;
+﻿using NAPS2.Pdf;
 using NAPS2.Scan;
 using NAPS2.Sdk.Tests.Asserts;
 using NAPS2.Serialization;
@@ -21,9 +21,9 @@ public class ImageSerializerTests : ContextualTests
 
         using var sourceImage = ScanningContext.CreateProcessedImage(
             LoadImage(ImageResources.dog), // TODO: Use an actual grayscale image
-            BitDepth.Grayscale,
             true,
-            -1,
+            60,
+            PageSize.A4,
             new[] { new BrightnessTransform(300) });
 
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -32,7 +32,8 @@ public class ImageSerializerTests : ContextualTests
         Assert.Single(destImage.TransformState.Transforms);
         Assert.Equal(300, Assert.IsType<BrightnessTransform>(destImage.TransformState.Transforms[0]).Brightness);
         Assert.True(destImage.Metadata.Lossless);
-        Assert.Equal(BitDepth.Grayscale, destImage.Metadata.BitDepth);
+        Assert.Equal(PageSize.A4, destImage.Metadata.PageSize);
+        Assert.Equal(60, destImage.Metadata.Quality);
         ImageAsserts.Similar(ImageResources.dog_b_p300, destImage);
     }
 
@@ -41,9 +42,7 @@ public class ImageSerializerTests : ContextualTests
     public void DeserializeToFileStorage(StorageConfig config)
     {
         config.Apply(this);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
+        using var destContext = CreateDestContextWithFileStorage();
 
         using var sourceImage = ScanningContext.CreateProcessedImage(LoadImage(ImageResources.dog));
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -60,7 +59,6 @@ public class ImageSerializerTests : ContextualTests
     public void DeserializeToMemoryStorage(StorageConfig config)
     {
         config.Apply(this);
-
         using var destContext = new ScanningContext(TestImageContextFactory.Get());
 
         using var sourceImage = ScanningContext.CreateProcessedImage(LoadImage(ImageResources.dog));
@@ -77,9 +75,7 @@ public class ImageSerializerTests : ContextualTests
     public void ShareFileStorage()
     {
         new StorageConfig.File().Apply(this);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
+        using var destContext = CreateDestContextWithFileStorage();
 
         using var sourceImage = ScanningContext.CreateProcessedImage(LoadImage(ImageResources.dog));
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -103,9 +99,7 @@ public class ImageSerializerTests : ContextualTests
     public void TransferOwnership()
     {
         new StorageConfig.File().Apply(this);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
+        using var destContext = CreateDestContextWithFileStorage();
 
         using var sourceImage = ScanningContext.CreateProcessedImage(LoadImage(ImageResources.dog));
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions
@@ -129,9 +123,7 @@ public class ImageSerializerTests : ContextualTests
     public void CrossDevice()
     {
         new StorageConfig.File().Apply(this);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
+        using var destContext = CreateDestContextWithFileStorage();
 
         using var sourceImage = ScanningContext.CreateProcessedImage(LoadImage(ImageResources.dog));
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions
@@ -149,9 +141,7 @@ public class ImageSerializerTests : ContextualTests
     public void DisposeBeforeDeserialization()
     {
         new StorageConfig.File().Apply(this);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
+        using var destContext = CreateDestContextWithFileStorage();
 
         using var sourceImage = CreateScannedImage();
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -165,9 +155,7 @@ public class ImageSerializerTests : ContextualTests
     public void ShareFileStorage_DisposeBeforeDeserialization()
     {
         new StorageConfig.File().Apply(this);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
+        using var destContext = CreateDestContextWithFileStorage();
 
         using var sourceImage = CreateScannedImage();
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -184,9 +172,7 @@ public class ImageSerializerTests : ContextualTests
     public void TransferOwnershipOfSharedFile()
     {
         new StorageConfig.File().Apply(this);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
+        using var destContext = CreateDestContextWithFileStorage();
 
         using var sourceImage = ScanningContext.CreateProcessedImage(LoadImage(ImageResources.dog));
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -273,12 +259,10 @@ public class ImageSerializerTests : ContextualTests
     public async Task PdfDeserializeToFileStorage(StorageConfig config)
     {
         config.Apply(this);
+        using var destContext = CreateDestContextWithFileStorage();
 
         var importPath = Path.Combine(FolderPath, "import.pdf");
         File.WriteAllBytes(importPath, PdfResources.word_generated_pdf);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(new PdfiumPdfRenderer()),
-            FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest")));
 
         using var sourceImage = await new PdfImporter(ScanningContext).Import(importPath).FirstAsync();
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -295,11 +279,10 @@ public class ImageSerializerTests : ContextualTests
     public async Task PdfDeserializeToMemoryStorage(StorageConfig config)
     {
         config.Apply(this);
+        using var destContext = new ScanningContext(TestImageContextFactory.Get());
 
         var importPath = Path.Combine(FolderPath, "import.pdf");
         File.WriteAllBytes(importPath, PdfResources.word_generated_pdf);
-
-        using var destContext = new ScanningContext(TestImageContextFactory.Get(new PdfiumPdfRenderer()));
 
         using var sourceImage = await new PdfImporter(ScanningContext).Import(importPath).FirstAsync();
         var serializedImage = ImageSerializer.Serialize(sourceImage, new SerializeImageOptions());
@@ -316,7 +299,6 @@ public class ImageSerializerTests : ContextualTests
     public void IncludeThumbnail(StorageConfig config)
     {
         config.Apply(this);
-
         using var destContext = new ScanningContext(TestImageContextFactory.Get());
 
         using var sourceImage = ScanningContext.CreateProcessedImage(LoadImage(ImageResources.dog));
@@ -355,5 +337,13 @@ public class ImageSerializerTests : ContextualTests
         using var destImage = ImageSerializer.Deserialize(destContext, serializedImage, new DeserializeImageOptions());
 
         Assert.Null(destImage.PostProcessingData.Thumbnail);
+    }
+
+    private ScanningContext CreateDestContextWithFileStorage()
+    {
+        return new ScanningContext(TestImageContextFactory.Get())
+        {
+            FileStorageManager = FileStorageManager.CreateFolder(Path.Combine(FolderPath, "dest"))
+        };
     }
 }

@@ -18,6 +18,9 @@
   <data name="DeviceOffline" xml:space="preserve">
     <value>The selected scanner is offline.</value>
   </data>
+  <data name="DeviceCommunicationFailure" xml:space="preserve">
+    <value>Communication with the scanning device was interrupted.</value>
+  </data>
   <data name="NAPS2" xml:space="preserve">
     <value>NAPS2</value>
   </data>
@@ -43,7 +46,7 @@
     <value>Sööturis ei ole ühtegi lehte.</value>
   </data>
   <data name="PdfNoPermissionToExtractContent" xml:space="preserve">
-    <value>Teil pole luba sisu kopeerimiseks failist \"{0}\".</value>
+    <value>Teil pole luba sisu kopeerimiseks failist "{0}".</value>
   </data>
   <data name="NoDuplexSupport" xml:space="preserve">
     <value>Valitud skanner ei toeta dupleksi kasutamist. Kui teie skanner peaks dupleksit toetama, proovige kasutada teist draiverit.</value>
@@ -68,5 +71,20 @@
   </data>
   <data name="DriverNotSupported" xml:space="preserve">
     <value>Valitud draiverit ei toetata selles süsteemis.</value>
+  </data>
+  <data name="OcrError" xml:space="preserve">
+    <value>An error occurred running OCR.</value>
+  </data>
+  <data name="OcrTimeout" xml:space="preserve">
+    <value>The OCR operation timed out.</value>
+  </data>
+  <data name="WorkerCrash" xml:space="preserve">
+    <value>The worker process crashed.</value>
+  </data>
+  <data name="WorkerCrashWindows" xml:space="preserve">
+    <value>The worker process crashed. Check the Windows event viewer.</value>
+  </data>
+  <data name="UnknownScanner" xml:space="preserve">
+    <value>Unknown Scanner</value>
   </data>
 </root>

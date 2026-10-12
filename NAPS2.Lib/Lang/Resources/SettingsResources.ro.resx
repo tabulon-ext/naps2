@@ -16,34 +16,13 @@
     <value>Alb-negru</value>
   </data>
   <data name="BitDepth_24Color" xml:space="preserve">
-    <value>Color pe 24 biți</value>
+    <value>Culoare 24 biți</value>
   </data>
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Tonuri de gri</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 dpi</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 dpi</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 dpi</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 dpi</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 dpi</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 dpi</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 dpi</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} dpi</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
     <value>Adresă server SMTP personalizată</value>
@@ -51,11 +30,20 @@
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (nou)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
-    <value>Outlook Web Access</value>
+    <value>Acces Outlook Web</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Pasăre tunet</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
-    <value>No provider selected.</value>
+    <value>Niciun furnizor selectat.</value>
   </data>
   <data name="HorizontalAlign_Center" xml:space="preserve">
     <value>Centrează</value>
@@ -99,6 +87,9 @@
   <data name="PageSize_Letter" xml:space="preserve">
     <value>US Letter (8.5x11 in)</value>
   </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Personalizat...</value>
+  </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>Implicit</value>
   </data>
@@ -139,10 +130,13 @@
     <value>Implicit</value>
   </data>
   <data name="TwainImpl_Legacy" xml:space="preserve">
-    <value>Legacy (native UI only)</value>
+    <value>Vechi (numai interfața de utilizare nativă)</value>
+  </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Transfer nativ</value>
   </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Transfer alternativ</value>
+    <value>Transfer de memorie</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>DSM vechi</value>
@@ -154,9 +148,36 @@
     <value>Implicit</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Rapid</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Cel mai bun</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Salvează tot</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Salvează selecția</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Solicită întotdeauna</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Solicită dacă este selectat</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Scanare cu profilul implicit</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Solicită întotdeauna</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>Implicit</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Deschisă la culoare</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Închisă la culoare</value>
   </data>
 </root>

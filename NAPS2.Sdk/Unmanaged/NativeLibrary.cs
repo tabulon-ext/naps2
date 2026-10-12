@@ -2,7 +2,7 @@
 
 namespace NAPS2.Unmanaged;
 
-public class NativeLibrary
+internal class NativeLibrary
 {
     public static string FindLibraryPath(string libraryName, string? baseFolder = null) =>
         FindPath(libraryName, baseFolder, PlatformCompat.System.LibrarySearchPaths);
@@ -26,10 +26,11 @@ public class NativeLibrary
                 }
             }
         }
-        // TODO: Maybe do this for some platforms?
-        // var expectedPath =
-        //     Path.Combine(AssemblyHelper.LibFolder, PlatformCompat.System.LibrarySearchPaths[0], libraryName);
-        // throw new Exception($"Library does not exist: {expectedPath}");
+        if (baseFolder != null)
+        {
+            // In tests we definitely expect to find this.
+            throw new Exception($"Could not find '{libraryName}' in '{baseFolder}'");
+        }
         // Just the library name so it uses the system search paths
         return libraryName;
     }

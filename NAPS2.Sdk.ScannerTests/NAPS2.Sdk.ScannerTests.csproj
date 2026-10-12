@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net6;net462</TargetFrameworks>
-        <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net6</TargetFrameworks>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0-windows</TargetFrameworks>
+        <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net10.0</TargetFrameworks>
         <RootNamespace>NAPS2.Sdk.ScannerTests</RootNamespace>
     </PropertyGroup>
 
@@ -13,12 +13,11 @@
     <ItemGroup>
         <ProjectReference Include="..\NAPS2.Sdk.Tests\NAPS2.Sdk.Tests.csproj" />
 
-        <PackageReference Include="NAPS2.Sane.Binaries" Version="1.0.4" />
-        <PackageReference Include="NAPS2.Wia" Version="1.0.1" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />
-        <PackageReference Include="Moq" Version="4.18.1" />
-        <PackageReference Include="xunit" Version="2.4.1" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
+        <PackageReference Include="NAPS2.Sane.Binaries" Version="1.2.3" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+        <PackageReference Include="NSubstitute" Version="6.0.0" />
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>

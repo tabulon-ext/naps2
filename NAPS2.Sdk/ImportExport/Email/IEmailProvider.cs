@@ -1,6 +1,8 @@
 namespace NAPS2.ImportExport.Email;
 
-public interface IEmailProvider
+internal interface IEmailProvider
 {
     Task<bool> SendEmail(EmailMessage emailMessage, ProgressHandler progress = default);
+    bool ShowInList { get; }
+    bool CanSelectInList { get; }
 }

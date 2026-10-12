@@ -1,10 +1,11 @@
-﻿using Moq;
-using NAPS2.EtoForms;
+﻿using NAPS2.EtoForms;
+using NAPS2.EtoForms.Notifications;
 using NAPS2.ImportExport;
-using NAPS2.ImportExport.Pdf;
+using NAPS2.Pdf;
 using NAPS2.Scan;
 using NAPS2.Sdk.Tests;
 using NAPS2.Sdk.Tests.Asserts;
+using NSubstitute;
 using Xunit;
 
 namespace NAPS2.Lib.Tests.Scan;
@@ -13,30 +14,31 @@ public class AutoSaverTests : ContextualTests
 {
     private readonly AutoSaver _autoSaver;
 
-    private readonly Mock<ErrorOutput> _errorOutput;
-    private readonly Mock<DialogHelper> _dialogHelper;
-    private readonly Mock<OperationProgress> _operationProgress;
-    private readonly Mock<ISaveNotify> _saveNotify;
-    private readonly Mock<IOverwritePrompt> _overwritePrompt;
+    private readonly ErrorOutput _errorOutput;
+    private readonly DialogHelper _dialogHelper;
+    private readonly OperationProgress _operationProgress;
+    private readonly ISaveNotify _saveNotify;
+    private readonly IOverwritePrompt _overwritePrompt;
     private readonly Naps2Config _config;
 
     public AutoSaverTests()
     {
-        _errorOutput = new Mock<ErrorOutput>();
-        _dialogHelper = new Mock<DialogHelper>();
-        _operationProgress = new Mock<OperationProgress>();
-        _saveNotify = new Mock<ISaveNotify>();
-        _overwritePrompt = new Mock<IOverwritePrompt>();
+        _errorOutput = Substitute.For<ErrorOutput>();
+        _dialogHelper = Substitute.For<DialogHelper>();
+        _operationProgress = Substitute.For<OperationProgress>();
+        _saveNotify = Substitute.For<ISaveNotify>();
+        _overwritePrompt = Substitute.For<IOverwritePrompt>();
         _config = Naps2Config.Stub();
         _autoSaver = new AutoSaver(
-            _errorOutput.Object,
-            _dialogHelper.Object,
-            _operationProgress.Object,
-            _saveNotify.Object,
+            _errorOutput,
+            _dialogHelper,
+            _operationProgress,
+            _saveNotify,
             new PdfExporter(ScanningContext),
-            _overwritePrompt.Object,
+            _overwritePrompt,
             _config,
-            ImageContext
+            ImageContext,
+            new UiImageList()
         );
     }
 
@@ -62,11 +64,13 @@ public class AutoSaverTests : ContextualTests
         {
             FilePath = Path.Combine(FolderPath, "test$(n).pdf")
         };
-        var scanned = CreateScannedImages(ImageResources.dog).ToAsyncEnumerable();
 
-        var output = _autoSaver.Save(settings, scanned);
+        var scanned = CreateScannedImages(ImageResources.dog);
+        var output = await _autoSaver.Save(settings, scanned.ToAsyncEnumerable()).ToListAsync();
 
-        Assert.Single(await output.ToListAsync());
+        Assert.Single(output);
+        Assert.False(IsDisposed(output[0]));
+        Assert.True(IsDisposed(scanned[0]));
         Assert.Single(Folder.GetFiles());
         PdfAsserts.AssertImages(Path.Combine(FolderPath, "test1.pdf"), ImageResources.dog);
     }
@@ -78,11 +82,13 @@ public class AutoSaverTests : ContextualTests
         {
             FilePath = Path.Combine(FolderPath, "test$(n).jpg")
         };
-        var scanned = CreateScannedImages(ImageResources.dog).ToAsyncEnumerable();
 
-        var output = _autoSaver.Save(settings, scanned);
+        var scanned = CreateScannedImages(ImageResources.dog);
+        var output = await _autoSaver.Save(settings, scanned.ToAsyncEnumerable()).ToListAsync();
 
-        Assert.Single(await output.ToListAsync());
+        Assert.Single(output);
+        Assert.False(IsDisposed(output[0]));
+        Assert.True(IsDisposed(scanned[0]));
         Assert.Single(Folder.GetFiles());
         ImageAsserts.Similar(ImageResources.dog, Path.Combine(FolderPath, "test1.jpg"));
     }
@@ -129,7 +135,7 @@ public class AutoSaverTests : ContextualTests
     //     ImageAsserts.Similar(ImageResources.dog_gray, Path.Combine(FolderPath, "test2.jpg"));
     // }
 
-    [Fact]
+    [PlatformFact(exclude: PlatformFlags.ImageSharpImage)]
     public async Task TiffFilePerScan()
     {
         var settings = new AutoSaveSettings
@@ -147,8 +153,8 @@ public class AutoSaverTests : ContextualTests
         Assert.Single(Folder.GetFiles());
         var frames = await ImageContext.LoadFrames(Path.Combine(FolderPath, "test1.tiff")).ToListAsync();
         Assert.Equal(2, frames.Count);
-        ImageAsserts.Similar(ImageResources.dog, frames[0]);
-        ImageAsserts.Similar(ImageResources.dog_gray, frames[1]);
+        ImageAsserts.Similar(ImageResources.dog, frames[0], ignoreResolution: true);
+        ImageAsserts.Similar(ImageResources.dog_gray, frames[1], ignoreResolution: true);
     }
 
     [Fact]
@@ -170,13 +176,84 @@ public class AutoSaverTests : ContextualTests
         PdfAsserts.AssertImages(Path.Combine(FolderPath, "test2.pdf"), ImageResources.dog_gray);
     }
 
+    [Fact]
+    public async Task PdfSplitPatchT()
+    {
+        var settings = new AutoSaveSettings
+        {
+            FilePath = Path.Combine(FolderPath, "test$(n).pdf"),
+            Separator = SaveSeparator.PatchT
+        };
+        var scanned = CreateScannedImages(
+            ImageResources.dog,
+            ImageResources.dog_gray,
+            ImageResources.patcht,
+            ImageResources.dog_h_n300);
+        scanned[2] = scanned[2].WithPostProcessingData(scanned[2].PostProcessingData with
+        {
+            Barcode = new Barcode(true, true, "PATCHT")
+        }, true);
+        var output = _autoSaver.Save(settings, scanned.ToAsyncEnumerable());
+        Assert.Equal(4, (await output.ToListAsync()).Count);
+        Assert.Equal(2, Folder.GetFiles().Length);
+        PdfAsserts.AssertImages(Path.Combine(FolderPath, "test1.pdf"), ImageResources.dog, ImageResources.dog_gray);
+        PdfAsserts.AssertImages(Path.Combine(FolderPath, "test2.pdf"), ImageResources.dog_h_n300);
+    }
+
+    [Fact]
+    public async Task PromptForFilePath()
+    {
+        var settings = new AutoSaveSettings
+        {
+            FilePath = Path.Combine(FolderPath, "test_a_$(n).pdf"),
+            PromptForFilePath = true
+        };
+        _dialogHelper.PromptToSavePdfOrImage(Arg.Any<string>(), out Arg.Any<string>()).Returns(x =>
+        {
+            x[1] = Path.Combine(FolderPath, "test_b_$(n).pdf");
+            return true;
+        });
+
+        var scanned = CreateScannedImages(ImageResources.dog);
+        var output = await _autoSaver.Save(settings, scanned.ToAsyncEnumerable()).ToListAsync();
+
+        Assert.Single(output);
+        Assert.False(IsDisposed(output[0]));
+        Assert.True(IsDisposed(scanned[0]));
+        Assert.Single(Folder.GetFiles());
+        PdfAsserts.AssertImages(Path.Combine(FolderPath, "test_b_1.pdf"), ImageResources.dog);
+    }
+
+    [Fact]
+    public async Task CancelPromptForFilePath()
+    {
+        var settings = new AutoSaveSettings
+        {
+            FilePath = Path.Combine(FolderPath, "test$(n).pdf"),
+            PromptForFilePath = true
+        };
+        _dialogHelper.PromptToSavePdfOrImage(Arg.Any<string>(), out Arg.Any<string>()).Returns(x =>
+        {
+            x[1] = Path.Combine(FolderPath, "test$(n).pdf");
+            return false;
+        });
+
+        var scanned = CreateScannedImages(ImageResources.dog);
+        var output = await _autoSaver.Save(settings, scanned.ToAsyncEnumerable()).ToListAsync();
+
+        Assert.Single(output);
+        Assert.False(IsDisposed(output[0]));
+        Assert.True(IsDisposed(scanned[0]));
+        Assert.Empty(Folder.GetFiles());
+    }
+
     // TODO: Finish out tests
 
     //
     // [Fact]
     // public async Task TwoImagesTwoPdfs()
     // {
-    //     var errorOutput = new Mock<ErrorOutput>();
+    //     var errorOutput = Substitute.For<ErrorOutput>();
     //     var driver = Driver(errorOutput.Object, 2);
     //
     //     var scanProfile = Profile(new AutoSaveSettings
@@ -198,7 +275,7 @@ public class AutoSaverTests : ContextualTests
     // [Fact]
     // public async Task TwoImagesTwoJpegs()
     // {
-    //     var errorOutput = new Mock<ErrorOutput>();
+    //     var errorOutput = Substitute.For<ErrorOutput>();
     //     var driver = Driver(errorOutput.Object, 2);
     //
     //     var scanProfile = Profile(new AutoSaveSettings
@@ -217,7 +294,7 @@ public class AutoSaverTests : ContextualTests
     // [Fact]
     // public async Task ClearAfterSaving()
     // {
-    //     var errorOutput = new Mock<ErrorOutput>();
+    //     var errorOutput = Substitute.For<ErrorOutput>();
     //     var driver = Driver(errorOutput.Object, 2);
     //
     //     var scanProfile = Profile(new AutoSaveSettings

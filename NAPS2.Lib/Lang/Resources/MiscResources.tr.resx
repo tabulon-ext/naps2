@@ -43,7 +43,7 @@
     <value>Seçilen tarayıcı çevrim dışı.</value>
   </data>
   <data name="DontHavePermission" xml:space="preserve">
-    <value>Bu konuma kaydetmek için yetkiniz bulunmuyor.</value>
+    <value>Bu konuma kaydetmek için yetkiniz yok.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Hata</value>
@@ -73,7 +73,7 @@
     <value>TIFF Dosyası (*.tiff, *.tif)</value>
   </data>
   <data name="FileTypeJp2" xml:space="preserve">
-    <value>JPEG2000 File (*.jp2, *.jpx)</value>
+    <value>JPEG2000 Dosyası (*.jp2, *.jpx)</value>
   </data>
   <data name="NameMissing" xml:space="preserve">
     <value>Ad eksik.</value>
@@ -97,7 +97,7 @@
     <value>Taranmış Resim</value>
   </data>
   <data name="SelectProfileBeforeScan" xml:space="preserve">
-    <value>Taraya tıklamadan önce profil seçiniz.</value>
+    <value>Taraya tıklamadan önce profil seç.</value>
   </data>
   <data name="UnknownDriverError" xml:space="preserve">
     <value>Tarayıcı sürücüsü ile ilgili bir hata oluştu.</value>
@@ -127,7 +127,7 @@
     <value>Seçilen ({0})</value>
   </data>
   <data name="EstimatedDownloadSize" xml:space="preserve">
-    <value>Tahmini indirme boyutu: {0} MB</value>
+    <value>Öngörülen indirme boyutu: {0} MB</value>
   </data>
   <data name="FilesProgressFormat" xml:space="preserve">
     <value>{0} / {1} dosya</value>
@@ -190,7 +190,7 @@
     <value> / {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>Yığın tarama sırasında bilinmeyen bir hata oluştu.</value>
+    <value>Toplu tarama sırasında bilinmeyen bir hata oluştu.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Yığın iptal edildi.</value>
@@ -295,7 +295,7 @@
     <value>Tarayıcı ısınıyor.</value>
   </data>
   <data name="OcrUpdateAvailable" xml:space="preserve">
-    <value>OCR için bir güncelleme var.</value>
+    <value>OKT için güncelleme var.</value>
   </data>
   <data name="ImageSaved" xml:space="preserve">
     <value>Resim kaydedildi.</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>"{0}" ögesini silmek istediğinize emin misiniz?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>Dosyanın üzerine yazılamaz çünkü şu anda kullanımda.</value>
@@ -339,20 +339,26 @@
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 tümüyle ücretsizdir. Bağış yapmayı düşünün.</value>
   </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Yorum Yap</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>NAPS2'yi Beğendiniz Mi?</value>
+  </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>SANE sürücüsü kullanılamıyor. Gerekli paketlerin kuruluduğundan emin olun:</value>
   </data>
   <data name="TesseractNotAvailable" xml:space="preserve">
-    <value>OCR motoru kullanılamıyor. Gerekli paketin kurulduğundan emin olun:</value>
+    <value>OKT motoru kullanılamıyor. Gerekli paketin kurulduğundan emin olun:</value>
   </data>
   <data name="DriverNotSupported" xml:space="preserve">
     <value>Seçilen sürücü bu sistemde desteklenmiyor.</value>
   </data>
   <data name="OcrProgress" xml:space="preserve">
-    <value>OCR Süreci</value>
+    <value>OKT Süreci</value>
   </data>
   <data name="RunningOcr" xml:space="preserve">
-    <value>OCR Çalıştırılıyor...</value>
+    <value>OKT Çalıştırılıyor...</value>
   </data>
   <data name="UpdateProgress" xml:space="preserve">
     <value>Güncelleme Süreci</value>
@@ -367,7 +373,7 @@
     <value>Denetleniyor...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>Güncelleme denetimi devre dışıdır.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
     <value>Güncelleme kurulmaya çalışılırken hata oluştu.</value>
@@ -391,6 +397,6 @@
     <value>{0}. sayfa taranıyor...</value>
   </data>
   <data name="AcquiringData" xml:space="preserve">
-    <value>Veri elde ediliyor...</value>
+    <value>Veri ediniliyor...</value>
   </data>
 </root>

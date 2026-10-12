@@ -181,7 +181,7 @@
     <value>Sööturis ei ole ühtegi lehte.</value>
   </data>
   <data name="PdfNoPermissionToExtractContent" xml:space="preserve">
-    <value>Teil pole luba sisu kopeerimiseks failist \"{0}\".</value>
+    <value>Teil pole luba sisu kopeerimiseks failist "{0}".</value>
   </data>
   <data name="ErrorSaving" xml:space="preserve">
     <value>Faili salvestamisel tekkis viga.</value>
@@ -190,7 +190,7 @@
     <value>of {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>An unknown error ocurred during the batch scan.</value>
+    <value>An unknown error occurred during the batch scan.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Batch cancelled.</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>Oled sa kindel, et soovid {0} elementi kustutada?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>Faili ei saa üle kirjutada, kuna see on praegu kasutusel.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 is completely free. Consider making a donation.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Leave a Review</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Like NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>The SANE driver is not available. Make sure to install the required packages:</value>

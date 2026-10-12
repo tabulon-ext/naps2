@@ -73,7 +73,7 @@
     <value>Imagen TIFF (*.tiff, *.tif)</value>
   </data>
   <data name="FileTypeJp2" xml:space="preserve">
-    <value>JPEG2000 File (*.jp2, *.jpx)</value>
+    <value>Archivo JPEG2000 (*.jp2, *.jpx)</value>
   </data>
   <data name="NameMissing" xml:space="preserve">
     <value>Falta nombre.</value>
@@ -190,7 +190,7 @@
     <value>de {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>Ocurrió un error desconocido durante el escaneo por lotes.</value>
+    <value>Se ha producido un error desconocido durante el escaneo por lotes.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Proceso por lotes cancelado.</value>
@@ -226,7 +226,7 @@
     <value>El escáner seleccionado no admite el uso dúplex. Si el escáner si admite dúplex, intente utilizar un controlador diferente.</value>
   </data>
   <data name="ProgressFormat" xml:space="preserve">
-    <value>{0} / {1}</value>
+    <value>{0} / {1} MB</value>
   </data>
   <data name="ImportingFormat" xml:space="preserve">
     <value>Importando {0}...</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>¿Está seguro de que desea eliminar "{0}"?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>El archivo no se pudo sobrescribir porque actualmente está en uso.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 es completamente gratuito. Anímese a hacer una donación.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Dejar una reseña</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>¿Te gusta NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>El controlador SANE no está disponible. Asegúrese de instalar los paquetes necesarios:</value>
@@ -367,7 +373,7 @@
     <value>Comprobando...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>La verificación de actualizaciones está desactivada.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
     <value>Ha ocurrido un error al intentar instalar la actualización.</value>

@@ -18,6 +18,9 @@
   <data name="DeviceOffline" xml:space="preserve">
     <value>Skaneri i zgjedhur është jashtë linje.</value>
   </data>
+  <data name="DeviceCommunicationFailure" xml:space="preserve">
+    <value>Komunikimi me pajisjen e skanimit u ndërpre.</value>
+  </data>
   <data name="NAPS2" xml:space="preserve">
     <value>NAPS2</value>
   </data>
@@ -68,5 +71,20 @@
   </data>
   <data name="DriverNotSupported" xml:space="preserve">
     <value>Drejtuesi i zgjedhur nuk mbështetet në këtë sistem.</value>
+  </data>
+  <data name="OcrError" xml:space="preserve">
+    <value>Ndodhi një gabim gjatë ekzekutimit të OCR.</value>
+  </data>
+  <data name="OcrTimeout" xml:space="preserve">
+    <value>Afati i veprimit të OCR skadoi.</value>
+  </data>
+  <data name="WorkerCrash" xml:space="preserve">
+    <value>Procesi i punës u ndërpre.</value>
+  </data>
+  <data name="WorkerCrashWindows" xml:space="preserve">
+    <value>Procesi i punës u ndërpre. Kontrolloni shikuesin e ngjarjeve të Windows.</value>
+  </data>
+  <data name="UnknownScanner" xml:space="preserve">
+    <value>Skcaner i panjohur</value>
   </data>
 </root>

@@ -1,4 +1,5 @@
 using NAPS2.Tools.Project.Packaging;
+using NAPS2.Tools.Project.Targets;
 using NAPS2.Tools.Project.Verification;
 
 namespace NAPS2.Tools.Project.Workflows;
@@ -10,19 +11,33 @@ public class PublishCommand : ICommand<PublishOptions>
         new CleanCommand().Run(new CleanOptions());
         new BuildCommand().Run(new BuildOptions
         {
-            BuildType = opts.BuildType
+            BuildType = "debug"
         });
-        new TestCommand().Run(new TestOptions());
+        foreach (var buildType in TargetsHelper.GetBuildTypesFromPackageType(opts.PackageType))
+        {
+            new BuildCommand().Run(new BuildOptions
+            {
+                BuildType = buildType
+            });
+        }
+        new TestCommand().Run(new TestOptions
+        {
+            NoGui = opts.NoGui
+        });
         new PackageCommand().Run(new PackageOptions
         {
-            BuildType = opts.BuildType,
-            Platform = opts.Platform
+            PackageType = opts.PackageType,
+            Platform = opts.Platform,
+            XCompile = opts.XCompile
         });
-        new VerifyCommand().Run(new VerifyOptions
-        { 
-            BuildType = opts.BuildType,
-            Platform = opts.Platform
-        });
+        if (!opts.NoVerify)
+        {
+            new VerifyCommand().Run(new VerifyOptions
+            {
+                PackageType = opts.PackageType,
+                Platform = opts.Platform
+            });
+        }
         return 0;
     }
 }

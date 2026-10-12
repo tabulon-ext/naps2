@@ -75,7 +75,7 @@ public class ThumbnailRenderQueue : IDisposable
         // TODO: Make this run as async?
         // TODO: Verify WorkerFactory is not null? Or handle this better for tests?
         bool useWorker = PlatformCompat.System.RenderInWorker;
-        var worker = useWorker ? _scanningContext.WorkerFactory?.Create() : null;
+        var worker = useWorker ? _scanningContext.CreateWorker(WorkerType.Native) : null;
         var fallback = new ExpFallback(100, 60 * 1000);
         while (true)
         {
@@ -99,7 +99,7 @@ public class ThumbnailRenderQueue : IDisposable
                     {
                         var thumb = worker != null
                             ? RenderThumbnailWithWorker(worker, imageToRender, thumbnailSize)
-                            : _thumbnailRenderer.Render(imageToRender, thumbnailSize);
+                            : _thumbnailRenderer.Render(imageToRender, thumbnailSize).Result;
 
                         if (!ThumbnailStillNeedsRendering(next, thumbnailSize))
                         {
@@ -118,7 +118,7 @@ public class ThumbnailRenderQueue : IDisposable
                 if (worker != null)
                 {
                     worker.Dispose();
-                    worker = _scanningContext.WorkerFactory?.Create();
+                    worker = _scanningContext.CreateWorker(WorkerType.Native);
                 }
                 Thread.Sleep(fallback.Value);
                 fallback.Increase();
@@ -127,6 +127,7 @@ public class ThumbnailRenderQueue : IDisposable
             _renderThumbnailsCompleteHandle.Set();
             _renderThumbnailsWaitHandle.WaitOne();
         }
+        worker?.Dispose();
     }
 
     private IMemoryImage RenderThumbnailWithWorker(WorkerContext worker, ProcessedImage imageToRender,

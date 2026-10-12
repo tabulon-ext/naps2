@@ -190,7 +190,7 @@
     <value>of {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>En ukjent feil oppstod under serieskanningen.</value>
+    <value>An unknown error occurred during the batch scan.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Serieskanning avbrutt.</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>Er du sikker på at du vil slette "{0}"?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>The file could not be overwritten because it is currently in use.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 is completely free. Consider making a donation.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Leave a Review</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Like NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>The SANE driver is not available. Make sure to install the required packages:</value>

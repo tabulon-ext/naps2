@@ -1,4 +1,5 @@
 ﻿using Eto.Forms;
+using NAPS2.ImportExport;
 
 namespace NAPS2.EtoForms;
 
@@ -6,6 +7,7 @@ public class EtoDialogHelper : DialogHelper
 {
     private readonly Naps2Config _config;
     private readonly FileFilters _fileFilters;
+    private bool _addExt = EtoPlatform.Current.IsGtk;
 
     public EtoDialogHelper(Naps2Config config, FileFilters fileFilters)
     {
@@ -15,18 +17,20 @@ public class EtoDialogHelper : DialogHelper
 
     public override bool PromptToSavePdfOrImage(string? defaultPath, out string? savePath)
     {
-        var sd = new SaveFileDialog
+        var lastExt = _config.Get(c => c.LastPdfOrImageExt)?.ToLowerInvariant();
+        if (string.IsNullOrEmpty(lastExt))
         {
-            CheckFileExists = false,
-            // TODO
-            // AddExtension = true,
-            FileName = Path.IsPathRooted(defaultPath) ? Path.GetFileName(defaultPath) : null
-        };
-        _fileFilters.Set(sd, FileFilterGroup.Pdf | FileFilterGroup.Image);
+            lastExt = "pdf";
+        }
+        var sd = CreateSaveFileDialog();
+        sd.FileName = GetDefaultFileName(defaultPath, lastExt!);
+        _fileFilters.Set(sd, FileFilterGroup.Pdf | FileFilterGroup.Image, lastExt);
         SetDir(sd, defaultPath);
+        EtoPlatform.Current.ConfigureFileDialog(sd);
         if (sd.ShowDialog(null) == DialogResult.Ok)
         {
             savePath = sd.FileName;
+            _config.User.Set(c => c.LastPdfOrImageExt, (Path.GetExtension(sd.FileName) ?? "").Replace(".", ""));
             return true;
         }
         savePath = null;
@@ -35,14 +39,11 @@ public class EtoDialogHelper : DialogHelper
 
     public override bool PromptToSavePdf(string? defaultPath, out string? savePath)
     {
-        var sd = new SaveFileDialog
-        {
-            CheckFileExists = false,
-            // AddExtension = true,
-            FileName = Path.IsPathRooted(defaultPath) ? Path.GetFileName(defaultPath) : null
-        };
+        var sd = CreateSaveFileDialog();
+        sd.FileName = GetDefaultFileName(defaultPath, "pdf");
         _fileFilters.Set(sd, FileFilterGroup.Pdf);
         SetDir(sd, defaultPath);
+        EtoPlatform.Current.ConfigureFileDialog(sd);
         if (sd.ShowDialog(null) == DialogResult.Ok)
         {
             savePath = sd.FileName;
@@ -54,15 +55,19 @@ public class EtoDialogHelper : DialogHelper
 
     public override bool PromptToSaveImage(string? defaultPath, out string? savePath)
     {
-        var sd = new SaveFileDialog
-        {
-            CheckFileExists = false,
-            // AddExtension = true,
-            FileName = Path.IsPathRooted(defaultPath) ? Path.GetFileName(defaultPath) : null
-        };
         var lastExt = _config.Get(c => c.LastImageExt)?.ToLowerInvariant();
-        _fileFilters.Set(sd, FileFilterGroup.Image, lastExt ?? "jpg");
+        if (string.IsNullOrEmpty(lastExt))
+        {
+            lastExt = "jpg";
+        }
+        var sd = CreateSaveFileDialog();
+        sd.FileName = GetDefaultFileName(defaultPath, lastExt!);
+        var filterGroups = EtoPlatform.Current.IsGtk
+            ? FileFilterGroup.AllImages | FileFilterGroup.Image
+            : FileFilterGroup.Image;
+        _fileFilters.Set(sd, filterGroups, lastExt);
         SetDir(sd, defaultPath);
+        EtoPlatform.Current.ConfigureFileDialog(sd);
         if (sd.ShowDialog(null) == DialogResult.Ok)
         {
             savePath = sd.FileName;
@@ -73,6 +78,51 @@ public class EtoDialogHelper : DialogHelper
         return false;
     }
 
+    private string? GetDefaultFileName(string? defaultPath, string ext)
+    {
+        if (string.IsNullOrEmpty(defaultPath))
+        {
+            return _addExt ? $".{ext}" : null;
+        }
+        var normPath = NormalizePath(defaultPath);
+        return _addExt && !Path.HasExtension(normPath)
+            ? $"{normPath}.{ext}"
+            : normPath;
+    }
+
+    private static SaveFileDialog CreateSaveFileDialog()
+    {
+        try
+        {
+            return new SaveFileDialog();
+        }
+        catch (FileNotFoundException)
+        {
+            SetCurrentDirectoryForDialogFallback();
+            return new SaveFileDialog();
+        }
+    }
+
+    private static OpenFileDialog CreateOpenFileDialog()
+    {
+        try
+        {
+            return new OpenFileDialog();
+        }
+        catch (FileNotFoundException)
+        {
+            SetCurrentDirectoryForDialogFallback();
+            return new OpenFileDialog();
+        }
+    }
+
+    private static void SetCurrentDirectoryForDialogFallback()
+    {
+        // Eto.GtkSharp throws an exception when creating dialogs if CurrentDirectory doesn't exist, so fall back to
+        // a known good directory.
+        Environment.CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    }
+
     private void SetDir(SaveFileDialog dialog, string? defaultPath)
     {
         string? path = null;
@@ -81,32 +131,41 @@ public class EtoDialogHelper : DialogHelper
             // For UI test automation we choose the appdata folder for test isolation and consistency
             path = Paths.AppData;
         }
-        else
+        else if (!string.IsNullOrEmpty(defaultPath) && Path.IsPathRooted(defaultPath))
         {
-            path = Path.IsPathRooted(defaultPath)
-                ? Path.GetDirectoryName(defaultPath)
-                : null;
+            path = Path.GetDirectoryName(NormalizePath(defaultPath));
         }
         if (path != null)
         {
-            dialog.Directory = new Uri(Path.GetFullPath(path));
+            dialog.Directory = UriHelper.FilePathToFileUri(Path.GetFullPath(path));
         }
+    }
+
+    private static string NormalizePath(string path)
+    {
+        string normPath = Placeholders.NonNumeric.Substitute(path);
+        // If the path points to a directory, it should end in a trailing slash.
+        // Otherwise, path functions will assume that the directory name is a file name.
+        if (Directory.Exists(normPath) && !normPath.EndsWith(Path.DirectorySeparatorChar))
+        {
+            normPath += Path.DirectorySeparatorChar;
+        }
+        return normPath;
     }
 
     public override bool PromptToImport(out string[]? filePaths)
     {
-        var ofd = new OpenFileDialog
-        {
-            MultiSelect = true,
-            CheckFileExists = true
-        };
+        var ofd = CreateOpenFileDialog();
+        ofd.MultiSelect = true;
+        ofd.CheckFileExists = true;
         _fileFilters.Set(ofd,
             FileFilterGroup.AllFiles | FileFilterGroup.Pdf | FileFilterGroup.AllImages | FileFilterGroup.Image);
         if (Paths.IsTestAppDataPath)
         {
             // For UI test automation we choose the appdata folder to find the prepared files to import
-            ofd.Directory = new Uri(Path.GetFullPath(Paths.AppData));
+            ofd.Directory = UriHelper.FilePathToFileUri(Path.GetFullPath(Paths.AppData));
         }
+        EtoPlatform.Current.ConfigureFileDialog(ofd);
         if (ofd.ShowDialog(null) == DialogResult.Ok)
         {
             filePaths = ofd.Filenames.ToArray();

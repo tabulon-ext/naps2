@@ -21,38 +21,26 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Escala de grises</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 ppp</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 ppp</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 ppp</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 ppp</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 ppp</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 ppp</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 ppp</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 ppp</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} ppp</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
     <value>SMTP personalizado</value>
   </data>
   <data name="EmailProviderType_Gmail" xml:space="preserve">
-    <value>Gmail</value>
+    <value>GMail</value>
+  </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (nuevo)</value>
   </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
-    <value>Outlook Web Access</value>
+    <value>Acceso web de Outlook</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
     <value>No se ha seleccionado ningún proveedor.</value>
@@ -99,6 +87,9 @@
   <data name="PageSize_Letter" xml:space="preserve">
     <value>Carta (279 x 216 mm)</value>
   </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Personalizar...</value>
+  </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>Predeterminado</value>
   </data>
@@ -141,8 +132,11 @@
   <data name="TwainImpl_Legacy" xml:space="preserve">
     <value>Heredado (solo interfaz nativa)</value>
   </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Transferencia nativa</value>
+  </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Transferencia alternativa</value>
+    <value>Transferencia de memoria</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>Viejo DSM</value>
@@ -154,9 +148,36 @@
     <value>Predeterminado</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Rápido</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Mejor</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Guardar todo</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Guardar seleccionado</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Preguntar siempre</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Preguntar si se selecciona</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Escanear con perfil predeterminado</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Preguntar siempre</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>Predeterminado</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Claro</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Oscuro</value>
   </data>
 </root>

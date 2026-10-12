@@ -13,7 +13,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="BitDepth_1BlackAndWhite" xml:space="preserve">
-    <value>Crno/bijelo</value>
+    <value>Crno-bijelo</value>
   </data>
   <data name="BitDepth_24Color" xml:space="preserve">
     <value>24-bitna Boja</value>
@@ -21,41 +21,29 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Sivi tonovi</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 dpi</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 dpi</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 dpi</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 dpi</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 dpi</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 dpi</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 dpi</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} dpi</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
-    <value>Custom SMTP</value>
+    <value>Prilagođeni SMTP</value>
   </data>
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (novi)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
-    <value>Outlook Web Access</value>
+    <value>Outlook preko Web-a</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
-    <value>No provider selected.</value>
+    <value>Nije odabran nijedan pružatelj usluga.</value>
   </data>
   <data name="HorizontalAlign_Center" xml:space="preserve">
     <value>Sredina</value>
@@ -91,7 +79,7 @@
     <value>B5 (176x250 mm)</value>
   </data>
   <data name="PageSize_Custom" xml:space="preserve">
-    <value>Custom...</value>
+    <value>Prilagođeno...</value>
   </data>
   <data name="PageSize_Legal" xml:space="preserve">
     <value>US Legal (8.5x14 in)</value>
@@ -99,8 +87,11 @@
   <data name="PageSize_Letter" xml:space="preserve">
     <value>US Letter (8.5x11 in)</value>
   </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Prilagođeno...</value>
+  </data>
   <data name="PdfCompat_Default" xml:space="preserve">
-    <value>Default</value>
+    <value>Zadano</value>
   </data>
   <data name="PdfCompat_PdfA1B" xml:space="preserve">
     <value>PDF/A-1b</value>
@@ -118,7 +109,7 @@
     <value>Dvostrano</value>
   </data>
   <data name="Source_Feeder" xml:space="preserve">
-    <value>Umetač</value>
+    <value>Ulagač papira</value>
   </data>
   <data name="Source_Glass" xml:space="preserve">
     <value>Staklo</value>
@@ -133,30 +124,60 @@
     <value>LZW</value>
   </data>
   <data name="TiffComp_None" xml:space="preserve">
-    <value>None</value>
+    <value>Nijedan</value>
   </data>
   <data name="TwainImpl_Default" xml:space="preserve">
-    <value>Default</value>
+    <value>Zadano</value>
   </data>
   <data name="TwainImpl_Legacy" xml:space="preserve">
-    <value>Legacy (native UI only)</value>
+    <value>Zastarjelo (samo za nativno sučelje)</value>
+  </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Nativni prijenos</value>
   </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Alternativni Prijenos</value>
+    <value>Prijenos memorije</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
-    <value>Old DSM</value>
+    <value>Stari DSM</value>
   </data>
   <data name="TwainImpl_X64" xml:space="preserve">
     <value>x64</value>
   </data>
   <data name="WiaVersion_Default" xml:space="preserve">
-    <value>Default</value>
+    <value>Zadano</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Brzo</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Najbolje</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Spremi sve</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Spremi odabrano</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Uvijek upitaj</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Pitaj ako je odabrano</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Skeniraj sa zadanim profilom</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Uvijek upitaj</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>Zadano</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Svjetla</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Tamna</value>
   </data>
 </root>

@@ -4,22 +4,22 @@ using NAPS2.EtoForms;
 using NAPS2.EtoForms.Ui;
 using NAPS2.ImportExport;
 using NAPS2.ImportExport.Images;
-using NAPS2.ImportExport.Pdf;
 using NAPS2.Ocr;
+using NAPS2.Pdf;
 
 namespace NAPS2.Scan.Batch;
 
 public class BatchScanPerformer : IBatchScanPerformer
 {
     private readonly IScanPerformer _scanPerformer;
-    private readonly IPdfExporter _pdfExporter;
+    private readonly PdfExporter _pdfExporter;
     private readonly IOperationFactory _operationFactory;
     private readonly IFormFactory _formFactory;
     private readonly Naps2Config _config;
     private readonly IProfileManager _profileManager;
     private readonly ThumbnailController _thumbnailController;
 
-    public BatchScanPerformer(IScanPerformer scanPerformer, IPdfExporter pdfExporter,
+    public BatchScanPerformer(IScanPerformer scanPerformer, PdfExporter pdfExporter,
         IOperationFactory operationFactory,
         IFormFactory formFactory, Naps2Config config, IProfileManager profileManager,
         ThumbnailController thumbnailController)
@@ -44,7 +44,7 @@ public class BatchScanPerformer : IBatchScanPerformer
     private class BatchState
     {
         private readonly IScanPerformer _scanPerformer;
-        private readonly IPdfExporter _pdfExporter;
+        private readonly PdfExporter _pdfExporter;
         private readonly IOperationFactory _operationFactory;
         private readonly IFormFactory _formFactory;
         private readonly Naps2Config _config;
@@ -60,7 +60,7 @@ public class BatchScanPerformer : IBatchScanPerformer
         private ScanParams _scanParams;
         private List<List<ProcessedImage>> _scans;
 
-        public BatchState(IScanPerformer scanPerformer, IPdfExporter pdfExporter, IOperationFactory operationFactory,
+        public BatchState(IScanPerformer scanPerformer, PdfExporter pdfExporter, IOperationFactory operationFactory,
             IFormFactory formFactory, Naps2Config config, IProfileManager profileManager,
             ThumbnailController thumbnailController, BatchSettings settings,
             Action<string> progressCallback, CancellationToken cancelToken, IFormBase batchForm,
@@ -93,7 +93,7 @@ public class BatchScanPerformer : IBatchScanPerformer
                 OcrCancelToken = _cancelToken,
                 ThumbnailSize = thumbnailController.RenderSize
             };
-            _scans = new List<List<ProcessedImage>>();
+            _scans = [];
         }
 
         public async Task Do()
@@ -273,10 +273,8 @@ public class BatchScanPerformer : IBatchScanPerformer
                 {
                     subPath = placeholders.Substitute(subPath, true, 0, 1);
                 }
-                // TODO: Make copies of images and dispose
                 try
                 {
-                    // TODO: This is broken due to not accessing the child fields directly
                     var exportParams = new PdfExportParams(
                         _config.Get(c => c.PdfSettings.Metadata),
                         _config.Get(c => c.PdfSettings.Encryption),
@@ -294,7 +292,7 @@ public class BatchScanPerformer : IBatchScanPerformer
             else
             {
                 var op = _operationFactory.Create<SaveImagesOperation>();
-                op.Start(subPath, placeholders, images, _config.Get(c => c.ImageSettings), true);
+                op.Start(subPath, placeholders, images, _config.Get(c => c.ImageSettings), batch: true);
                 await op.Success;
             }
         }

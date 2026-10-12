@@ -1,18 +1,23 @@
 using System.Collections.Immutable;
-using System.Threading;
 
 namespace NAPS2.Images;
 
 public class UiImageList
 {
-    private StateToken _savedState = new(ImmutableList<ProcessedImage.WeakReference>.Empty);
-    private ListSelection<UiImage> _selection;
+    private const int MAX_UNDO_LENGTH = 20;
 
-    public UiImageList() : this(new List<UiImage>())
+    public static UiImageList FromImages(List<UiImage> images) => new(images);
+
+    private readonly UndoStack _undoStack = new(MAX_UNDO_LENGTH);
+
+    private ListSelection<UiImage> _selection;
+    private StateToken _savedState = new(ImmutableList<ProcessedImage.WeakReference>.Empty);
+
+    public UiImageList() : this([])
     {
     }
 
-    public UiImageList(List<UiImage> images)
+    private UiImageList(List<UiImage> images)
     {
         Images = images.ToImmutableList();
         _selection = ListSelection.Empty<UiImage>();
@@ -22,18 +27,23 @@ public class UiImageList
 
     public StateToken CurrentState => new(Images.Select(x => x.GetImageWeakReference()).ToImmutableList());
 
-    public StateToken SavedState
-    {
-        get => _savedState;
-        set => _savedState = value ?? throw new ArgumentNullException(nameof(value));
-    }
-
-    // TODO: We should make this selection maintain insertion order, or otherwise guarantee that for things like FDesktop.SavePDF we actually get the images in the right order
     public ListSelection<UiImage> Selection
     {
         get => _selection;
         private set => _selection = value ?? throw new ArgumentNullException(nameof(value));
     }
+
+    // The logic around HasUnsavedChanges has to consider a few things:
+    // 1. Has the state of the world changed since the last save operation? For example, images have been moved around.
+    // 2. Are there any individual images that have not been saved? For example, the user might have selected and saved
+    //    only a few images.
+    public bool HasUnsavedChanges => _savedState != CurrentState || Images.Any(x => x.HasUnsavedChanges);
+
+    public bool CanUndo => _undoStack.CanUndo;
+
+    public bool CanRedo => _undoStack.CanRedo;
+
+    public void ClearUndoStack() => _undoStack.ClearBoth();
 
     public event EventHandler? SelectionChanged;
 
@@ -43,31 +53,69 @@ public class UiImageList
 
     public event EventHandler<ImageListEventArgs>? ImagesThumbnailInvalidated;
 
+    public void AddToSelection(UiImage image)
+    {
+        UpdateSelection(ListSelection.From(Images.Where(x => x == image || Selection.Contains(x))));
+    }
+
     public void UpdateSelection(ListSelection<UiImage> newSelection)
     {
         Selection = newSelection;
         SelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Mutate(ListMutation<UiImage> mutation, ListSelection<UiImage>? selectionToMutate = null,
-        bool isPassiveInteraction = false)
+    public void MarkSaved(StateToken priorState, IEnumerable<ProcessedImage> savedImages)
     {
-        MutateInternal(mutation, selectionToMutate, isPassiveInteraction);
+        var savedImagesSet = savedImages.ToHashSet();
+        lock (this)
+        {
+            _savedState = priorState;
+            foreach (var image in Images)
+            {
+                var imageState = image.GetImageWeakReference().ProcessedImage;
+                if (savedImagesSet.Contains(imageState))
+                {
+                    image.MarkSaved(imageState);
+                }
+            }
+        }
+    }
+
+    public void MarkAllSaved()
+    {
+        lock (this)
+        {
+            _savedState = CurrentState;
+            foreach (var image in Images)
+            {
+                var imageState = image.GetImageWeakReference().ProcessedImage;
+                image.MarkSaved(imageState);
+            }
+        }
+    }
+
+    public void Mutate(ListMutation<UiImage> mutation, ListSelection<UiImage>? selectionToMutate = null,
+        bool isPassiveInteraction = false, bool updateUndoStack = true, bool disposeDeleted = true)
+    {
+        MutateInternal(mutation, selectionToMutate, isPassiveInteraction, updateUndoStack, disposeDeleted);
     }
 
     public async Task MutateAsync(ListMutation<UiImage> mutation, ListSelection<UiImage>? selectionToMutate = null,
-        bool isPassiveInteraction = false)
+        bool isPassiveInteraction = false, bool updateUndoStack = true, bool disposeDeleted = true)
     {
-        await Task.Run(() => MutateInternal(mutation, selectionToMutate, isPassiveInteraction));
+        await Task.Run(() =>
+            MutateInternal(mutation, selectionToMutate, isPassiveInteraction, updateUndoStack, disposeDeleted));
     }
 
     private void MutateInternal(ListMutation<UiImage> mutation, ListSelection<UiImage>? selectionToMutate,
-        bool isPassiveInteraction)
+        bool isPassiveInteraction, bool updateUndoStack, bool disposeDeleted)
     {
         lock (this)
         {
             var currentSelection = _selection;
-            var before = new HashSet<UiImage>(Images);
+            var before = Images.ToList();
+            var beforeTransforms = before.Select(img => img.TransformState).ToList();
+            var beforeMetadata = before.Select(img => img.Metadata).ToList();
             var mutableImages = Images.ToList();
             if (!ReferenceEquals(selectionToMutate, null))
             {
@@ -78,52 +126,114 @@ public class UiImageList
                 mutation.Apply(mutableImages, ref currentSelection);
             }
             Images = mutableImages.ToImmutableList();
-            var after = new HashSet<UiImage>(Images);
+            var after = Images.ToList();
+            var afterTransforms = after.Select(img => img.TransformState).ToList();
+            var afterMetadata = after.Select(img => img.Metadata).ToList();
 
-            foreach (var added in after.Except(before))
+            var allAdded = after.Except(before).ToList();
+            foreach (var added in allAdded)
             {
                 added.ThumbnailChanged += ImageThumbnailChanged;
                 added.ThumbnailInvalidated += ImageThumbnailInvalidated;
             }
-            foreach (var removed in before.Except(after))
+            var allRemoved = before.Except(after).ToList();
+            foreach (var removed in allRemoved)
             {
                 removed.ThumbnailChanged -= ImageThumbnailChanged;
                 removed.ThumbnailInvalidated -= ImageThumbnailInvalidated;
-                removed.Dispose();
+                if (disposeDeleted)
+                {
+                    removed.Dispose();
+                }
+            }
+            currentSelection = ListSelection.From(currentSelection.Except(allRemoved));
+
+            // Generally we want to allow the mutation to be undone, but if we're mutating the list as part of undoing
+            // or redoing a previous mutation, then we'll leave the undo stack intact.
+            if (updateUndoStack)
+            {
+                MaybeAddToUndoStack(before, beforeTransforms, beforeMetadata, after, afterTransforms, afterMetadata);
             }
 
             if (currentSelection != _selection)
             {
-                UpdateSelectionOnUiThread(currentSelection);
+                UpdateSelection(currentSelection);
             }
         }
         ImagesUpdated?.Invoke(this, new ImageListEventArgs(isPassiveInteraction));
     }
 
-    private void UpdateSelectionOnUiThread(ListSelection<UiImage> currentSelection)
+    private void MaybeAddToUndoStack(
+        List<UiImage> before, List<TransformState> beforeTransforms, List<ImageMetadata> beforeMetadata,
+        List<UiImage> after, List<TransformState> afterTransforms, List<ImageMetadata> afterMetadata)
     {
-        // TODO: This won't work right as SyncContext.Current is only set on the UI thread anyway
-        var syncContext = SynchronizationContext.Current;
-        if (syncContext != null)
+        var undoElements = new List<IUndoElement>();
+        if (ReplaceRangeUndoElement.FromFullList(this, before, after)
+            is { } replaceRangeUndoElement)
         {
-            syncContext.Post(_ => UpdateSelection(currentSelection), null);
+            undoElements.Add(replaceRangeUndoElement);
         }
-        else
+        if (TransformImagesUndoElement.FromFullList(before, beforeTransforms, after, afterTransforms)
+            is { } replaceTransformsUndoElement)
         {
-            UpdateSelection(currentSelection);
+            undoElements.Add(replaceTransformsUndoElement);
+        }
+        if (ImageMetadataUndoElement.FromFullList(before, beforeMetadata, after, afterMetadata)
+            is { } metadataUndoElement)
+        {
+            undoElements.Add(metadataUndoElement);
+        }
+        switch (undoElements.Count)
+        {
+            case > 1:
+                _undoStack.Push(CompoundUndoElement.Of(undoElements));
+                break;
+            case 1:
+                _undoStack.Push(undoElements[0]);
+                break;
         }
     }
 
     private void ImageThumbnailChanged(object? sender, EventArgs args)
     {
         // A thumbnail change indicates rendering which is a passive interaction.
-        ImagesThumbnailChanged?.Invoke(this, new ImageListEventArgs(false));
+        ImagesThumbnailChanged?.Invoke(this, new ImageListEventArgs(true));
     }
 
     private void ImageThumbnailInvalidated(object? sender, EventArgs args)
     {
         // A thumbnail invalidation indicates an image edit which is an active interaction.
-        ImagesThumbnailInvalidated?.Invoke(this, new ImageListEventArgs(true));
+        ImagesThumbnailInvalidated?.Invoke(this, new ImageListEventArgs(false));
+    }
+
+    public async Task Undo()
+    {
+        await Task.Run(() =>
+        {
+            lock (this)
+            {
+                _undoStack.Undo();
+            }
+        });
+    }
+
+    public async Task Redo()
+    {
+        await Task.Run(() =>
+        {
+            lock (this)
+            {
+                _undoStack.Redo();
+            }
+        });
+    }
+
+    public void PushUndoElement(IUndoElement undoElement)
+    {
+        lock (this)
+        {
+            _undoStack.Push(undoElement);
+        }
     }
 
     /// <summary>

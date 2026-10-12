@@ -4,10 +4,8 @@ using System.Drawing.Imaging;
 
 namespace NAPS2.Images.Gdi;
 
-#if NET6_0_OR_GREATER
 [System.Runtime.Versioning.SupportedOSPlatform("windows7.0")]
-#endif
-public class GdiImageTransformer : AbstractImageTransformer<GdiImage>
+internal class GdiImageTransformer : AbstractImageTransformer<GdiImage>
 {
     public GdiImageTransformer(ImageContext imageContext) : base(imageContext)
     {
@@ -53,7 +51,7 @@ public class GdiImageTransformer : AbstractImageTransformer<GdiImage>
             g.TranslateTransform(-image.Width / 2.0f, -image.Height / 2.0f);
             g.DrawImage(image.Bitmap, new Rectangle(0, 0, image.Width, image.Height));
         }
-        var resultImage = new GdiImage(ImageContext, result);
+        var resultImage = new GdiImage(result);
         OptimizePixelFormat(image, ref resultImage);
         image.Dispose();
         return resultImage;
@@ -61,7 +59,10 @@ public class GdiImageTransformer : AbstractImageTransformer<GdiImage>
 
     protected override GdiImage PerformTransform(GdiImage image, ResizeTransform transform)
     {
-        var result = new Bitmap(transform.Width, transform.Height, PixelFormat.Format24bppRgb);
+        var result = new Bitmap(transform.Width, transform.Height,
+            image.PixelFormat == ImagePixelFormat.ARGB32
+                ? PixelFormat.Format32bppArgb
+                : PixelFormat.Format24bppRgb);
         using Graphics g = Graphics.FromImage(result);
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         // We set WrapMode to avoid artifacts
@@ -82,6 +83,6 @@ public class GdiImageTransformer : AbstractImageTransformer<GdiImage>
             image.HorizontalResolution * image.Width / transform.Width,
             image.VerticalResolution * image.Height / transform.Height);
         image.Dispose();
-        return new GdiImage(ImageContext, result);
+        return new GdiImage(result);
     }
 }

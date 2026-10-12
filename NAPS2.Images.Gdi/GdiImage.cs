@@ -7,15 +7,11 @@ namespace NAPS2.Images.Gdi;
 /// <summary>
 /// An implementation of IMemoryImage that wraps a GDI+ image (System.Drawing.Bitmap).
 /// </summary>
-#if NET6_0_OR_GREATER
 [System.Runtime.Versioning.SupportedOSPlatform("windows7.0")]
-#endif
 public class GdiImage : IMemoryImage
 {
-    public GdiImage(ImageContext imageContext, Bitmap bitmap)
+    public GdiImage(Bitmap bitmap)
     {
-        if (imageContext is not GdiImageContext) throw new ArgumentException("Expected GdiImageContext");
-        ImageContext = imageContext;
         if (bitmap == null)
         {
             throw new ArgumentNullException(nameof(bitmap));
@@ -23,10 +19,9 @@ public class GdiImage : IMemoryImage
         FixedPixelFormat = GdiPixelFormatFixer.MaybeFixPixelFormat(ref bitmap);
         Bitmap = bitmap;
         OriginalFileFormat = bitmap.RawFormat.AsImageFileFormat();
-        LogicalPixelFormat = PixelFormat;
     }
 
-    public ImageContext ImageContext { get; }
+    public ImageContext ImageContext { get; } = new GdiImageContext();
 
     /// <summary>
     /// Gets the underlying System.Drawing.Bitmap object for this image.
@@ -49,6 +44,10 @@ public class GdiImage : IMemoryImage
 
     public ImageLockState Lock(LockMode lockMode, out BitwiseImageData imageData)
     {
+        if (lockMode != LockMode.ReadOnly)
+        {
+            LogicalPixelFormat = ImagePixelFormat.Unknown;
+        }
         return GdiImageLockState.Create(Bitmap, lockMode, out imageData);
     }
 
@@ -57,39 +56,51 @@ public class GdiImage : IMemoryImage
 
     public ImagePixelFormat LogicalPixelFormat { get; set; }
 
-    public void Save(string path, ImageFileFormat imageFormat = ImageFileFormat.Unspecified, int quality = -1)
+    public void Save(string path, ImageFileFormat imageFormat = ImageFileFormat.Unknown, ImageSaveOptions? options = null)
     {
-        if (imageFormat == ImageFileFormat.Unspecified)
+        if (imageFormat == ImageFileFormat.Unknown)
         {
             imageFormat = ImageContext.GetFileFormatFromExtension(path);
         }
         ImageContext.CheckSupportsFormat(imageFormat);
-        if (imageFormat == ImageFileFormat.Jpeg && quality != -1)
+        if (ImageContext.TryBundledEncode(this, path, imageFormat, options))
         {
-            var (encoder, encoderParams) = GetJpegSaveArgs(quality);
-            Bitmap.Save(path, encoder, encoderParams);
+            return;
+        }
+        options ??= new ImageSaveOptions();
+        using var helper = PixelFormatHelper.Create(this, options.PixelFormatHint);
+        if (imageFormat == ImageFileFormat.Jpeg && options.Quality != -1)
+        {
+            var (encoder, encoderParams) = GetJpegSaveArgs(options.Quality);
+            helper.Image.Bitmap.Save(path, encoder, encoderParams);
         }
         else
         {
-            Bitmap.Save(path, imageFormat.AsImageFormat());
+            helper.Image.Bitmap.Save(path, imageFormat.AsImageFormat());
         }
     }
 
-    public void Save(Stream stream, ImageFileFormat imageFormat, int quality = -1)
+    public void Save(Stream stream, ImageFileFormat imageFormat, ImageSaveOptions? options = null)
     {
-        if (imageFormat == ImageFileFormat.Unspecified)
+        if (imageFormat == ImageFileFormat.Unknown)
         {
             throw new ArgumentException("Format required to save to a stream", nameof(imageFormat));
         }
         ImageContext.CheckSupportsFormat(imageFormat);
-        if (imageFormat == ImageFileFormat.Jpeg && quality != -1)
+        if (ImageContext.TryBundledEncode(this, stream, imageFormat, options))
         {
-            var (encoder, encoderParams) = GetJpegSaveArgs(quality);
-            Bitmap.Save(stream, encoder, encoderParams);
+            return;
+        }
+        options ??= new ImageSaveOptions();
+        using var helper = PixelFormatHelper.Create(this, options.PixelFormatHint);
+        if (imageFormat == ImageFileFormat.Jpeg && options.Quality != -1)
+        {
+            var (encoder, encoderParams) = GetJpegSaveArgs(options.Quality);
+            helper.Image.Bitmap.Save(stream, encoder, encoderParams);
         }
         else
         {
-            Bitmap.Save(stream, imageFormat.AsImageFormat());
+            helper.Image.Bitmap.Save(stream, imageFormat.AsImageFormat());
         }
     }
 
@@ -104,11 +115,9 @@ public class GdiImage : IMemoryImage
 
     public IMemoryImage Clone()
     {
-        var newImage = new GdiImage(ImageContext, (Bitmap) Bitmap.Clone());
-        // TODO: We want to make these more consistent when copying around and transforming images
-        newImage.OriginalFileFormat = OriginalFileFormat;
-        newImage.LogicalPixelFormat = LogicalPixelFormat;
-        return newImage;
+        // TODO: Ideally we'd like to make use of copy-on-write. But GDI copy-on-write (Clone) is not thread safe.
+        // Maybe we can implement something like CopyOnWrite<Bitmap> to use instead of just Bitmap.
+        return this.Copy();
     }
 
     public void Dispose()

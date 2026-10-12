@@ -3,8 +3,10 @@ using NAPS2.Tools.Localization;
 using NAPS2.Tools.Project;
 using NAPS2.Tools.Project.Installation;
 using NAPS2.Tools.Project.Packaging;
+using NAPS2.Tools.Project.Releasing;
 using NAPS2.Tools.Project.Verification;
 using NAPS2.Tools.Project.Workflows;
+using NAPS2.Tools.Sdk;
 
 namespace NAPS2.Tools;
 
@@ -16,8 +18,6 @@ public static class Program
     // - Replaces the corresponding .po file
     // - Updates language resources for that language
     // - Possibly then runs "pkg zip --name test-{lang}"
-
-    // TODO: Add a "setver" command that updates version targets, Info.plist, and anything else that needs a version
 
     public static int Main(string[] args)
     {
@@ -35,7 +35,13 @@ public static class Program
             .Add<ResxOptions, ResxCommand>()
             .Add<PushTemplatesOptions, PushTemplatesCommand>()
             .Add<PullTranslationsOptions, PullTranslationsCommand>()
-            .Add<SaneOptsOptions, SaneOptsCommand>();
+            .Add<LangOptions, LangCommand>()
+            .Add<SetVersionOptions, SetVersionCommand>()
+            .Add<WebsiteUpdateOptions, WebsiteUpdateCommand>()
+            .Add<UploadOptions, UploadCommand>()
+            .Add<DocOptions, DocCommand>()
+            .Add<SaneOptsOptions, SaneOptsCommand>()
+            .Add<LocalSdkOptions, LocalSdkCommand>();
 
         var result = Parser.Default.ParseArguments(args, commands.OptionTypes);
         if (result.Errors.Any())
@@ -53,7 +59,7 @@ public static class Program
 
     public class CommandList
     {
-        private readonly List<Type> _optionTypes = new();
+        private readonly List<Type> _optionTypes = [];
         private readonly Dictionary<Type, Type> _optionTypeToCommandType = new();
 
         public CommandList Add<TOption, TCommand>() where TOption : OptionsBase where TCommand : ICommand<TOption>

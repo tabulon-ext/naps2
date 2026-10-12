@@ -18,6 +18,9 @@
   <data name="DeviceOffline" xml:space="preserve">
     <value>El escáner seleccionado está inactivo.</value>
   </data>
+  <data name="DeviceCommunicationFailure" xml:space="preserve">
+    <value>Se interrumpió la comunicación con el dispositivo de escaneo.</value>
+  </data>
   <data name="NAPS2" xml:space="preserve">
     <value>NAPS2</value>
   </data>
@@ -68,5 +71,20 @@
   </data>
   <data name="DriverNotSupported" xml:space="preserve">
     <value>El controlador seleccionado no está admitido en este sistema.</value>
+  </data>
+  <data name="OcrError" xml:space="preserve">
+    <value>Se ha producido un error ejecutando OCR.</value>
+  </data>
+  <data name="OcrTimeout" xml:space="preserve">
+    <value>La operación OCR demoró</value>
+  </data>
+  <data name="WorkerCrash" xml:space="preserve">
+    <value>El proceso de trabajo falló.</value>
+  </data>
+  <data name="WorkerCrashWindows" xml:space="preserve">
+    <value>El proceso de trabajo falló. Verifique el visor de eventos de Windows.</value>
+  </data>
+  <data name="UnknownScanner" xml:space="preserve">
+    <value>Escáner desconocido</value>
   </data>
 </root>

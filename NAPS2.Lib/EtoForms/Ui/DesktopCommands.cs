@@ -1,4 +1,3 @@
-using Eto.Forms;
 using NAPS2.EtoForms.Desktop;
 
 namespace NAPS2.EtoForms.Ui;
@@ -12,10 +11,13 @@ public class DesktopCommands
     private readonly ImageListActions _imageListActions;
     private readonly ThumbnailController _thumbnailController;
     private readonly IIconProvider _iconProvider;
+    private readonly Naps2Config _config;
+    private readonly DesktopFormProvider _desktopFormProvider;
 
     public DesktopCommands(DesktopController desktopController, DesktopScanController desktopScanController,
         IDesktopSubFormController desktopSubFormController, UiImageList imageList, ImageListActions imageListActions,
-        ThumbnailController thumbnailController, IIconProvider iconProvider)
+        ThumbnailController thumbnailController, IIconProvider iconProvider, Naps2Config config,
+        DesktopFormProvider desktopFormProvider)
     {
         _desktopController = desktopController;
         _desktopScanController = desktopScanController;
@@ -24,59 +26,60 @@ public class DesktopCommands
         _imageListActions = imageListActions;
         _thumbnailController = thumbnailController;
         _iconProvider = iconProvider;
+        _config = config;
+        _desktopFormProvider = desktopFormProvider;
+
+        var hiddenButtons = config.Get(c => c.HiddenButtons);
 
         Scan = new ActionCommand(desktopScanController.ScanDefault)
         {
             Text = UiStrings.Scan,
-            Image = iconProvider.GetIcon("control_play_blue"),
-            Shortcut = Application.Instance.CommonModifier | Keys.Period
+            IconName = "control_play_blue"
         };
         NewProfile = new ActionCommand(desktopScanController.ScanWithNewProfile)
         {
             Text = UiStrings.NewProfile,
-            Image = iconProvider.GetIcon("add_small"),
-            Shortcut = Application.Instance.CommonModifier | Keys.N
+            IconName = "add_small"
         };
         BatchScan = new ActionCommand(desktopSubFormController.ShowBatchScanForm)
         {
             Text = UiStrings.BatchScan,
-            Image = iconProvider.GetIcon("application_cascade"),
-            Shortcut = Application.Instance.CommonModifier | Keys.B
+            IconName = "application_cascade_small"
+        };
+        ScannerSharing = new ActionCommand(desktopSubFormController.ShowScannerSharingForm)
+        {
+            Text = UiStrings.ScannerSharing,
+            IconName = "wireless_small"
         };
         Profiles = new ActionCommand(desktopSubFormController.ShowProfilesForm)
         {
             Text = UiStrings.Profiles,
-            Image = iconProvider.GetIcon("blueprints"),
-            Shortcut = Application.Instance.CommonModifier | Keys.L
+            IconName = "blueprints"
         };
         Ocr = new ActionCommand(desktopSubFormController.ShowOcrForm)
         {
             Text = UiStrings.Ocr,
-            Image = iconProvider.GetIcon("text"),
-            Shortcut = Application.Instance.CommonModifier | Keys.Alt | Keys.O
+            IconName = "text"
         };
         Import = new ActionCommand(desktopController.Import)
         {
             Text = UiStrings.Import,
-            Image = iconProvider.GetIcon("folder_picture"),
-            Shortcut = Application.Instance.CommonModifier | Keys.O
+            IconName = "folder_picture"
         };
-        SaveAll = new ActionCommand(_imageListActions.SaveAllAsPdfOrImages)
+        SaveAll = new ActionCommand(imageListActions.SaveAllAsPdfOrImages)
         {
             Text = UiStrings.SaveAll,
-            Image = iconProvider.GetIcon("diskette"),
-            Shortcut = Application.Instance.CommonModifier | Keys.S
+            IconName = "diskette"
         };
-        SaveSelected = new ActionCommand(_imageListActions.SaveSelectedAsPdfOrImages)
+        SaveSelected = new ActionCommand(imageListActions.SaveSelectedAsPdfOrImages)
         {
             Text = UiStrings.SaveSelected,
-            Image = iconProvider.GetIcon("diskette"),
-            Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.S
+            IconName = "diskette"
         };
         SavePdf = new ActionCommand(desktopController.SavePdf)
         {
             Text = UiStrings.SavePdf,
-            Image = iconProvider.GetIcon("file_extension_pdf")
+            IconName = "file_extension_pdf"
         };
         SaveAllPdf = new ActionCommand(imageListActions.SaveAllAsPdf)
         {
@@ -88,13 +91,12 @@ public class DesktopCommands
         };
         PdfSettings = new ActionCommand(desktopSubFormController.ShowPdfSettingsForm)
         {
-            Text = UiStrings.PdfSettings,
-            Shortcut = Application.Instance.CommonModifier | Keys.Alt | Keys.P
+            Text = UiStrings.PdfSettings
         };
         SaveImages = new ActionCommand(desktopController.SaveImages)
         {
             Text = UiStrings.SaveImages,
-            Image = iconProvider.GetIcon("pictures")
+            IconName = "pictures"
         };
         SaveAllImages = new ActionCommand(imageListActions.SaveAllAsImages)
         {
@@ -106,74 +108,98 @@ public class DesktopCommands
         };
         ImageSettings = new ActionCommand(desktopSubFormController.ShowImageSettingsForm)
         {
-            Text = UiStrings.ImageSettings,
-            Shortcut = Application.Instance.CommonModifier | Keys.Alt | Keys.I
+            Text = UiStrings.ImageSettings
         };
         EmailPdf = new ActionCommand(desktopController.EmailPdf)
         {
             Text = UiStrings.EmailPdf,
-            Image = iconProvider.GetIcon("email_attach")
+            IconName = "email_attach"
         };
         EmailAll = new ActionCommand(imageListActions.EmailAllAsPdf)
         {
-            Text = UiStrings.EmailAll,
-            Shortcut = Application.Instance.CommonModifier | Keys.E
+            Text = UiStrings.EmailAll
         };
         EmailSelected = new ActionCommand(imageListActions.EmailSelectedAsPdf)
         {
-            Text = UiStrings.EmailSelected,
-            Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.E
+            Text = UiStrings.EmailSelected
         };
         EmailSettings = new ActionCommand(desktopSubFormController.ShowEmailSettingsForm)
         {
-            Text = UiStrings.EmailSettings,
-            Shortcut = Application.Instance.CommonModifier | Keys.Alt | Keys.E
+            Text = UiStrings.EmailSettings
         };
         Print = new ActionCommand(desktopController.Print)
         {
             Text = UiStrings.Print,
-            Image = iconProvider.GetIcon("printer"),
-            Shortcut = Application.Instance.CommonModifier | Keys.P
+            IconName = "printer"
         };
         ImageMenu = new ActionCommand
         {
             Text = UiStrings.Image,
-            Image = iconProvider.GetIcon("picture_edit")
+            IconName = "picture_edit"
         };
         ViewImage = new ActionCommand(desktopSubFormController.ShowViewerForm)
         {
             Text = UiStrings.View,
-            Image = iconProvider.GetIcon("zoom_small")
+            IconName = "zoom_small"
         };
         Crop = new ActionCommand(desktopSubFormController.ShowCropForm)
         {
             Text = UiStrings.Crop,
-            Image = iconProvider.GetIcon("transform_crop")
+            IconName = "transform_crop_small"
         };
         BrightCont = new ActionCommand(desktopSubFormController.ShowBrightnessContrastForm)
         {
             Text = UiStrings.BrightnessContrast,
-            Image = iconProvider.GetIcon("contrast_with_sun")
+            IconName = "contrast_with_sun_small"
         };
         HueSat = new ActionCommand(desktopSubFormController.ShowHueSaturationForm)
         {
             Text = UiStrings.HueSaturation,
-            Image = iconProvider.GetIcon("color_management")
+            IconName = "color_management_small"
         };
         BlackWhite = new ActionCommand(desktopSubFormController.ShowBlackWhiteForm)
         {
             Text = UiStrings.BlackAndWhite,
-            Image = iconProvider.GetIcon("contrast_high")
+            IconName = "contrast_high_small"
         };
         Sharpen = new ActionCommand(desktopSubFormController.ShowSharpenForm)
         {
             Text = UiStrings.Sharpen,
-            Image = iconProvider.GetIcon("sharpen")
+            IconName = "sharpen_small"
         };
         // TODO: Make this an image form with options
-        DocumentCorrection = new ActionCommand(desktopController.RunDocumentCorrection)
+        DocumentCorrection = new ActionCommand(imageListActions.DocumentCorrection)
         {
-            Text = UiStrings.DocumentCorrection
+            Text = UiStrings.DocumentCorrection,
+            IconName = "document_small"
+        };
+        Compress = new ActionCommand(desktopSubFormController.ShowCompressForm)
+        {
+            Text = UiStrings.Compress,
+            IconName = "spring_small"
+        };
+        Split = new ActionCommand(desktopSubFormController.ShowSplitForm)
+        {
+            Text = UiStrings.Split,
+            IconName = "split_small"
+        };
+        Combine = new ActionCommand(desktopSubFormController.ShowCombineForm)
+        {
+            Text = UiStrings.Combine,
+            IconName = "combine_small"
+        };
+        string? editWithAppName = _config.Get(c => c.EditWithAppName);
+        EditWithApp = new ActionCommand(imageListActions.EditWithApp)
+        {
+            Text = string.IsNullOrEmpty(editWithAppName)
+                ? UiStrings.EditWith
+                : string.Format(UiStrings.EditWithAppName, editWithAppName),
+            IconName = "pencil_small"
+        };
+        EditWithPick = new ActionCommand(imageListActions.EditWithPick)
+        {
+            Text = UiStrings.EditWith,
+            IconName = "pencil_small"
         };
         ResetImage = new ActionCommand(desktopController.ResetImage)
         {
@@ -182,22 +208,22 @@ public class DesktopCommands
         RotateMenu = new ActionCommand
         {
             Text = UiStrings.Rotate,
-            Image = iconProvider.GetIcon("arrow_rotate_anticlockwise")
+            IconName = "arrow_rotate_anticlockwise"
         };
         RotateLeft = new ActionCommand(imageListActions.RotateLeft)
         {
             Text = UiStrings.RotateLeft,
-            Image = iconProvider.GetIcon("arrow_rotate_anticlockwise_small")
+            IconName = "arrow_rotate_anticlockwise_small"
         };
         RotateRight = new ActionCommand(imageListActions.RotateRight)
         {
             Text = UiStrings.RotateRight,
-            Image = iconProvider.GetIcon("arrow_rotate_clockwise_small")
+            IconName = "arrow_rotate_clockwise_small"
         };
         Flip = new ActionCommand(imageListActions.Flip)
         {
             Text = UiStrings.Flip,
-            Image = iconProvider.GetIcon("arrow_switch_small")
+            IconName = "arrow_switch_small"
         };
         Deskew = new ActionCommand(imageListActions.Deskew)
         {
@@ -210,17 +236,17 @@ public class DesktopCommands
         MoveUp = new ActionCommand(imageListActions.MoveUp)
         {
             Text = UiStrings.MoveUp,
-            Image = iconProvider.GetIcon("arrow_up_small")
+            IconName = "arrow_up_small"
         };
         MoveDown = new ActionCommand(imageListActions.MoveDown)
         {
             Text = UiStrings.MoveDown,
-            Image = iconProvider.GetIcon("arrow_down_small")
+            IconName = "arrow_down_small"
         };
         ReorderMenu = new ActionCommand
         {
             Text = UiStrings.Reorder,
-            Image = iconProvider.GetIcon("arrow_refresh")
+            IconName = "arrow_refresh"
         };
         Interleave = new ActionCommand(imageListActions.Interleave)
         {
@@ -238,43 +264,75 @@ public class DesktopCommands
         {
             Text = UiStrings.AltDeinterleave
         };
+        ManualDuplex = new ActionCommand(() =>
+        {
+            if (_config.Get(c => c.ManualDuplexSettings.AlwaysShowPreview))
+            {
+                desktopSubFormController.ShowManualDuplexForm();
+            }
+            else
+            {
+                imageListActions.ManualDuplex();
+            }
+        })
+        {
+            Text = UiStrings.ManualDuplex,
+            IconName = "column_double_small"
+        };
+        ManualDuplexPreview = new ActionCommand(desktopSubFormController.ShowManualDuplexForm)
+        {
+            Text = UiStrings.ManualDuplexPreview,
+            IconName = "column_double_small"
+        };
         ReverseMenu = new ActionCommand
         {
             Text = UiStrings.Reverse
         };
-        ReverseAll = new ActionCommand(imageListActions.ReverseAll);
-        ReverseSelected = new ActionCommand(imageListActions.ReverseSelected);
+        ReverseAll = new ActionCommand(imageListActions.ReverseAll)
+        {
+            Text = UiStrings.ReverseAll
+        };
+        ReverseSelected = new ActionCommand(imageListActions.ReverseSelected)
+        {
+            Text = UiStrings.ReverseSelected
+        };
         Delete = new ActionCommand(desktopController.Delete)
         {
             Text = UiStrings.Delete,
-            Image = iconProvider.GetIcon("cross")
+            IconName = "cross"
         };
         ClearAll = new ActionCommand(desktopController.Clear)
         {
             ToolBarText = UiStrings.Clear,
             MenuText = UiStrings.ClearAll,
-            Image = iconProvider.GetIcon("cancel"),
-            Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.Delete
+            IconName = "broom"
         };
         LanguageMenu = new ActionCommand
         {
             Text = UiStrings.Language,
-            Image = iconProvider.GetIcon("world")
+            IconName = "world"
+        };
+        Settings = new ActionCommand(desktopSubFormController.ShowSettingsForm)
+        {
+            Text = UiStrings.Settings,
+            IconName = hiddenButtons.HasFlag(ToolbarButtons.About) ? "cog" : "cog_small"
         };
         About = new ActionCommand(desktopSubFormController.ShowAboutForm)
         {
             Text = UiStrings.About,
-            Image = iconProvider.GetIcon("information")
+            IconName = hiddenButtons.HasFlag(ToolbarButtons.Settings)
+                ? "information"
+                : "information_small"
         };
         ZoomIn = new ActionCommand(() => thumbnailController.StepSize(1))
         {
             Text = UiStrings.ZoomIn,
-            Image = iconProvider.GetIcon("zoom_in")
+            IconName = "zoom_in_small"
         };
         ZoomOut = new ActionCommand(() => thumbnailController.StepSize(-1))
         {
             Text = UiStrings.ZoomOut,
-            Image = iconProvider.GetIcon("zoom_out")
+            IconName = "zoom_out_small"
         };
         SelectAll = new ActionCommand(imageListActions.SelectAll)
         {
@@ -282,29 +340,51 @@ public class DesktopCommands
         };
         Copy = new ActionCommand(desktopController.Copy)
         {
-            Text = UiStrings.Copy
+            Text = UiStrings.Copy,
+            IconName = "copy_small"
         };
         Paste = new ActionCommand(desktopController.Paste)
         {
-            Text = UiStrings.Paste
+            Text = UiStrings.Paste,
+            IconName = "paste_small"
+        };
+        Undo = new ActionCommand(imageListActions.Undo)
+        {
+            Text = UiStrings.Undo,
+            IconName = "undo_small"
+        };
+        Redo = new ActionCommand(imageListActions.Redo)
+        {
+            Text = UiStrings.Redo,
+            IconName = "redo_small"
+        };
+        ToggleSidebar = new ActionCommand(() => _desktopFormProvider.DesktopForm.ToggleSidebar())
+        {
+            Text = UiStrings.ToggleSidebar,
+            IconName = "application_side_list_small"
         };
     }
 
-    public DesktopCommands WithSelection(ListSelection<UiImage> selection)
+    public DesktopCommands WithSelection(Func<ListSelection<UiImage>> selectionFunc)
     {
         return new DesktopCommands(
             _desktopController,
             _desktopScanController,
-            _desktopSubFormController,
+            _desktopSubFormController.WithSelection(selectionFunc),
             _imageList,
-            _imageListActions.WithSelection(selection),
+            _imageListActions.WithSelection(selectionFunc),
             _thumbnailController,
-            _iconProvider);
+            _iconProvider,
+            _config,
+            _desktopFormProvider);
     }
+
+    public ImageListActions ImageListActions => _imageListActions;
 
     public ActionCommand Scan { get; set; }
     public ActionCommand NewProfile { get; set; }
     public ActionCommand BatchScan { get; set; }
+    public ActionCommand ScannerSharing { get; set; }
     public ActionCommand Profiles { get; set; }
     public ActionCommand Ocr { get; set; }
     public ActionCommand Import { get; set; }
@@ -331,6 +411,11 @@ public class DesktopCommands
     public ActionCommand BlackWhite { get; set; }
     public ActionCommand Sharpen { get; set; }
     public ActionCommand DocumentCorrection { get; set; }
+    public ActionCommand Compress { get; set; }
+    public ActionCommand Split { get; set; }
+    public ActionCommand Combine { get; set; }
+    public ActionCommand EditWithApp { get; set; }
+    public ActionCommand EditWithPick { get; set; }
     public ActionCommand ResetImage { get; set; }
     public ActionCommand RotateMenu { get; set; }
     public ActionCommand RotateLeft { get; set; }
@@ -345,16 +430,22 @@ public class DesktopCommands
     public ActionCommand Deinterleave { get; set; }
     public ActionCommand AltInterleave { get; set; }
     public ActionCommand AltDeinterleave { get; set; }
+    public ActionCommand ManualDuplex { get; set; }
+    public ActionCommand ManualDuplexPreview { get; set; }
     public ActionCommand ReverseMenu { get; set; }
     public ActionCommand ReverseAll { get; set; }
     public ActionCommand ReverseSelected { get; set; }
     public ActionCommand Delete { get; set; }
     public ActionCommand ClearAll { get; set; }
     public ActionCommand LanguageMenu { get; set; }
+    public ActionCommand Settings { get; set; }
     public ActionCommand About { get; set; }
     public ActionCommand ZoomIn { get; set; }
     public ActionCommand ZoomOut { get; set; }
     public ActionCommand SelectAll { get; set; }
     public ActionCommand Copy { get; set; }
     public ActionCommand Paste { get; set; }
+    public ActionCommand Undo { get; set; }
+    public ActionCommand Redo { get; set; }
+    public ActionCommand ToggleSidebar { get; set; }
 }

@@ -1,6 +1,7 @@
 using Eto.Drawing;
 using Eto.Forms;
 using NAPS2.EtoForms.Layout;
+using NAPS2.EtoForms.Widgets;
 using NAPS2.Ocr;
 
 namespace NAPS2.EtoForms.Ui;
@@ -9,14 +10,18 @@ public class OcrDownloadForm : EtoDialogBase
 {
     private readonly TesseractLanguageManager _tesseractLanguageManager;
 
-    private readonly IListView<Language> _languageList =
-        EtoPlatform.Current.CreateListView(new OcrLanguagesListViewBehavior());
+    private readonly IListView<Language> _languageList;
     private readonly Label _downloadSize = new();
     private readonly Button _downloadButton;
 
-    public OcrDownloadForm(Naps2Config config, TesseractLanguageManager tesseractLanguageManager) : base(config)
+    public OcrDownloadForm(Naps2Config config, TesseractLanguageManager tesseractLanguageManager,
+        OcrLanguagesListViewBehavior ocrLanguagesListViewBehavior, IIconProvider iconProvider) : base(config)
     {
+        Title = UiStrings.OcrDownloadFormTitle;
+        IconName = "text_small";
+
         _tesseractLanguageManager = tesseractLanguageManager;
+        _languageList = EtoPlatform.Current.CreateListView(ocrLanguagesListViewBehavior);
 
         var initialSelection = new HashSet<string>();
         // TODO: We used to select old installed languages here, maybe we could do it again if we get new lang data
@@ -40,9 +45,6 @@ public class OcrDownloadForm : EtoDialogBase
 
     protected override void BuildLayout()
     {
-        Title = UiStrings.OcrDownloadFormTitle;
-        Icon = new Icon(1f, Icons.text_small.ToEtoImage());
-
         FormStateController.RestoreFormState = false;
         FormStateController.DefaultExtraLayoutSize = new Size(300, 300);
 
@@ -75,7 +77,7 @@ public class OcrDownloadForm : EtoDialogBase
 
     private HashSet<string> SelectedLanguageComponents
     {
-        get { return new HashSet<string>(_languageList.Selection.Select(lang => $"ocr-{lang.Code}")); }
+        get { return [.._languageList.Selection.Select(lang => $"ocr-{lang.Code}")]; }
     }
 
     private void Download()
@@ -85,7 +87,7 @@ public class OcrDownloadForm : EtoDialogBase
         var selected = SelectedLanguageComponents;
         foreach (var langComponent in _tesseractLanguageManager.LanguageComponents.Where(x => selected.Contains(x.Id)))
         {
-            progressForm.QueueFile(langComponent);
+            progressForm.Controller.QueueFile(langComponent);
         }
 
         Close();

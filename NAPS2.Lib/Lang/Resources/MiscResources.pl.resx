@@ -160,10 +160,10 @@
     <value>Zresetuj obraz</value>
   </data>
   <data name="ExitWithUnsavedChanges" xml:space="preserve">
-    <value>Masz niezapisane zmiany. Czy na pewno chcesz wyjść i odrzucić te zmiany?</value>
+    <value>Masz niezapisane zmiany. Czy na pewno chcesz wyjść i odrzucić te zmiany?</value>
   </data>
   <data name="ExitWithActiveOperations" xml:space="preserve">
-    <value>Operacja jest w toku. Czy na pewno chcesz zakończyć i anulować operację?</value>
+    <value>Operacja jest w toku. Czy na pewno chcesz zakończyć i anulować operację?</value>
   </data>
   <data name="UnsavedChanges" xml:space="preserve">
     <value>Niezapisane zmiany</value>
@@ -190,7 +190,7 @@
     <value>z {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>Nieznany błąd wystąpił podczas skanowania wsadowego.</value>
+    <value>Wystąpił nieznany błąd podczas skanowania wsadowego.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Anulowano przetwarzanie.</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1} x {2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>Czy na pewno chcesz usunąć "{0}"?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>Plik nie mógł zostać zastąpiony, ponieważ jest obecnie w użyciu.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 jest całkowicie bezpłatny. Rozważ przekazanie darowizny.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Napisz recenzję</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Lubisz NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>Sterownik SANE nie jest dostępny. Upewnij się, że zainstalowałeś wymagane pakiety:</value>

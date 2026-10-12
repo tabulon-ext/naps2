@@ -1,7 +1,7 @@
+using System.Linq.Expressions;
 using System.Threading;
 using NAPS2.App.Tests.Targets;
 using NAPS2.Sdk.Tests;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Windows;
 
@@ -21,41 +21,53 @@ public class AppiumTests : ContextualTests
 
     public void Init(IAppTestTarget target)
     {
+        Thread.Sleep(5000);
         _session = StartSession(target.Gui, FolderPath);
+        ResetMainWindow();
     }
 
     public override void Dispose()
     {
-        _session.Dispose();
-        base.Dispose();
-    }
-
-    protected void WaitUntilGone(string name, int timeoutInMs)
-    {
-        var stopwatch = Stopwatch.StartNew();
         try
         {
-            while (true)
-            {
-                if (_session.FindElementsByName(name).Count == 0)
-                {
-                    break;
-                }
-                if (stopwatch.ElapsedMilliseconds > timeoutInMs)
-                {
-                    throw new WebDriverException("Timeout waiting for element to be gone");
-                }
-                Thread.Sleep(100);
-            }
+            _session.Dispose();
         }
-        catch (InvalidOperationException)
+        catch (Exception)
         {
+            // Ignore disposal errors
         }
+        base.Dispose();
     }
 
     protected void ResetMainWindow()
     {
-        _session.SwitchTo().Window(_session.WindowHandles[0]);
+        _session.SwitchTo().Window(WaitFor(() => _session.WindowHandles.Single()));
+    }
+
+    protected T WaitFor<T>(Expression<Func<T>> expr, int timeoutInMs = 10_000)
+    {
+        var func = expr.Compile();
+        var stopwatch = Stopwatch.StartNew();
+        while (true)
+        {
+            try
+            {
+                var value = func();
+                if (value is null or false)
+                {
+                    throw new Exception();
+                }
+                return value;
+            }
+            catch (Exception)
+            {
+                if (stopwatch.ElapsedMilliseconds > timeoutInMs)
+                {
+                    throw new Exception($"Timed out waiting for \"{expr.Body}\"");
+                }
+                Thread.Sleep(100);
+            }
+        }
     }
 
     protected void ClickAt(WindowsElement element)
@@ -68,7 +80,7 @@ public class AppiumTests : ContextualTests
 
     protected void ClickAtName(string name)
     {
-        ClickAt(WaitAndFindElementByName(name));
+        ClickAt(WaitFor(() => _session.FindElementByName(name)));
     }
 
     protected void DoubleClickAt(WindowsElement element)
@@ -82,23 +94,11 @@ public class AppiumTests : ContextualTests
 
     protected void DoubleClickAtName(string name)
     {
-        DoubleClickAt(WaitAndFindElementByName(name));
+        DoubleClickAt(WaitFor(() => _session.FindElementByName(name)));
     }
 
-    protected WindowsElement WaitAndFindElementByName(string name)
+    protected bool HasElementWithName(string name)
     {
-        int i = 0;
-        while(true)
-        {
-            try
-            {
-                return _session.FindElementByName(name);
-            }
-            catch (WebDriverException)
-            {
-                if (++i > 10) throw;
-                Thread.Sleep(100);
-            }
-        }
+        return _session.FindElementsByName(name).Count > 0;
     }
 }

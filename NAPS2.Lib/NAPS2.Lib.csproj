@@ -1,34 +1,49 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Linux'))">net6;net462</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Linux'))">net6;net6-macos10.15;net462</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+      $(TargetFrameworks);net10.0-macos
+    </TargetFrameworks>
     <Nullable>enable</Nullable>
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
     <RootNamespace>NAPS2</RootNamespace>
 
     <Title>NAPS2 - Not Another PDF Scanner</Title>
     <Product>NAPS2 - Not Another PDF Scanner</Product>
-    <Copyright>Copyright 2009, 2012-2020 NAPS2 Contributors; Icons from http://www.fatcow.com/free-icons</Copyright>
-    <Configurations>Debug;Release;DebugLang</Configurations>
+    <Configurations>Debug;Release;DebugLang;Release-Msi;Release-Zip</Configurations>
   </PropertyGroup>
 
   <Import Project="..\NAPS2.Setup\targets\CommonTargets.targets" />
   <Import Project="..\NAPS2.Setup\targets\LibUsers.targets" />
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net6-macos10.15'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-macos'">
     <DefineConstants>MAC</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release-Msi'">
+    <DefineConstants>$(DefineConstants);MSI</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release-Zip'">
+    <DefineConstants>$(DefineConstants);ZIP</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(AddDebugConstant)' == '1'">
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NAPS2.Sdk\NAPS2.Sdk.csproj" />
-    <PackageReference Include="Autofac" Version="6.4.0" />
+    <ProjectReference Include="..\NAPS2.Escl.Server\NAPS2.Escl.Server.csproj" />
+    <PackageReference Include="Autofac" Version="9.3.1" />
+    <PackageReference Include="Ben.Demystifier" Version="0.4.1" />
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="MimeKit" Version="1.22.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="NLog" Version="4.7.15" />
-    <PackageReference Include="Eto.Forms" Version="2.7.2" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="6.0.0" />
+    <PackageReference Include="Eto.Forms" Version="2.11.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.83.0-pre1" PrivateAssets="all" />
+    <PackageReference Include="IsExternalInit" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="MimeKitLite" Version="4.17.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NLog" Version="5.5.1" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.5.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.10" />
   </ItemGroup>
   
   <ItemGroup>
@@ -44,6 +59,8 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>NAPS2.Lib.Gtk</_Parameter1>
     </AssemblyAttribute>
+
+    <Protobuf Include="**/*.proto" Access="Public" />
   </ItemGroup>
 
   <ItemGroup>
@@ -73,10 +90,6 @@
     </EmbeddedResource>
 
     <EmbeddedResource Update="**/*.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-    </EmbeddedResource>
-
-    <EmbeddedResource Update="Lang\Reesources\UiStrings.fr.resx">
       <Generator>ResXFileCodeGenerator</Generator>
     </EmbeddedResource>
 

@@ -13,7 +13,7 @@ internal class RecoveryOperation : OperationBase
         _formFactory = formFactory;
         _recoveryManager = recoveryManager;
 
-        ProgressTitle = MiscResources.ImportProgress;
+        ProgressTitle = MiscResources.RecoveryProgress;
         AllowCancel = true;
         AllowBackground = true;
     }
@@ -39,7 +39,8 @@ internal class RecoveryOperation : OperationBase
                     {
                         try
                         {
-                            return recoverableFolder.TryRecover(imageCallback, recoveryParams, ProgressHandler);
+                            return recoverableFolder.TryRecover(imageCallback, recoveryParams,
+                                ProgressHandler);
                         }
                         finally
                         {

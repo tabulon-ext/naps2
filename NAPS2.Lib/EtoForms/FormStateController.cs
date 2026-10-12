@@ -4,13 +4,11 @@ using NAPS2.EtoForms.Layout;
 
 namespace NAPS2.EtoForms;
 
-// TODO: Verify all the size handling works correctly with maximized forms.
 public class FormStateController
 {
     private readonly Window _window;
     private readonly Naps2Config _config;
     private FormState? _formState;
-    private bool _loaded;
     private bool _hasSetSize;
     private Size _minimumClientSize;
     private Size _maximumClientSize;
@@ -32,13 +30,17 @@ public class FormStateController
 
     public bool AutoLayoutSize { get; set; } = true;
 
-    public Size DefaultExtraLayoutSize { get; set; }
+    public SizeF DefaultExtraLayoutSize { get; set; }
 
-    public Size DefaultClientSize { get; set; }
+    public SizeF DefaultClientSize { get; set; }
 
     public bool FixedHeightLayout { get; set; }
 
     public bool Resizable { get; set; } = true;
+
+    public bool Loaded { get; private set; }
+
+    public bool Shown { get; private set; }
 
     public string FormName => _window.GetType().Name;
 
@@ -46,13 +48,14 @@ public class FormStateController
     {
         if (AutoLayoutSize)
         {
-            _minimumClientSize = layoutController.GetLayoutSize(false);
+            var scale = EtoPlatform.Current.GetLayoutScaleFactor(_window);
+            _minimumClientSize = layoutController.GetLayoutSize();
             var oldDefaultClientSize = DefaultClientSize;
             var oldMaximumClientSize = _maximumClientSize;
-            DefaultClientSize = layoutController.GetLayoutSize(true) + DefaultExtraLayoutSize;
-            _maximumClientSize = FixedHeightLayout ? new Size(0, _minimumClientSize.Height) : Size.Empty;
+            DefaultClientSize = (SizeF) _minimumClientSize / scale + DefaultExtraLayoutSize;
+            _maximumClientSize = FixedHeightLayout || !Resizable ? new Size(0, _minimumClientSize.Height) : Size.Empty;
 
-            if (_loaded)
+            if (Loaded)
             {
                 // Dynamic re-sizing because the layout contents have changed (not just a normal resize/maximize etc).
                 var size = EtoPlatform.Current.GetClientSize(_window);
@@ -60,7 +63,11 @@ public class FormStateController
                 {
                     size.Height = Math.Min(size.Height, oldMaximumClientSize.Height);
                 }
-                size += DefaultClientSize - oldDefaultClientSize;
+                // TODO: Maybe we can add a flag to do this behavior? It makes it so that changes to the layout size
+                // after the form is loaded cause the form size to change proportionally (even if we're still within
+                // our min/max bounds). This is causing problems for dynamically sized images/labels etc. but maybe
+                // there's a world where we want to re-enable this for some forms.
+                // size += DefaultClientSize - oldDefaultClientSize;
                 size = Size.Max(size, _minimumClientSize);
                 if (_maximumClientSize.Height > 0)
                 {
@@ -77,7 +84,7 @@ public class FormStateController
         if (RestoreFormState || SaveFormState)
         {
             var formStates = _config.Get(c => c.FormStates);
-            _formState = formStates.SingleOrDefault(x => x.Name == FormName) ?? new FormState {Name = FormName};
+            _formState = formStates.SingleOrDefault(x => x.Name == FormName) ?? new FormState { Name = FormName };
         }
 
         if (RestoreFormState)
@@ -87,9 +94,10 @@ public class FormStateController
         if (!_hasSetSize && !DefaultClientSize.IsEmpty)
         {
             // TODO: Use size delta to re-center
-            EtoPlatform.Current.SetClientSize(_window, DefaultClientSize);
+            var scale = EtoPlatform.Current.GetLayoutScaleFactor(_window);
+            EtoPlatform.Current.SetClientSize(_window, Size.Round(DefaultClientSize * scale));
         }
-        _loaded = true;
+        Loaded = true;
     }
 
     private void OnShownInternal(object? sender, EventArgs e)
@@ -99,6 +107,7 @@ public class FormStateController
             EtoPlatform.Current.SetMinimumClientSize(_window, _minimumClientSize);
         }
         _window.Resizable = Resizable;
+        Shown = true;
     }
 
     protected void DoRestoreFormState()
@@ -108,17 +117,20 @@ public class FormStateController
             throw new InvalidOperationException();
         }
         var location = new Point(_formState.Location.X, _formState.Location.Y);
-        var size = new Size(_formState.Size.Width, _formState.Size.Height);
-        if (!location.IsZero)
+        if (!location.IsZero &&
+            // Restoring location causes DPI mismatches if there are multiple monitors with different DPI (WinForms bug)
+            !FixWinFormsDpiIssues &&
+            // Only move to the specified location if it's onscreen
+            // It might be offscreen if the user has disconnected a monitor
+            Screen.Screens.Any(x => x.WorkingArea.Contains(location)))
         {
-            if (Screen.Screens.Any(x => x.WorkingArea.Contains(location)))
-            {
-                // Only move to the specified location if it's onscreen
-                // It might be offscreen if the user has disconnected a monitor
-                EtoPlatform.Current.SetFormLocation(_window, location);
-            }
+            EtoPlatform.Current.SetFormLocation(_window, location);
         }
-        if (!size.IsEmpty && _window.Resizable)
+        var scale = FixWinFormsDpiIssues ? 1f : EtoPlatform.Current.GetLayoutScaleFactor(_window);
+        var size = new Size(
+            (int) Math.Round(_formState.Size.Width * scale),
+            (int) Math.Round(_formState.Size.Height * scale));
+        if (!size.IsEmpty && Resizable)
         {
             if (!_minimumClientSize.IsEmpty)
             {
@@ -134,25 +146,38 @@ public class FormStateController
         if (_formState.Maximized && _window.Resizable)
         {
             _window.WindowState = WindowState.Maximized;
+            // TODO: Setting WindowState immediately doesn't work on WinForms when we've already created a window handle
+            // Theoretically we could move this code around earlier before the handle is created (e.g. when we're
+            // doing layouting to determine the width of the sidebar), but it's hard to get all the interdependencies
+            // between layouting and form state working correctly. This workaround of setting it again later works but
+            // results in an animation for the maximization.
+            Invoker.Current.InvokeDispatch(() => _window.WindowState = WindowState.Maximized);
         }
     }
 
+    private bool FixWinFormsDpiIssues => EtoPlatform.Current.IsWinForms && DifferentMonitorScales;
+
+    private bool DifferentMonitorScales => Screen.Screens.Select(x => x.RealDPI).Distinct().Count() > 1;
+
     private void OnResize(object? sender, EventArgs eventArgs)
     {
-        if (_loaded && _formState != null && SaveFormState)
+        if (Shown && _formState != null && SaveFormState)
         {
             _formState.Maximized = (_window.WindowState == WindowState.Maximized);
             if (_window.WindowState == WindowState.Normal)
             {
                 var size = EtoPlatform.Current.GetClientSize(_window);
-                _formState.Size = new FormState.FormSize(size.Width, size.Height);
+                var scale = FixWinFormsDpiIssues ? 1f : EtoPlatform.Current.GetLayoutScaleFactor(_window);
+                _formState.Size = new FormState.FormSize(
+                    (int) Math.Round(size.Width / scale),
+                    (int) Math.Round(size.Height / scale));
             }
         }
     }
 
     private void OnMove(object? sender, EventArgs eventArgs)
     {
-        if (_loaded && _formState != null && SaveFormState)
+        if (Shown && _formState != null && SaveFormState)
         {
             if (_window.WindowState == WindowState.Normal)
             {

@@ -1,7 +1,9 @@
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Eto.WinForms;
 using Eto.WinForms.Forms.Menu;
+using NAPS2.EtoForms.Widgets;
 using NAPS2.WinForms;
 using ContextMenu = Eto.Forms.ContextMenu;
 
@@ -9,8 +11,14 @@ namespace NAPS2.EtoForms.WinForms;
 
 public class WinFormsListView<T> : IListView<T> where T : notnull
 {
-    private static readonly Pen DefaultPen = new(Color.Black, 1);
-    private static readonly Pen SelectionPen = new(Color.FromArgb(0x60, 0xa0, 0xe8), 3);
+    private Pen DefaultPen => new(_behavior.ColorScheme.ForegroundColor.ToSD(), 1);
+    private static readonly Pen BasicSelectionPen = new(Color.FromArgb(0x60, 0xa0, 0xe8), 3);
+    private const int PageNumberTextPadding = 6;
+    private const int PageNumberSelectionPadding = 3;
+    private SolidBrush PageNumberOutlineBrush => new(_behavior.ColorScheme.HighlightBorderColor.ToSD());
+    private SolidBrush PageNumberSelectionBrush => new(_behavior.ColorScheme.HighlightBackgroundColor.ToSD());
+    private static readonly StringFormat PageNumberLabelFormat = new()
+        { Alignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
 
     private readonly ListView _view;
     private readonly Eto.Forms.Control _viewEtoControl;
@@ -19,12 +27,15 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
     private ListSelection<T> _selection = ListSelection.Empty<T>();
     private bool _refreshing;
     private ContextMenu? _contextMenu;
+    private float _dpiScale = 1f;
+    private Eto.Drawing.Size _imageSize = new(48, 48);
 
     public WinFormsListView(ListViewBehavior<T> behavior)
     {
         _behavior = behavior;
         _view = behavior.ScrollOnDrag ? new DragScrollListView() : new ListView();
         _view.MultiSelect = behavior.MultiSelect;
+
         if (_behavior.Checkboxes)
         {
             _view.View = View.List;
@@ -45,6 +56,7 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
             _view.SelectedIndexChanged += OnSelectedIndexChanged;
         }
 
+        _view.AllowDrop = _behavior.AllowDragDrop;
         _view.ItemActivate += OnItemActivate;
         _view.ItemDrag += OnItemDrag;
         _view.DragEnter += OnDragEnter;
@@ -65,53 +77,146 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
             _view.OwnerDraw = true;
             _view.DrawItem += CustomRenderItem;
         }
+
+        EtoPlatform.Current.AttachDpiDependency(_viewEtoControl, scale =>
+        {
+            _dpiScale = scale;
+            // Reset internal size based on new scale
+            ImageSize = ImageSize;
+        });
     }
 
     private bool UseCustomRendering => !_behavior.ShowLabels && !_behavior.Checkboxes;
 
     private void CustomRenderItem(object? sender, DrawListViewItemEventArgs e)
     {
-        int width, height;
         var image = ImageList.Get(e.Item);
-        if (image.Width > image.Height)
+        int imageSizeW = (int) Math.Round(_imageSize.Width * _dpiScale);
+        int imageSizeH = (int) Math.Round(_imageSize.Height * _dpiScale);
+        if (_behavior.ShowPageNumbers)
         {
-            width = ImageSize;
-            height = (int) Math.Round(width * (image.Height / (double) image.Width));
-        }
-        else
-        {
-            height = ImageSize;
-            width = (int) Math.Round(height * (image.Width / (double) image.Height));
-        }
-        var x = e.Bounds.Left + (e.Bounds.Width - width) / 2;
-        var y = e.Bounds.Top + (e.Bounds.Height - height) / 2;
-        e.Graphics.DrawImage(image, new Rectangle(x, y, width, height));
+            int tp = (int) Math.Round(PageNumberTextPadding * _dpiScale);
+            int sp = (int) Math.Round(PageNumberSelectionPadding * _dpiScale);
 
-        // Draw border
-        if (e.Item.Selected)
-        {
-            e.Graphics.DrawRectangle(SelectionPen, x - 2, y - 2, width + 3, height + 3);
+            // When page numbers are shown, we use a completely different drawing path, as we need to offset the image
+            // to have room for the page numbers, and the selection rectangle has a completely different style to
+            // encompass the page numbers too.
+            string label = $"{e.ItemIndex + 1} / {_view.Items.Count}";
+            SizeF textSize = TextRenderer.MeasureText(label, _view.Font);
+            int textOffset = (int) (textSize.Height + tp);
+
+            float scaleHeight = (float) (imageSizeH - textOffset) / image.Height;
+            float scaleWidth = (float) imageSizeW / image.Width;
+
+            float scale = Math.Min(scaleWidth, scaleHeight);
+            int height = (int) Math.Round(image.Height * scale);
+            int width = (int) Math.Round(image.Width * scale);
+
+            var x = e.Bounds.Left + (e.Bounds.Width - width) / 2;
+            var y = e.Bounds.Top + (e.Bounds.Height - height - textOffset) / 2;
+
+            // Draw selection rectangle/background
+            if (e.Item.Selected)
+            {
+                Size intTextSize = Size.Ceiling(textSize);
+
+                int selectionWidth = Math.Max(width, intTextSize.Width);
+                int selectionHeight = height + tp + intTextSize.Height;
+
+                var selectionX = e.Bounds.Left + (e.Bounds.Width - width) / 2;
+
+                var selectionRect = new Rectangle(selectionX, y, selectionWidth, selectionHeight);
+                selectionRect.Inflate(sp, sp);
+
+                var outlineRect = selectionRect;
+                outlineRect.Inflate(1, 1);
+                e.Graphics.FillRectangle(PageNumberOutlineBrush, outlineRect);
+
+                e.Graphics.FillRectangle(PageNumberSelectionBrush, selectionRect);
+            }
+
+            // Draw image
+            e.Graphics.DrawImage(image, new Rectangle(x, y, width, height));
+
+            // Draw the text below the image
+            var drawBrush = new SolidBrush(_behavior.ColorScheme.ForegroundColor.ToSD());
+            float x1 = x + width / 2f;
+            float y1 = y + height + tp;
+            RectangleF labelRect = new(x1, y1, 0, textSize.Height);
+            float maxLabelWidth = Math.Min(textSize.Width, e.Bounds.Width - 2 * tp);
+            labelRect.Inflate(maxLabelWidth / 2, 0);
+            labelRect.Width += 2;
+            e.Graphics.DrawString(label, _view.Font, drawBrush, labelRect, PageNumberLabelFormat);
+
+            // Draw unselected border
+            if (!e.Item.Selected)
+            {
+                e.Graphics.DrawRectangle(DefaultPen, x - 1, y - 1, width + 1, height + 1);
+            }
         }
         else
         {
-            e.Graphics.DrawRectangle(DefaultPen, x, y, width, height);
+            // The basic no-page-numbers drawing path
+            int width, height;
+            if (image.Width > image.Height)
+            {
+                width = imageSizeW;
+                height = (int) Math.Round(width * (image.Height / (double) image.Width));
+            }
+            else
+            {
+                height = imageSizeH;
+                width = (int) Math.Round(height * (image.Width / (double) image.Height));
+            }
+            var x = e.Bounds.Left + (e.Bounds.Width - width) / 2;
+            var y = e.Bounds.Top + (e.Bounds.Height - height) / 2;
+
+            // Draw image
+            e.Graphics.DrawImage(image, new Rectangle(x, y, width, height));
+
+            // Draw border
+            if (e.Item.Selected)
+            {
+                e.Graphics.DrawRectangle(BasicSelectionPen, x - 2, y - 2, width + 3, height + 3);
+            }
+            else
+            {
+                e.Graphics.DrawRectangle(DefaultPen, x, y, width, height);
+            }
         }
     }
 
-    public int ImageSize
+    public Eto.Drawing.Size ImageSize
     {
-        get => _view.LargeImageList.ImageSize.Width;
-        set => WinFormsHacks.SetImageSize(_view.LargeImageList, new Size(value, value));
+        get => _imageSize;
+        set
+        {
+            _imageSize = value;
+            if (_view.LargeImageList != null)
+            {
+                int w = (int) Math.Round(_imageSize.Width * _dpiScale);
+                int h = (int) Math.Round(_imageSize.Height * _dpiScale);
+                WinFormsHacks.SetImageSize(_view.LargeImageList!, new Size(w, h));
+            }
+        }
     }
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
         var data = e.Data.ToEto();
-        if (data.Contains(_behavior.CustomDragDataType) && _behavior.AllowDragDrop)
+        // TODO: Figure out why .Contains is not working correctly on net9
+        try
         {
-            e.Effect = _behavior.GetCustomDragEffect(data.GetData(_behavior.CustomDragDataType)).ToSwf();
+            if (data.Contains(_behavior.CustomDragDataType) && _behavior.AllowDragDrop)
+            {
+                e.Effect = _behavior.GetCustomDragEffect(EtoPlatform.Current.GetData(data, _behavior.CustomDragDataType)).ToSwf();
+                return;
+            }
         }
-        else if (data.Contains("FileDrop") && _behavior.AllowFileDrop)
+        catch (COMException)
+        {
+        }
+        if (data.Contains("FileDrop") && _behavior.AllowFileDrop)
         {
             e.Effect = DragDropEffects.Copy;
         }
@@ -166,21 +271,27 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
         {
             if (_behavior.Checkboxes)
             {
-                Items[i].Checked = Selection.Contains((T) Items[i].Tag);
+                Items[i].Checked = Selection.Contains((T) Items[i].Tag!);
             }
             else
             {
-                Items[i].Selected = Selection.Contains((T) Items[i].Tag);
+                Items[i].Selected = Selection.Contains((T) Items[i].Tag!);
             }
         }
     }
 
-    // TODO: Do we need this method? Clean up the name/doc at least
     public void RegenerateImages()
     {
-        if (_refreshing)
+        if (_refreshing || Items.Count == 0)
         {
-            throw new InvalidOperationException();
+            return;
+        }
+        if (!UseCustomRendering)
+        {
+            // TODO: Not sure why but this gets glitchy unless we reset the items too
+            Invoker.Current.InvokeDispatch(() =>
+                SetItems(_view.Items.Cast<ListViewItem>().Select(x => (T) x.Tag!).ToList()));
+            return;
         }
         _refreshing = true;
         _view.BeginUpdate();
@@ -189,7 +300,7 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
         var images = new List<Image>();
         foreach (ListViewItem listViewItem in Items)
         {
-            var item = (T) listViewItem.Tag;
+            var item = (T) listViewItem.Tag!;
             images.Add(ImageList.PartialAppend(item));
         }
         ImageList.FinishPartialAppends(images);
@@ -209,7 +320,7 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
 
         // TODO: We might want to make the differ even smarter. e.g. maybe it can generate an arbitrary order of operations that minimizes update cost
         // example: clear then append 1 instead of delete all but 1
-        var originalItemsList = Items.OfType<ListViewItem>().Select(x => (T) x.Tag).ToList();
+        var originalItemsList = Items.OfType<ListViewItem>().Select(x => (T) x.Tag!).ToList();
         var originalItemsSet = new HashSet<T>(originalItemsList);
         if (!diffs.AppendOperations.Any() && !diffs.ReplaceOperations.Any() &&
             diffs.TrimOperations.Any(x => x.Count == Items.Count))
@@ -231,6 +342,7 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
             }
             foreach (var replace in diffs.ReplaceOperations)
             {
+                // TODO: This seems to have some race condition (errors when changing languages while thumbnails render)
                 Items[replace.Index].Tag = replace.Item;
                 ImageList.Replace(replace.Item, replace.Index);
             }
@@ -244,7 +356,7 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
             }
         }
         SetSelectedItems();
-        var newItemsList = Items.OfType<ListViewItem>().Select(x => (T) x.Tag).ToList();
+        var newItemsList = Items.OfType<ListViewItem>().Select(x => (T) x.Tag!).ToList();
         var newItemsSet = new HashSet<T>(newItemsList);
         if (originalItemsSet.SetEquals(newItemsSet) && !originalItemsList.SequenceEqual(newItemsList))
         {
@@ -292,7 +404,7 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
             var items = _behavior.Checkboxes
                 ? _view.CheckedItems.Cast<ListViewItem>()
                 : _view.SelectedItems.Cast<ListViewItem>();
-            Selection = ListSelection.From(items.Select(x => (T) x.Tag));
+            Selection = ListSelection.From(items.Select(x => (T) x.Tag!));
             _refreshing = false;
         }
     }
@@ -320,20 +432,33 @@ public class WinFormsListView<T> : IListView<T> where T : notnull
     private void OnDragDrop(object? sender, DragEventArgs e)
     {
         var index = GetDragIndex(e);
+        _view.InsertionMark.Index = -1;
         if (index != -1)
         {
             var data = e.Data.ToEto();
-            if (data.Contains(_behavior.CustomDragDataType))
+            // TODO: Figure out why .Contains is not working correctly on net9
+            try
             {
-                Drop?.Invoke(this, new DropEventArgs(index, data.GetData(_behavior.CustomDragDataType)));
+                if (data.Contains(_behavior.CustomDragDataType))
+                {
+                    Drop?.Invoke(this, new DropEventArgs(index, EtoPlatform.Current.GetData(data, _behavior.CustomDragDataType)));
+                }
             }
-            else if (data.Contains("FileDrop"))
+            catch (COMException)
             {
-                var filePaths = e.Data.ToEto().Uris.Select(uri => uri.AbsolutePath);
-                Drop?.Invoke(this, new DropEventArgs(index, filePaths));
+            }
+            try
+            {
+                if (data.Contains("FileDrop"))
+                {
+                    var filePaths = (string[]) e.Data!.GetData(DataFormats.FileDrop)!;
+                    Drop?.Invoke(this, new DropEventArgs(index, filePaths));
+                }
+            }
+            catch (COMException)
+            {
             }
         }
-        _view.InsertionMark.Index = -1;
     }
 
     private void OnDragLeave(object? sender, EventArgs e)

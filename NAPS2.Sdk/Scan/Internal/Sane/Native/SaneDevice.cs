@@ -2,9 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace NAPS2.Scan.Internal.Sane.Native;
 
-public class SaneDevice : SaneNativeObject
+internal class SaneDevice : SaneNativeObject, ISaneDevice
 {
-    public SaneDevice(IntPtr handle) : base(handle)
+    public SaneDevice(SaneNativeLibrary native, IntPtr handle) : base(native, handle)
     {
     }
 
@@ -56,6 +56,13 @@ public class SaneDevice : SaneNativeObject
         {
             yield return new SaneOption(Marshal.PtrToStructure<SaneOptionDescriptor>(ptr), i);
         }
+    }
+
+    public unsafe void SetOption(SaneOption option, bool value, out SaneOptionSetInfo info)
+    {
+        int word = value ? 1 : 0;
+        int* ptr = &word;
+        HandleStatus(Native.sane_control_option(Handle, option.Index, SaneOptionAction.SetValue, (IntPtr) ptr, out info));
     }
 
     public unsafe void SetOption(SaneOption option, double value, out SaneOptionSetInfo info)

@@ -21,29 +21,8 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>بی‌رنگ</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>۱۰۰ نقطه در اینچ</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>۱۲۰۰ نقطه در اینچ</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>۱۵۰ نقطه در اینچ</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>۲۰۰ نقطه در اینچ</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>۳۰۰ نقطه در اینچ</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>۴۰۰ نقطه در اینچ</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>۶۰۰ نقطه در اینچ</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>۸۰۰ نقطه در اینچ</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} نقطه در اینچ</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
     <value>SMTP خاص</value>
@@ -51,8 +30,17 @@
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>پست الکترونیکی جی‌میل</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (new)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
     <value>دسترسی وب Outlook</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
     <value>هیچ فراهم‌کننده‌ای‌ انتخاب نشده.</value>
@@ -99,6 +87,9 @@
   <data name="PageSize_Letter" xml:space="preserve">
     <value>US Letter (۸٫۵x۱۱ اینچ)</value>
   </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>سفارشی...</value>
+  </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>پیش‌فرض</value>
   </data>
@@ -141,8 +132,11 @@
   <data name="TwainImpl_Legacy" xml:space="preserve">
     <value>ارث (فقط رابط کاربری بومی)</value>
   </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Native Transfer</value>
+  </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>روش انتقال جایگزین</value>
+    <value>Memory Transfer</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>DSM قدیمی</value>
@@ -154,9 +148,36 @@
     <value>پیش‌فرض</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>سریع</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>بهترین</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>ذخیره همه</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>ذخیره انتخاب شده‌ها</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Always Prompt</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Prompt If Selected</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>اسکن با پروفایل پیشفرض</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Always Prompt</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>پیش‌فرض</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>روشن</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>تاریک</value>
   </data>
 </root>

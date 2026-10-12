@@ -5,7 +5,7 @@ using NAPS2.Serialization;
 
 namespace NAPS2.ImportExport;
 
-public class DirectImportOperation : OperationBase
+internal class DirectImportOperation : OperationBase
 {
     private readonly ScanningContext _scanningContext;
     private readonly WorkerPool _workerPool;
@@ -54,9 +54,11 @@ public class DirectImportOperation : OperationBase
                         ProcessedImage newImg;
                         try
                         {
-                            newImg = _workerPool.Use(ctx =>
-                                ctx.Service.ImportPostProcess(_scanningContext, img, thumbnailSize,
-                                    new BarcodeDetectionOptions()));
+                            newImg = _workerPool.Use(
+                                WorkerType.Native,
+                                ctx =>
+                                    ctx.Service.ImportPostProcess(_scanningContext, img, thumbnailSize,
+                                        new BarcodeDetectionOptions()));
                         }
                         catch (Exception)
                         {

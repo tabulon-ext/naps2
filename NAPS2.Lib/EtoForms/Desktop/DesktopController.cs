@@ -1,21 +1,20 @@
 using System.Threading;
+using Eto.Drawing;
 using Eto.Forms;
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
+using NAPS2.EtoForms.Notifications;
 using NAPS2.ImportExport;
 using NAPS2.ImportExport.Images;
 using NAPS2.Platform.Windows;
 using NAPS2.Recovery;
 using NAPS2.Remoting;
+using NAPS2.Remoting.Server;
 using NAPS2.Scan;
 using NAPS2.Update;
 
 namespace NAPS2.EtoForms.Desktop;
 
-// TODO: We undoubtedly want to decompose this file even further.
-// We almost certainly want a DesktopScanController for the scanning-related logic.
-// We could have a DesktopPipesController that depends on DesktopScanController.
-// Specifically each line in Initialize might make sense as a sub-controller.
-// We also need to think about how to pass the Form instance around as needed. (e.g. to Activate it). Maybe this should be something injectable, and could also be used by UpdateOperation instead of searching through open forms.
-// i.e. (I)DesktopFormProvider
 public class DesktopController
 {
     private readonly ScanningContext _scanningContext;
@@ -27,18 +26,21 @@ public class DesktopController
     private readonly IOperationFactory _operationFactory;
     private readonly StillImage _stillImage;
     private readonly IUpdateChecker _updateChecker;
-    private readonly INotificationManager _notify;
-    private readonly ImageTransfer _imageTransfer;
+    private readonly INotify _notify;
     private readonly ImageClipboard _imageClipboard;
     private readonly ImageListActions _imageListActions;
-    private readonly IExportController _exportController;
     private readonly DialogHelper _dialogHelper;
     private readonly DesktopImagesController _desktopImagesController;
     private readonly IDesktopScanController _desktopScanController;
     private readonly DesktopFormProvider _desktopFormProvider;
     private readonly IScannedImagePrinter _scannedImagePrinter;
+    private readonly ISharedDeviceManager _sharedDeviceManager;
+    private readonly ProcessCoordinator _processCoordinator;
+    private readonly RecoveryManager _recoveryManager;
+    private readonly ImageTransfer _imageTransfer = new();
 
     private bool _closed;
+    private bool _preInitialized;
     private bool _initialized;
     private bool _suspended;
 
@@ -46,11 +48,13 @@ public class DesktopController
         RecoveryStorageManager recoveryStorageManager, ThumbnailController thumbnailController,
         OperationProgress operationProgress, Naps2Config config, IOperationFactory operationFactory,
         StillImage stillImage,
-        IUpdateChecker updateChecker, INotificationManager notify, ImageTransfer imageTransfer,
-        ImageClipboard imageClipboard, ImageListActions imageListActions, IExportController exportController,
+        IUpdateChecker updateChecker, INotify notify,
+        ImageClipboard imageClipboard, ImageListActions imageListActions,
         DialogHelper dialogHelper,
         DesktopImagesController desktopImagesController, IDesktopScanController desktopScanController,
-        DesktopFormProvider desktopFormProvider, IScannedImagePrinter scannedImagePrinter)
+        DesktopFormProvider desktopFormProvider, IScannedImagePrinter scannedImagePrinter,
+        ISharedDeviceManager sharedDeviceManager, ProcessCoordinator processCoordinator,
+        RecoveryManager recoveryManager)
     {
         _scanningContext = scanningContext;
         _imageList = imageList;
@@ -62,35 +66,58 @@ public class DesktopController
         _stillImage = stillImage;
         _updateChecker = updateChecker;
         _notify = notify;
-        _imageTransfer = imageTransfer;
         _imageClipboard = imageClipboard;
         _imageListActions = imageListActions;
-        _exportController = exportController;
         _dialogHelper = dialogHelper;
         _desktopImagesController = desktopImagesController;
         _desktopScanController = desktopScanController;
         _desktopFormProvider = desktopFormProvider;
         _scannedImagePrinter = scannedImagePrinter;
+        _sharedDeviceManager = sharedDeviceManager;
+        _processCoordinator = processCoordinator;
+        _recoveryManager = recoveryManager;
     }
 
     public bool SkipRecoveryCleanup { get; set; }
+
+    public void PreInitialize()
+    {
+        if (_preInitialized) return;
+        _preInitialized = true;
+        RestoreSession();
+    }
 
     public async Task Initialize()
     {
         if (_initialized) return;
         _initialized = true;
-        StartPipesServer();
+        _sharedDeviceManager.StartSharing();
+        StartProcessCoordinator();
         ShowStartupMessages();
         ShowRecoveryPrompt();
+        ImportFilesFromCommandLine();
         InitThumbnailRendering();
         await RunStillImageEvents();
         SetFirstRunDate();
-        ShowDonationPrompt();
+        ShowDonationOrReviewPrompt();
         ShowUpdatePrompt();
     }
 
-    private void ShowDonationPrompt()
+    private void ShowDonationOrReviewPrompt()
     {
+        // Show a review prompt after a month of using the Microsoft Store msix version
+#if MSI
+        if (WindowsEnvironment.IsRunningAsMsix &&
+            !_config.Get(c => c.HasBeenPromptedForReview) &&
+            DateTime.Now - _config.Get(c => c.FirstRunDate) > TimeSpan.FromDays(30))
+        {
+            var transact = _config.User.BeginTransaction();
+            transact.Set(c => c.HasBeenPromptedForReview, true);
+            transact.Set(c => c.LastReviewPromptDate, DateTime.Now);
+            transact.Commit();
+            _notify.ReviewPrompt();
+        }
+#endif
         // Show a donation prompt after a month of use
 #if !MSI
         if (!_config.Get(c => c.HiddenButtons).HasFlag(ToolbarButtons.Donate) &&
@@ -160,27 +187,30 @@ public class DesktopController
     public void Cleanup()
     {
         if (_suspended) return;
-        Pipes.KillServer();
-        if (!SkipRecoveryCleanup)
+        _processCoordinator.KillServer();
+        _sharedDeviceManager.StopSharing();
+        if (!SkipRecoveryCleanup && !_config.Get(c => c.KeepSession))
         {
             try
             {
-                // TODO: Figure out and fix undisposed processed images
                 _scanningContext.Dispose();
                 _recoveryStorageManager.Dispose();
+                _imageList.Images.DisposeAll();
             }
             catch (Exception ex)
             {
                 Log.ErrorException("Recovery cleanup failed", ex);
             }
         }
+        Paths.DeleteTempSubfolder();
         _closed = true;
         _thumbnailController.Dispose();
+        _scanningContext.WorkerFactory!.StopSpareWorkers();
     }
 
     public bool PrepareForClosing(bool userClosing)
     {
-        if (_closed) return true;
+        if (_suspended || _closed) return true;
 
         if (_operationProgress.ActiveOperations.Any())
         {
@@ -203,9 +233,9 @@ public class DesktopController
                 SkipRecoveryCleanup = true;
             }
         }
-        else if (_imageList.Images.Any() && _imageList.SavedState != _imageList.CurrentState)
+        else if (_imageList.Images.Any() && _imageList.HasUnsavedChanges)
         {
-            if (userClosing && !SkipRecoveryCleanup)
+            if (userClosing && !SkipRecoveryCleanup && !_config.Get(c => c.KeepSession))
             {
                 var result = MessageBox.Show(_desktopFormProvider.DesktopForm, MiscResources.ExitWithUnsavedChanges,
                     MiscResources.UnsavedChanges,
@@ -214,7 +244,7 @@ public class DesktopController
                 {
                     return false;
                 }
-                _imageList.SavedState = _imageList.CurrentState;
+                _imageList.MarkAllSaved();
             }
             else
             {
@@ -239,7 +269,7 @@ public class DesktopController
                 {
                 }
                 _closed = true;
-                Invoker.Current.SafeInvoke(_desktopFormProvider.DesktopForm.Close);
+                Invoker.Current.Invoke(_desktopFormProvider.DesktopForm.Close);
             });
             return false;
         }
@@ -247,44 +277,10 @@ public class DesktopController
         return true;
     }
 
-    private void StartPipesServer()
+    private void StartProcessCoordinator()
     {
-        // Receive messages from other processes
-        Pipes.StartServer(msg =>
-        {
-            if (msg.StartsWith(Pipes.MSG_SCAN_WITH_DEVICE, StringComparison.InvariantCulture))
-            {
-                Invoker.Current.SafeInvoke(async () =>
-                    await _desktopScanController.ScanWithDevice(msg.Substring(Pipes.MSG_SCAN_WITH_DEVICE.Length)));
-            }
-            if (msg.Equals(Pipes.MSG_ACTIVATE))
-            {
-                Invoker.Current.SafeInvoke(() =>
-                {
-                    // TODO: xplat
-                    var formOnTop = Application.Instance.Windows.Last();
-                    if (formOnTop.WindowState == WindowState.Minimized)
-                    {
-                        Win32.ShowWindow(formOnTop.NativeHandle, Win32.ShowWindowCommands.Restore);
-                    }
-                    formOnTop.BringToFront();
-                });
-            }
-            if (msg.Equals(Pipes.MSG_CLOSE_WINDOW))
-            {
-                Invoker.Current.SafeInvoke(() =>
-                {
-                    _desktopFormProvider.DesktopForm.Close();
-#if NET6_0_OR_GREATER
-                    if (OperatingSystem.IsMacOS())
-                    {
-                        // Closing the main window isn't enough to quit the app on Mac
-                        Application.Instance.Quit();
-                    }
-#endif
-                });
-            }
-        });
+        // Receive messages from other NAPS2 processes
+        _processCoordinator.StartServer(new ProcessCoordinatorServiceImpl(this));
     }
 
     private void ShowStartupMessages()
@@ -298,14 +294,49 @@ public class DesktopController
         }
     }
 
+    private void RestoreSession()
+    {
+        // In case the user has the "Keep images across sessions" option, this is similar to the RecoveryOperation in
+        // ShowRecoveryPrompt, but designed to be faster and more seamless. This means a few things:
+        // - Image files are moved instead of copied. This is destructive (higher risk of data loss) but fast.
+        // - Thumbnail rendering is deferred.
+        // - No operation progress is displayed and the recovery happens synchronously during OnLoad instead of
+        // asynchronously after OnShown.
+        // - Images are sent back to the UI as a single batch.
+        if (!_config.Get(c => c.KeepSession))
+        {
+            return;
+        }
+        using var recoverableFolder = _recoveryManager.GetLatestRecoverableFolder();
+        if (recoverableFolder != null)
+        {
+            _desktopImagesController.AppendImageBatch(recoverableFolder.FastRecover());
+        }
+    }
+
     private void ShowRecoveryPrompt()
     {
+        if (_config.Get(c => c.KeepSession))
+        {
+            return;
+        }
         // Allow scanned images to be recovered in case of an unexpected close
         var op = _operationFactory.Create<RecoveryOperation>();
-        if (op.Start(_desktopImagesController.ReceiveScannedImage(),
-                new RecoveryParams { ThumbnailSize = _thumbnailController.RenderSize }))
+        var recoveryParams = new RecoveryParams
+        {
+            ThumbnailSize = _thumbnailController.RenderSize
+        };
+        if (op.Start(_desktopImagesController.ReceiveScannedImage(), recoveryParams))
         {
             _operationProgress.ShowProgress(op);
+        }
+    }
+
+    private void ImportFilesFromCommandLine()
+    {
+        if (Environment.GetCommandLineArgs() is [_, var arg] && File.Exists(arg))
+        {
+            ImportFiles([arg]);
         }
     }
 
@@ -314,13 +345,20 @@ public class DesktopController
         _thumbnailController.Init(_imageList);
     }
 
-    public void ImportFiles(IEnumerable<string> files)
+    public void ImportFiles(ICollection<string> files, bool background = false)
     {
         var op = _operationFactory.Create<ImportOperation>();
         if (op.Start(OrderFiles(files), _desktopImagesController.ReceiveScannedImage(),
                 new ImportParams { ThumbnailSize = _thumbnailController.RenderSize }))
         {
-            _operationProgress.ShowProgress(op);
+            if (background)
+            {
+                _operationProgress.ShowBackgroundProgress(op);
+            }
+            else
+            {
+                _operationProgress.ShowProgress(op);
+            }
         }
     }
 
@@ -332,7 +370,7 @@ public class DesktopController
         return filesList;
     }
 
-    public void ImportDirect(ImageTransferData data, bool copy)
+    internal void ImportDirect(ImageTransferData data, bool copy)
     {
         var op = _operationFactory.Create<DirectImportOperation>();
         if (op.Start(data, copy, _desktopImagesController.ReceiveScannedImage(),
@@ -347,6 +385,18 @@ public class DesktopController
         if (_imageTransfer.IsInClipboard())
         {
             ImportDirect(_imageTransfer.GetFromClipboard(), true);
+        }
+        else if (Clipboard.Instance.ContainsImage)
+        {
+            var etoBitmap = (Bitmap) Clipboard.Instance.Image;
+            Task.Run(() =>
+            {
+                var image = EtoPlatform.Current.FromBitmap(etoBitmap);
+                var processedImage = _scanningContext.CreateProcessedImage(image);
+                processedImage = ImportPostProcessor.AddPostProcessingData(processedImage, image,
+                    _thumbnailController.RenderSize, new BarcodeDetectionOptions(), true);
+                _desktopImagesController.ReceiveScannedImage()(processedImage);
+            });
         }
     }
 
@@ -364,16 +414,16 @@ public class DesktopController
             if (MessageBox.Show(_desktopFormProvider.DesktopForm,
                     string.Format(MiscResources.ConfirmClearItems, _imageList.Images.Count),
                     MiscResources.Clear, MessageBoxButtons.OKCancel,
-                    MessageBoxType.Question) == DialogResult.Ok)
+                    MessageBoxType.Question, MessageBoxDefaultButton.OK) == DialogResult.Ok)
             {
                 _imageListActions.DeleteAll();
+                GC.Collect();
             }
         }
     }
 
     public void Delete()
     {
-        // TODO: Move to ImageListActions and use a null parent form
         if (_imageList.Selection.Any())
         {
             if (MessageBox.Show(_desktopFormProvider.DesktopForm,
@@ -382,15 +432,8 @@ public class DesktopController
                     MessageBoxType.Question, MessageBoxDefaultButton.OK) == DialogResult.Ok)
             {
                 _imageListActions.DeleteSelected();
+                GC.Collect();
             }
-        }
-    }
-
-    public void RunDocumentCorrection()
-    {
-        foreach (var image in _imageList.Selection)
-        {
-            image.AddTransform(new CorrectionTransform(CorrectionMode.Document));
         }
     }
 
@@ -415,8 +458,7 @@ public class DesktopController
         if (action == SaveButtonDefaultAction.AlwaysPrompt
             || action == SaveButtonDefaultAction.PromptIfSelected && _imageList.Selection.Any())
         {
-            // TODO
-            // tsdSavePDF.ShowDropDown();
+            _desktopFormProvider.DesktopForm.ShowToolbarMenu(DesktopToolbarMenuType.SavePdf);
         }
         else if (action == SaveButtonDefaultAction.SaveSelected && _imageList.Selection.Any())
         {
@@ -435,8 +477,7 @@ public class DesktopController
         if (action == SaveButtonDefaultAction.AlwaysPrompt
             || action == SaveButtonDefaultAction.PromptIfSelected && _imageList.Selection.Any())
         {
-            // TODO
-            // tsdSaveImages.ShowDropDown();
+            _desktopFormProvider.DesktopForm.ShowToolbarMenu(DesktopToolbarMenuType.SaveImages);
         }
         else if (action == SaveButtonDefaultAction.SaveSelected && _imageList.Selection.Any())
         {
@@ -455,8 +496,7 @@ public class DesktopController
         if (action == SaveButtonDefaultAction.AlwaysPrompt
             || action == SaveButtonDefaultAction.PromptIfSelected && _imageList.Selection.Any())
         {
-            // TODO
-            // tsdEmailPDF.ShowDropDown();
+            _desktopFormProvider.DesktopForm.ShowToolbarMenu(DesktopToolbarMenuType.EmailPdf);
         }
         else if (action == SaveButtonDefaultAction.SaveSelected && _imageList.Selection.Any())
         {
@@ -473,9 +513,12 @@ public class DesktopController
         var state = _imageList.CurrentState;
         using var allImages = _imageList.Images.Select(x => x.GetClonedImage()).ToDisposableList();
         using var selectedImages = _imageList.Selection.Select(x => x.GetClonedImage()).ToDisposableList();
-        if (await _scannedImagePrinter.PromptToPrint(allImages.InnerList, selectedImages.InnerList))
+        if (await _scannedImagePrinter.PromptToPrint(
+                _desktopFormProvider.DesktopForm, allImages.InnerList, selectedImages.InnerList))
         {
-            _imageList.SavedState = state;
+            // Ideally we would know the exact images saved but it's not a big deal to get it wrong for printing which
+            // is pretty uncommon.
+            _imageList.MarkSaved(state, allImages);
         }
     }
 
@@ -495,5 +538,66 @@ public class DesktopController
     public void Resume()
     {
         _suspended = false;
+    }
+
+    private class ProcessCoordinatorServiceImpl(DesktopController controller)
+        : ProcessCoordinatorService.ProcessCoordinatorServiceBase
+    {
+        public override Task<Empty> Activate(ActivateRequest request, ServerCallContext context)
+        {
+            Invoker.Current.InvokeDispatch(() =>
+            {
+                var formOnTop = Application.Instance.Windows.Last();
+                if (PlatformCompat.System.CanUseWin32)
+                {
+                    if (formOnTop.WindowState == WindowState.Minimized)
+                    {
+                        Win32.ShowWindow(formOnTop.NativeHandle, Win32.ShowWindowCommands.Restore);
+                    }
+                    Win32.SetForegroundWindow(formOnTop.NativeHandle);
+                }
+                else
+                {
+                    formOnTop.BringToFront();
+                }
+            });
+            return Task.FromResult(new Empty());
+        }
+
+        public override Task<Empty> CloseWindow(CloseWindowRequest request, ServerCallContext context)
+        {
+            Invoker.Current.InvokeDispatch(() =>
+            {
+                controller._desktopFormProvider.DesktopForm.Close();
+#if NET6_0_OR_GREATER
+                if (OperatingSystem.IsMacOS())
+                {
+                    // Closing the main window isn't enough to quit the app on Mac
+                    Application.Instance.Quit();
+                }
+#endif
+            });
+            return Task.FromResult(new Empty());
+        }
+
+        public override Task<Empty> OpenFile(OpenFileRequest request, ServerCallContext context)
+        {
+            Invoker.Current.InvokeDispatch(() => controller.ImportFiles(request.Path, true));
+            return Task.FromResult(new Empty());
+        }
+
+        public override Task<Empty> ScanWithDevice(ScanWithDeviceRequest request, ServerCallContext context)
+        {
+            Invoker.Current.InvokeDispatch(async () =>
+                await controller._desktopScanController.ScanWithDevice(request.Device));
+            return Task.FromResult(new Empty());
+        }
+
+        public override Task<StopSharingServerResponse> StopSharingServer(StopSharingServerRequest request,
+            ServerCallContext context)
+        {
+            controller._sharedDeviceManager.InvokeSharingServerStopped();
+            return Task.FromResult(new StopSharingServerResponse());
+        }
     }
 }

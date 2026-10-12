@@ -1,16 +1,16 @@
 using Eto.Drawing;
-using Eto.Forms;
 
 namespace NAPS2.EtoForms.Layout;
 
-public class LayoutRow : LayoutLine<LayoutColumn>
+public class LayoutRow : LayoutLine
 {
     public LayoutRow(LayoutElement[] children) : base(children)
     {
     }
 
     public LayoutRow(LayoutRow original, Padding? padding = null, int? spacing = null, int? spacingAfter = null,
-        bool? scale = null, bool? aligned = null, LayoutVisibility? visibility = null)
+        bool? scale = null, bool? aligned = null, LayoutAlignment? alignment = null,
+        LayoutVisibility? visibility = null)
         : base(original.Children)
     {
         Padding = padding ?? original.Padding;
@@ -18,8 +18,13 @@ public class LayoutRow : LayoutLine<LayoutColumn>
         SpacingAfter = spacingAfter ?? original.SpacingAfter;
         Scale = scale ?? original.Scale;
         Aligned = aligned ?? original.Aligned;
+        Alignment = alignment ?? original.Alignment;
         Visibility = visibility ?? original.Visibility;
+        Width = original.Width;
+        Height = original.Height;
     }
+
+    protected override bool IsOrthogonalTo(LayoutLine other) => other is LayoutColumn;
 
     protected override PointF UpdatePosition(PointF position, float delta)
     {

@@ -1,22 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6-windows;net462</TargetFrameworks>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <OutputType>Exe</OutputType>
-    <AppConfig>app.config</AppConfig>
-    <LargeAddressAware>true</LargeAddressAware>
     <RootNamespace>NAPS2.Console</RootNamespace>
     <AssemblyName>NAPS2.Console</AssemblyName>
-    
+
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <!-- TODO: Re-enable trimming if we can fix startup time as well as WIA being broken -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <TrimMode>none</TrimMode>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+
     <Title>NAPS2 - Not Another PDF Scanner</Title>
     <Product>NAPS2 - Not Another PDF Scanner</Product>
-    <Copyright>Copyright 2009, 2012-2020 NAPS2 Contributors; Icons from http://www.fatcow.com/free-icons</Copyright>
-
-    <!--
-    We reference the 32-bit worker directly so the EXE is included in the output.
-    -->
-    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
   </PropertyGroup>
 
   <Import Project="..\NAPS2.Setup\targets\CommonTargets.targets" />
@@ -24,13 +23,17 @@
   <Import Project="..\NAPS2.Setup\targets\SdkUsers.targets" />
   
   <ItemGroup>
-    <PackageReference Include="NAPS2.Wia" Version="1.0.1" />
-
-    <ProjectReference Include="..\NAPS2.App.Worker\NAPS2.App.Worker.csproj" />
     <ProjectReference Include="..\NAPS2.Images.Gdi\NAPS2.Images.Gdi.csproj" />
     <ProjectReference Include="..\NAPS2.Lib\NAPS2.Lib.csproj" />
-
-    <PackageReference Include="LargeAddressAware" Version="1.0.3" />
+    <ProjectReference Include="..\NAPS2.Lib.WinForms\NAPS2.Lib.WinForms.csproj" />
   </ItemGroup>
-  
+
+  <ItemGroup>
+    <ContentWithTargetPath Include="..\NAPS2.Setup\appsettings.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>appsettings.xml</Link>
+      <TargetPath>appsettings.xml</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+
 </Project>

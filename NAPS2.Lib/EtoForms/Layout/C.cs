@@ -1,7 +1,6 @@
 using System.Windows.Input;
 using Eto.Drawing;
 using Eto.Forms;
-using NAPS2.Scan;
 
 namespace NAPS2.EtoForms.Layout;
 
@@ -16,29 +15,19 @@ public static class C
         new Label { Text = text, Wrap = WrapMode.None };
 
     /// <summary>
-    /// Creates a link button with the given URL as both text and click action.
-    /// </summary>
-    /// <param name="url"></param>
-    /// <param name="label"></param>
-    /// <returns></returns>
-    public static LinkButton UrlLink(string url, string? label = null)
-    {
-        void OnClick() => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-        return new LinkButton
-        {
-            Text = label ?? url,
-            Command = new ActionCommand(OnClick)
-        };
-    }
-
-    /// <summary>
     /// Creates a link button with the specified text.
     /// </summary>
     /// <param name="text"></param>
     /// <returns></returns>
     public static LinkButton Link(string text)
     {
-        return new LinkButton { Text = text };
+        var link = new LinkButton { Text = text };
+        if (EtoPlatform.Current.IsWinForms)
+        {
+            // TODO: Remove this when https://github.com/dotnet/winforms/issues/11935 is fixed
+            link.TextColor = EtoPlatform.Current.ColorScheme.LinkColor;
+        }
+        return link;
     }
 
     /// <summary>
@@ -49,11 +38,21 @@ public static class C
     /// <returns></returns>
     public static LinkButton Link(string text, Action onClick)
     {
-        return new LinkButton
-        {
-            Text = text,
-            Command = new ActionCommand(onClick)
-        };
+        var link = Link(text);
+        link.Command = new ActionCommand(onClick);
+        return link;
+    }
+
+    /// <summary>
+    /// Creates a link button with the given URL as both text and click action.
+    /// </summary>
+    /// <param name="url"></param>
+    /// <param name="label"></param>
+    /// <returns></returns>
+    public static LinkButton UrlLink(string url, string? label = null)
+    {
+        void OnClick() => ProcessHelper.OpenUrl(url);
+        return Link(label ?? url, OnClick);
     }
 
     /// <summary>
@@ -78,31 +77,54 @@ public static class C
     /// <param name="text"></param>
     /// <param name="command"></param>
     /// <returns></returns>
-    public static Button Button(string text, ICommand command) =>
-        new Button
+    public static Button Button(string text, ActionCommand command)
+    {
+        var button = new Button
         {
             Text = text,
             Command = command
         };
-
-    public static Button Button(Command command) =>
-        Button(command.MenuText, command);
-
-    public static Button Button(Command command, ButtonImagePosition imagePosition, bool big = false)
-    {
-        return Button(command, command.Image, imagePosition, big);
+        if (string.IsNullOrEmpty(text) && !string.IsNullOrEmpty(command.ToolTip))
+        {
+            button.ToolTip = command.ToolTip;
+        }
+        return button;
     }
 
-    public static Button Button(Command command, Image image, ButtonImagePosition imagePosition = default, bool big = false)
+    public static Button Button(ActionCommand command) => Button(command.Text, command);
+
+    public static Button Button(ActionCommand command, ButtonImagePosition imagePosition, ButtonFlags flags = default)
     {
-        var button = Button(command);
-        button.Image = image;
-        button.ImagePosition = imagePosition;
-        if (big)
+        return Button(command, command.IconName, imagePosition, flags);
+    }
+
+    public static Button Button(ActionCommand command, string? iconName, ButtonImagePosition imagePosition = default,
+        ButtonFlags flags = default)
+    {
+        var button = Button(imagePosition == ButtonImagePosition.Overlay ? "" : command.MenuText, command);
+        if (command.Image != null)
         {
-            button.Font = new Font(button.Font.Family, 12);
+            EtoPlatform.Current.AttachDpiDependency(button,
+                scale =>
+                {
+                    int targetSize = flags.HasFlag(ButtonFlags.LargeIcon) ? 32 : 16;
+                    button.Image = command.Image.Clone().ResizeTo((int) (targetSize * scale));
+                });
         }
-        EtoPlatform.Current.ConfigureImageButton(button, big);
+        else if (iconName != null)
+        {
+            bool oversized = imagePosition == ButtonImagePosition.Above && flags.HasFlag(ButtonFlags.LargeIcon);
+            EtoPlatform.Current.AttachDpiDependency(button,
+                scale => button.Image = EtoPlatform.Current.IconProvider.GetIcon(iconName, scale, oversized));
+        }
+        button.ImagePosition = imagePosition;
+        if (flags.HasFlag(ButtonFlags.LargeText))
+        {
+            var baseFontSize = button.Font.Size;
+            EtoPlatform.Current.AttachDpiDependency(button,
+                _ => button.Font = new Font(button.Font.Family, baseFontSize * 4 / 3));
+        }
+        EtoPlatform.Current.ConfigureImageButton(button, flags);
         return button;
     }
 
@@ -119,15 +141,15 @@ public static class C
     /// Creates a null placeholder for Eto layouts that absorbs scaling.
     /// </summary>
     /// <returns></returns>
-    public static ControlWithLayoutAttributes Filler() =>
-        new ControlWithLayoutAttributes(null).Scale();
+    public static LayoutControl Filler() =>
+        new LayoutControl(null).Scale();
 
     /// <summary>
     /// Creates a null placeholder for Eto layouts.
     /// </summary>
     /// <returns></returns>
-    public static ControlWithLayoutAttributes Spacer() =>
-        new ControlWithLayoutAttributes(null);
+    public static LayoutControl Spacer() =>
+        new LayoutControl(null);
 
     /// <summary>
     /// Creates an label of default height to be used as a visual paragraph separator.
@@ -137,45 +159,10 @@ public static class C
 
     public static Label Label(string text) => new() { Text = text };
 
-    public static DropDown DropDown()
+    public static DropDown DropDown(bool scale = true)
     {
         var dropDown = new DropDown();
-        EtoPlatform.Current.ConfigureDropDown(dropDown);
-        return dropDown;
-    }
-
-    public static DropDown EnumDropDown<T>(params T[] values) where T : Enum
-    {
-        var dropDown = new DropDown();
-        EtoPlatform.Current.ConfigureDropDown(dropDown);
-        foreach (var item in values)
-        {
-            dropDown.Items.Add(new ListItem
-            {
-                Key = item.ToString(),
-                Text = item.Description()
-            });
-        }
-        return dropDown;
-    }
-
-    public static DropDown EnumDropDown<T>() where T : Enum
-    {
-        return EnumDropDown<T>(x => x.Description());
-    }
-
-    public static DropDown EnumDropDown<T>(Func<T, string> format) where T : Enum
-    {
-        var dropDown = new DropDown();
-        EtoPlatform.Current.ConfigureDropDown(dropDown);
-        foreach (var item in Enum.GetValues(typeof(T)))
-        {
-            dropDown.Items.Add(new ListItem
-            {
-                Key = item.ToString(),
-                Text = format((T) item)
-            });
-        }
+        EtoPlatform.Current.ConfigureDropDown(dropDown, scale);
         return dropDown;
     }
 
@@ -222,5 +209,34 @@ public static class C
     public static LayoutElement None()
     {
         return new SkipLayoutElement();
+    }
+
+    public static LayoutControl IconButton(string iconName, Action onClick)
+    {
+        var button = new Button
+        {
+            ImagePosition = ButtonImagePosition.Overlay
+        };
+        EtoPlatform.Current.AttachDpiDependency(button, scale =>
+        {
+            var icon = EtoPlatform.Current.IconProvider.GetIcon(iconName, scale)!;
+            button.Image = icon;
+            button.MinimumSize = new Size(icon.Width + 30, 0);
+        });
+        button.Click += (_, _) => onClick();
+        return button.Width(40);
+    }
+
+    public static MenuItem ButtonMenuItem(Window window, ActionCommand command)
+    {
+        var menuItem = new ButtonMenuItem(command);
+        // TODO: Can we fix this memory leak?
+        command.TextChanged += (_, _) => menuItem.Text = command.MenuText;
+        EtoPlatform.Current.AttachDpiDependency(window, scale =>
+        {
+            EtoPlatform.Current.SetImageSize(menuItem, (int) (16 * scale));
+            menuItem.Image = command.GetIconImage(scale);
+        });
+        return menuItem;
     }
 }

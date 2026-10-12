@@ -2,6 +2,18 @@ namespace NAPS2.EtoForms.Layout;
 
 public class LayoutVisibility
 {
+    public static LayoutVisibility? Combine(LayoutVisibility? first, LayoutVisibility? second)
+    {
+        if (first == null && second == null) return null;
+        if (first == null) return second;
+        if (second == null) return first;
+        var vis = new LayoutVisibility(first.IsVisible && second.IsVisible);
+        void VisHandler(object? sender, EventArgs e) => vis.IsVisible = first.IsVisible && second.IsVisible;
+        first.IsVisibleChanged += VisHandler;
+        second.IsVisibleChanged += VisHandler;
+        return vis;
+    }
+
     private bool _isVisible;
 
     public LayoutVisibility(bool isVisible)
@@ -19,6 +31,11 @@ public class LayoutVisibility
                 IsVisibleChanged?.Invoke(this, EventArgs.Empty);
             }
         }
+    }
+
+    public void Toggle()
+    {
+        IsVisible = !IsVisible;
     }
 
     public static LayoutVisibility operator !(LayoutVisibility value)

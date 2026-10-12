@@ -31,131 +31,230 @@ public static class EtoLayoutExtensions
         };
     }
 
-    public static ControlWithLayoutAttributes Width(this Control control, int width) =>
-        new ControlWithLayoutAttributes(control, width: width);
-    public static ControlWithLayoutAttributes MinWidth(this Control control, int minWidth) =>
-        new ControlWithLayoutAttributes(control, minWidth: minWidth);
-    public static ControlWithLayoutAttributes MaxWidth(this Control control, int maxWidth) =>
-        new ControlWithLayoutAttributes(control, maxWidth: maxWidth);
-    public static ControlWithLayoutAttributes Height(this Control control, int height) =>
-        new ControlWithLayoutAttributes(control, height: height);
-    public static ControlWithLayoutAttributes MinHeight(this Control control, int minHeight) =>
-        new ControlWithLayoutAttributes(control, minHeight: minHeight);
-    public static ControlWithLayoutAttributes MaxHeight(this Control control, int maxHeight) =>
-        new ControlWithLayoutAttributes(control, maxHeight: maxHeight);
-    public static ControlWithLayoutAttributes Size(this Control control, int width, int height) =>
-        new ControlWithLayoutAttributes(control, width: width, height: height);
-    public static ControlWithLayoutAttributes NaturalSize(this Control control, int width, int height) =>
-        new ControlWithLayoutAttributes(control, naturalWidth: width, naturalHeight: height);
-    public static ControlWithLayoutAttributes NaturalWidth(this Control control, int width) =>
-        new ControlWithLayoutAttributes(control, naturalWidth: width);
-    public static ControlWithLayoutAttributes NaturalHeight(this Control control, int height) =>
-        new ControlWithLayoutAttributes(control, naturalHeight: height);
-    public static ControlWithLayoutAttributes Scale(this Control control) =>
-        new ControlWithLayoutAttributes(control, scale: true);
-    public static ControlWithLayoutAttributes SpacingAfter(this Control control, int spacingAfter) =>
-        new ControlWithLayoutAttributes(control, spacingAfter: spacingAfter);
-    public static ControlWithLayoutAttributes AlignCenter(this Control control) =>
-        new ControlWithLayoutAttributes(control, alignment: LayoutAlignment.Center);
-    public static ControlWithLayoutAttributes AlignLeading(this Control control) =>
-        new ControlWithLayoutAttributes(control, alignment: LayoutAlignment.Leading);
-    public static ControlWithLayoutAttributes AlignTrailing(this Control control) =>
-        new ControlWithLayoutAttributes(control, alignment: LayoutAlignment.Trailing);
-    public static ControlWithLayoutAttributes Align(this Control control, LayoutAlignment alignment) =>
-        new ControlWithLayoutAttributes(control, alignment: alignment);
-    public static ControlWithLayoutAttributes Padding(this Control control, Padding padding) =>
-        new ControlWithLayoutAttributes(control, padding: padding);
-    public static ControlWithLayoutAttributes Padding(this Control control, int all) =>
-        new ControlWithLayoutAttributes(control, padding: new Padding(all));
-    public static ControlWithLayoutAttributes Padding(this Control control, int left = 0, int top = 0, int right = 0, int bottom = 0) =>
-        new ControlWithLayoutAttributes(control, padding: new Padding(left, top, right, bottom));
-    public static ControlWithLayoutAttributes Visible(this Control control, LayoutVisibility? visibility) =>
-        new ControlWithLayoutAttributes(control, visibility: visibility);
+    public static LayoutControl Width(this Control control, int? width) =>
+        new LayoutControl(control, width: width);
 
-    public static ControlWithLayoutAttributes Wrap(this Label label, int defaultWidth)
+    public static LayoutControl MinWidth(this Control control, int minWidth) =>
+        new LayoutControl(control, minWidth: minWidth);
+
+    public static LayoutControl MaxWidth(this Control control, int maxWidth) =>
+        new LayoutControl(control, maxWidth: maxWidth);
+
+    public static LayoutControl Height(this Control control, int? height) =>
+        new LayoutControl(control, height: height);
+
+    public static LayoutControl MinHeight(this Control control, int minHeight) =>
+        new LayoutControl(control, minHeight: minHeight);
+
+    public static LayoutControl MaxHeight(this Control control, int maxHeight) =>
+        new LayoutControl(control, maxHeight: maxHeight);
+
+    public static LayoutControl Size(this Control control, int width, int height) =>
+        new LayoutControl(control, width: width, height: height);
+
+    public static LayoutControl NaturalSize(this Control control, int width, int height) =>
+        new LayoutControl(control, naturalWidth: width, naturalHeight: height);
+
+    public static LayoutControl NaturalWidth(this Control control, int width) =>
+        new LayoutControl(control, naturalWidth: width);
+
+    public static LayoutControl NaturalHeight(this Control control, int height) =>
+        new LayoutControl(control, naturalHeight: height);
+
+    public static LayoutControl Scale(this Control control) =>
+        new LayoutControl(control, scale: true);
+
+    public static LayoutControl SpacingAfter(this Control control, int spacingAfter) =>
+        new LayoutControl(control, spacingAfter: spacingAfter);
+
+    public static LayoutControl AlignCenter(this Control control) =>
+        new LayoutControl(control, alignment: LayoutAlignment.Center);
+
+    public static LayoutControl AlignLeading(this Control control) =>
+        new LayoutControl(control, alignment: LayoutAlignment.Leading);
+
+    public static LayoutControl AlignTrailing(this Control control) =>
+        new LayoutControl(control, alignment: LayoutAlignment.Trailing);
+
+    public static LayoutControl Align(this Control control, LayoutAlignment alignment) =>
+        new LayoutControl(control, alignment: alignment);
+
+    public static LayoutColumn AlignCenter(this LayoutColumn column) =>
+        new LayoutColumn(column, alignment: LayoutAlignment.Center);
+
+    public static LayoutColumn AlignLeading(this LayoutColumn column) =>
+        new LayoutColumn(column, alignment: LayoutAlignment.Leading);
+
+    public static LayoutColumn AlignTrailing(this LayoutColumn column) =>
+        new LayoutColumn(column, alignment: LayoutAlignment.Trailing);
+
+    public static LayoutColumn Align(this LayoutColumn column, LayoutAlignment alignment) =>
+        new LayoutColumn(column, alignment: alignment);
+
+    public static LayoutRow AlignCenter(this LayoutRow row) =>
+        new LayoutRow(row, alignment: LayoutAlignment.Center);
+
+    public static LayoutRow AlignLeading(this LayoutRow row) =>
+        new LayoutRow(row, alignment: LayoutAlignment.Leading);
+
+    public static LayoutRow AlignTrailing(this LayoutRow row) =>
+        new LayoutRow(row, alignment: LayoutAlignment.Trailing);
+
+    public static LayoutRow Align(this LayoutRow row, LayoutAlignment alignment) =>
+        new LayoutRow(row, alignment: alignment);
+
+    public static LayoutControl Padding(this Control control, Padding padding) =>
+        new LayoutControl(control, padding: padding);
+
+    public static LayoutControl Padding(this Control control, int all) =>
+        new LayoutControl(control, padding: new Padding(all));
+
+    public static LayoutControl Padding(this Control control, int left = 0, int top = 0, int right = 0,
+        int bottom = 0) =>
+        new LayoutControl(control, padding: new Padding(left, top, right, bottom));
+
+    public static LayoutControl Visible(this Control control, LayoutVisibility? visibility) =>
+        new LayoutControl(control, visibility: visibility);
+
+    public static Label Ellipsize(this Label label)
     {
-        label.Wrap = WrapMode.Word;
-        return new ControlWithLayoutAttributes(label, wrapDefaultWidth: defaultWidth);;
+        EtoPlatform.Current.ConfigureEllipsis(label);
+        return label;
     }
 
-    public static ControlWithLayoutAttributes Width(this ControlWithLayoutAttributes control, int width) =>
-        new ControlWithLayoutAttributes(control, width: width);
-    public static ControlWithLayoutAttributes MinWidth(this ControlWithLayoutAttributes control, int minWidth) =>
-        new ControlWithLayoutAttributes(control, minWidth: minWidth);
-    public static ControlWithLayoutAttributes MaxWidth(this ControlWithLayoutAttributes control, int maxWidth) =>
-        new ControlWithLayoutAttributes(control, maxWidth: maxWidth);
-    public static ControlWithLayoutAttributes Height(this ControlWithLayoutAttributes control, int height) =>
-        new ControlWithLayoutAttributes(control, height: height);
-    public static ControlWithLayoutAttributes MinHeight(this ControlWithLayoutAttributes control, int minHeight) =>
-        new ControlWithLayoutAttributes(control, minHeight: minHeight);
-    public static ControlWithLayoutAttributes MaxHeight(this ControlWithLayoutAttributes control, int maxHeight) =>
-        new ControlWithLayoutAttributes(control, maxHeight: maxHeight);
-    public static ControlWithLayoutAttributes NaturalSize(this ControlWithLayoutAttributes control, int width, int height) =>
-        new ControlWithLayoutAttributes(control, naturalWidth: width, naturalHeight: height);
-    public static ControlWithLayoutAttributes NaturalWidth(this ControlWithLayoutAttributes control, int width) =>
-        new ControlWithLayoutAttributes(control, naturalWidth: width);
-    public static ControlWithLayoutAttributes NaturalHeight(this ControlWithLayoutAttributes control, int height) =>
-        new ControlWithLayoutAttributes(control, naturalHeight: height);
-    public static ControlWithLayoutAttributes Scale(this ControlWithLayoutAttributes control) =>
-        new ControlWithLayoutAttributes(control, scale: true);
-    public static ControlWithLayoutAttributes SpacingAfter(this ControlWithLayoutAttributes control, int spacingAfter) =>
-        new ControlWithLayoutAttributes(control, spacingAfter: spacingAfter);
-    public static ControlWithLayoutAttributes AlignCenter(this ControlWithLayoutAttributes control) =>
-        new ControlWithLayoutAttributes(control, alignment: LayoutAlignment.Center);
-    public static ControlWithLayoutAttributes AlignLeading(this ControlWithLayoutAttributes control) =>
-        new ControlWithLayoutAttributes(control, alignment: LayoutAlignment.Leading);
-    public static ControlWithLayoutAttributes AlignTrailing(this ControlWithLayoutAttributes control) =>
-        new ControlWithLayoutAttributes(control, alignment: LayoutAlignment.Trailing);
-    public static ControlWithLayoutAttributes Align(this ControlWithLayoutAttributes control, LayoutAlignment alignment) =>
-        new ControlWithLayoutAttributes(control, alignment: alignment);
-    public static ControlWithLayoutAttributes Padding(this ControlWithLayoutAttributes control, Padding padding) =>
-        new ControlWithLayoutAttributes(control, padding: padding);
-    public static ControlWithLayoutAttributes Padding(this ControlWithLayoutAttributes control, int all) =>
-        new ControlWithLayoutAttributes(control, padding: new Padding(all));
-    public static ControlWithLayoutAttributes Padding(this ControlWithLayoutAttributes control, int left = 0, int top = 0, int right = 0, int bottom = 0) =>
-        new ControlWithLayoutAttributes(control, padding: new Padding(left, top, right, bottom));
-    public static ControlWithLayoutAttributes Visible(this ControlWithLayoutAttributes control, LayoutVisibility? visibility) =>
-        new ControlWithLayoutAttributes(control, visibility: visibility);
+    /// <summary>
+    /// Wraps the given label. The way this works is that is uses the specified width to calculate the allocated height,
+    /// which remains static (so e.g. if you're resizing a form, the form height isn't dependent on its width). If
+    /// wrapping happens at that width, it becomes the minimum width (as otherwise the label could exceed its vertical
+    /// bounds). If wrapping doesn't happen, the text width is the minimum width. Note that depending on how the control
+    /// is laid out in the form, you might need to set a Width or MaxWidth constraint for wrapping to actually happen.
+    /// </summary>
+    /// <param name="label"></param>
+    /// <param name="defaultWidth"></param>
+    /// <returns></returns>
+    public static LayoutControl DynamicWrap(this Label label, int defaultWidth)
+    {
+        if (defaultWidth == 0)
+        {
+            return label;
+        }
+        label.Wrap = WrapMode.Word;
+        return new LayoutControl(label, wrapDefaultWidth: defaultWidth);
+    }
+
+    public static LayoutControl Width(this LayoutControl control, int width) =>
+        new LayoutControl(control, width: width);
+
+    public static LayoutControl MinWidth(this LayoutControl control, int minWidth) =>
+        new LayoutControl(control, minWidth: minWidth);
+
+    public static LayoutControl MaxWidth(this LayoutControl control, int maxWidth) =>
+        new LayoutControl(control, maxWidth: maxWidth);
+
+    public static LayoutControl Height(this LayoutControl control, int height) =>
+        new LayoutControl(control, height: height);
+
+    public static LayoutControl MinHeight(this LayoutControl control, int minHeight) =>
+        new LayoutControl(control, minHeight: minHeight);
+
+    public static LayoutControl MaxHeight(this LayoutControl control, int maxHeight) =>
+        new LayoutControl(control, maxHeight: maxHeight);
+
+    public static LayoutControl NaturalSize(this LayoutControl control, int width, int height) =>
+        new LayoutControl(control, naturalWidth: width, naturalHeight: height);
+
+    public static LayoutControl NaturalWidth(this LayoutControl control, int width) =>
+        new LayoutControl(control, naturalWidth: width);
+
+    public static LayoutControl NaturalHeight(this LayoutControl control, int height) =>
+        new LayoutControl(control, naturalHeight: height);
+
+    public static LayoutControl Scale(this LayoutControl control) =>
+        new LayoutControl(control, scale: true);
+
+    public static LayoutControl SpacingAfter(this LayoutControl control, int spacingAfter) =>
+        new LayoutControl(control, spacingAfter: spacingAfter);
+
+    public static LayoutControl AlignCenter(this LayoutControl control) =>
+        new LayoutControl(control, alignment: LayoutAlignment.Center);
+
+    public static LayoutControl AlignLeading(this LayoutControl control) =>
+        new LayoutControl(control, alignment: LayoutAlignment.Leading);
+
+    public static LayoutControl AlignTrailing(this LayoutControl control) =>
+        new LayoutControl(control, alignment: LayoutAlignment.Trailing);
+
+    public static LayoutControl Align(this LayoutControl control, LayoutAlignment alignment) =>
+        new LayoutControl(control, alignment: alignment);
+
+    public static LayoutControl Padding(this LayoutControl control, Padding padding) =>
+        new LayoutControl(control, padding: padding);
+
+    public static LayoutControl Padding(this LayoutControl control, int all) =>
+        new LayoutControl(control, padding: new Padding(all));
+
+    public static LayoutControl Padding(this LayoutControl control, int left = 0, int top = 0, int right = 0,
+        int bottom = 0) =>
+        new LayoutControl(control, padding: new Padding(left, top, right, bottom));
+
+    public static LayoutControl Visible(this LayoutControl control, LayoutVisibility? visibility) =>
+        new LayoutControl(control, visibility: visibility);
 
     public static LayoutColumn Padding(this LayoutColumn column, Padding padding) =>
         new LayoutColumn(column, padding: padding);
+
     public static LayoutColumn Padding(this LayoutColumn column, int all) =>
         new LayoutColumn(column, padding: new Padding(all));
-    public static LayoutColumn Padding(this LayoutColumn column, int left = 0, int top = 0, int right = 0, int bottom = 0) =>
+
+    public static LayoutColumn Padding(this LayoutColumn column, int left = 0, int top = 0, int right = 0,
+        int bottom = 0) =>
         new LayoutColumn(column, padding: new Padding(left, top, right, bottom));
+
     public static LayoutColumn Spacing(this LayoutColumn column, int spacing) =>
         new LayoutColumn(column, spacing: spacing);
+
     public static LayoutColumn SpacingAfter(this LayoutColumn column, int spacingAfter) =>
         new LayoutColumn(column, spacingAfter: spacingAfter);
+
     public static LayoutColumn Scale(this LayoutColumn column) =>
         new LayoutColumn(column, scale: true);
+
     public static LayoutColumn Aligned(this LayoutColumn column) =>
         new LayoutColumn(column, aligned: true);
-    // public static LayoutColumn Visible(this LayoutColumn column, LayoutVisibility visibility) =>
-    //     new LayoutColumn(column, visibility: visibility);
+
+    public static LayoutColumn Visible(this LayoutColumn column, LayoutVisibility visibility) =>
+        new LayoutColumn(column, visibility: visibility);
 
     public static LayoutRow Padding(this LayoutRow row, Padding padding) =>
         new LayoutRow(row, padding: padding);
+
     public static LayoutRow Padding(this LayoutRow row, int all) =>
         new LayoutRow(row, padding: new Padding(all));
+
     public static LayoutRow Padding(this LayoutRow row, int left = 0, int top = 0, int right = 0, int bottom = 0) =>
         new LayoutRow(row, padding: new Padding(left, top, right, bottom));
+
     public static LayoutRow Spacing(this LayoutRow row, int spacing) =>
         new LayoutRow(row, spacing: spacing);
+
     public static LayoutRow SpacingAfter(this LayoutRow row, int spacingAfter) =>
         new LayoutRow(row, spacingAfter: spacingAfter);
+
     public static LayoutRow Scale(this LayoutRow row) =>
         new LayoutRow(row, scale: true);
+
     public static LayoutRow Aligned(this LayoutRow row) =>
         new LayoutRow(row, aligned: true);
-    // public static LayoutRow Visible(this LayoutRow row, LayoutVisibility visibility) =>
-    //     new LayoutRow(row, visibility: visibility);
+
+    public static LayoutRow Visible(this LayoutRow row, LayoutVisibility visibility) =>
+        new LayoutRow(row, visibility: visibility);
 
     public static LayoutOverlay Scale(this LayoutOverlay overlay) =>
         new LayoutOverlay(overlay, scale: true);
 
     public static LayoutElement Expand(this IEnumerable<LayoutElement> elements) =>
         new ExpandLayoutElement(elements.ToArray());
+
     public static LayoutElement Expand(this IEnumerable<Control> elements) =>
         new ExpandLayoutElement(elements.Select(x => (LayoutElement) x).ToArray());
 

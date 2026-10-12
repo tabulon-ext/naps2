@@ -1,6 +1,7 @@
 using Eto.Drawing;
 using Eto.Forms;
 using NAPS2.EtoForms.Layout;
+using NAPS2.EtoForms.Widgets;
 using NAPS2.ImportExport.Images;
 
 namespace NAPS2.EtoForms.Ui;
@@ -9,15 +10,18 @@ public class ImageSettingsForm : EtoDialogBase
 {
     private readonly FilePathWithPlaceholders _defaultFilePath;
     private readonly CheckBox _skipSavePrompt = new() { Text = UiStrings.SkipSavePrompt };
-    private readonly SliderWithTextBox _jpegQuality = new() { MinValue = 0, MaxValue = 100, TickFrequency = 25 };
+    private readonly SliderWithTextBox _jpegQuality = new(new SliderWithTextBox.IntConstraints(0, 100, 25));
     private readonly CheckBox _singlePageTiff = new() { Text = UiStrings.SinglePageFiles };
-    private readonly DropDown _compression = C.EnumDropDown<TiffCompression>();
+    private readonly EnumDropDownWidget<TiffCompression> _compression = new();
     private readonly CheckBox _rememberSettings = new() { Text = UiStrings.RememberTheseSettings };
     private readonly Button _restoreDefaults = new() { Text = UiStrings.RestoreDefaults };
 
-    public ImageSettingsForm(Naps2Config config, DialogHelper dialogHelper) : base(config)
+    public ImageSettingsForm(Naps2Config config, DialogHelper dialogHelper, IIconProvider iconProvider) : base(config)
     {
-        _defaultFilePath = new(this, dialogHelper);
+        Title = UiStrings.ImageSettingsFormTitle;
+        IconName = "picture_small";
+
+        _defaultFilePath = new(this, dialogHelper) { ImagesOnly = true };
 
         UpdateValues(Config);
         UpdateEnabled();
@@ -28,9 +32,6 @@ public class ImageSettingsForm : EtoDialogBase
 
     protected override void BuildLayout()
     {
-        Title = UiStrings.ImageSettingsFormTitle;
-        Icon = new Icon(1f, Icons.picture_small.ToEtoImage());
-
         FormStateController.DefaultExtraLayoutSize = new Size(60, 0);
         FormStateController.FixedHeightLayout = true;
 
@@ -42,7 +43,7 @@ public class ImageSettingsForm : EtoDialogBase
                 UiStrings.JpegQuality,
                 L.Column(
                     _jpegQuality.AsControl().SpacingAfter(0),
-                    C.Label(UiStrings.JpegQualityHelp).Wrap(300)
+                    C.Label(UiStrings.JpegQualityHelp).DynamicWrap(300)
                 )
             ),
             L.GroupBox(
@@ -69,9 +70,9 @@ public class ImageSettingsForm : EtoDialogBase
     {
         _defaultFilePath.Text = config.Get(c => c.ImageSettings.DefaultFileName);
         _skipSavePrompt.Checked = config.Get(c => c.ImageSettings.SkipSavePrompt);
-        _jpegQuality.Value = config.Get(c => c.ImageSettings.JpegQuality);
+        _jpegQuality.IntValue = config.Get(c => c.ImageSettings.JpegQuality);
         _singlePageTiff.Checked = config.Get(c => c.ImageSettings.SinglePageTiff);
-        _compression.SelectedIndex = (int) config.Get(c => c.ImageSettings.TiffCompression);
+        _compression.SelectedItem = config.Get(c => c.ImageSettings.TiffCompression);
         _rememberSettings.Checked = config.Get(c => c.RememberImageSettings);
     }
 
@@ -86,8 +87,8 @@ public class ImageSettingsForm : EtoDialogBase
         {
             DefaultFileName = _defaultFilePath.Text,
             SkipSavePrompt = _skipSavePrompt.IsChecked(),
-            JpegQuality = _jpegQuality.Value,
-            TiffCompression = (TiffCompression) _compression.SelectedIndex,
+            JpegQuality = _jpegQuality.IntValue,
+            TiffCompression = _compression.SelectedItem,
             SinglePageTiff = _singlePageTiff.IsChecked()
         };
 

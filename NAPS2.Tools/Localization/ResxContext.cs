@@ -34,6 +34,7 @@ public class ResxContext
             {
                 original += line.Substring(1, line.Length - 2);
             }
+            original = original.Replace("\\\"", "\"");
 
             if (line == null || !line.StartsWith("msgstr", StringComparison.InvariantCulture))
             {
@@ -45,6 +46,7 @@ public class ResxContext
             {
                 translated += line.Substring(1, line.Length - 2);
             }
+            translated = translated.Replace("\\\"", "\"");
 
             Strings[original] = new TranslatableString(original, translated);
             if (!string.IsNullOrWhiteSpace(translated))

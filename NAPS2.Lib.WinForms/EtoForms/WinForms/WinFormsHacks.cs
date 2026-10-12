@@ -17,7 +17,7 @@ public static class WinFormsHacks
 
     static WinFormsHacks()
     {
-        ImageSizeField = typeof(ImageList).GetField("imageSize", BindingFlags.Instance | BindingFlags.NonPublic);
+        ImageSizeField = typeof(ImageList).GetField("_imageSize", BindingFlags.Instance | BindingFlags.NonPublic);
         PerformRecreateHandleMethod = typeof(ImageList).GetMethod("PerformRecreateHandle", BindingFlags.Instance | BindingFlags.NonPublic);
 
         if (ImageSizeField == null || PerformRecreateHandleMethod == null)
@@ -32,7 +32,7 @@ public static class WinFormsHacks
         if (ImageSizeField != null && PerformRecreateHandleMethod != null)
         {
             ImageSizeField.SetValue(imageList, size);
-            PerformRecreateHandleMethod.Invoke(imageList, new object[] { "ImageSize" });
+            PerformRecreateHandleMethod.Invoke(imageList, []);
         }
         else
         {
@@ -58,5 +58,24 @@ public static class WinFormsHacks
         const int LVM_SETICONSPACING = LVM_FIRST + 53;
         Win32.SendMessage(list.Handle, LVM_SETICONSPACING, IntPtr.Zero,
             (IntPtr) (int) (((ushort) hspacing) | (uint) (vspacing << 16)));
+    }
+
+    // Workaround for https://github.com/dotnet/winforms/issues/12027
+    public static void ClearCachedBrushesAndPens()
+    {
+        var threadData = (IDictionary<object, object?>) typeof(SystemBrushes).Assembly.GetType("System.Drawing.Gdip")!
+            .GetProperty("ThreadData", BindingFlags.Static | BindingFlags.NonPublic)!
+            .GetValue(null)!;
+
+        var systemBrushesKey = typeof(SystemBrushes)
+            .GetField("s_systemBrushesKey", BindingFlags.Static | BindingFlags.NonPublic)!
+            .GetValue(null)!;
+
+        var systemPensKey = typeof(SystemPens)
+            .GetField("s_systemPensKey", BindingFlags.Static | BindingFlags.NonPublic)!
+            .GetValue(null)!;
+
+        threadData[systemBrushesKey] = null;
+        threadData[systemPensKey] = null;
     }
 }

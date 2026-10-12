@@ -13,22 +13,25 @@ public class WinFormsInvoker : IInvoker
 
     public void Invoke(Action action)
     {
-        _formFunc().Invoke(action);
-    }
-
-    // TODO: Maybe these can be extension methods?
-    public T InvokeGet<T>(Func<T> func)
-    {
-        T value = default!;
-        Invoke(() => value = func());
-        return value;
-    }
-
-    public void SafeInvoke(Action action)
-    {
         try
         {
-            Invoke(action);
+            Exception? error = null;
+            _formFunc().Invoke(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    error = ex;
+                }
+            });
+            if (error != null)
+            {
+                error.PreserveStackTrace();
+                throw error;
+            }
         }
         catch (ObjectDisposedException)
         {
@@ -36,5 +39,52 @@ public class WinFormsInvoker : IInvoker
         catch (InvalidOperationException)
         {
         }
+    }
+
+    public void InvokeDispatch(Action action)
+    {
+        try
+        {
+            _formFunc().BeginInvoke(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    Log.ErrorException("Error in InvokeAsync action", ex);
+                }
+            });
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    public T InvokeGet<T>(Func<T> func)
+    {
+        T value = default!;
+        Exception? error = null;
+        _formFunc().Invoke(() =>
+        {
+            try
+            {
+                value = func();
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+            }
+            if (error != null)
+            {
+                error.PreserveStackTrace();
+                throw error;
+            }
+        });
+        return value;
     }
 }

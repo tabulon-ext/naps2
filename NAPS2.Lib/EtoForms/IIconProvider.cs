@@ -4,5 +4,7 @@ namespace NAPS2.EtoForms;
 
 public interface IIconProvider
 {
-    Image? GetIcon(string name);
+    Bitmap? GetIcon(string name, float scale = 1f, bool oversized = false);
+
+    Icon? GetFormIcon(string name, float scale = 1f);
 }

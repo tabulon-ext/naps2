@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Threading;
 using NAPS2.App.Tests.Targets;
+using NAPS2.Scan;
 using Xunit;
 
 namespace NAPS2.App.Tests;
@@ -46,7 +47,8 @@ public static class AppTestHelper
     public static string GetExePath(AppTestExe exe)
     {
         var dir = GetBaseDirectory(exe);
-        if (dir != exe.DefaultRootPath && exe.TestRootSubPath != null)
+        if (!File.Exists(Path.Combine(dir, exe.ExeSubPath))
+            && dir != exe.DefaultRootPath && exe.TestRootSubPath != null)
         {
             dir = Path.Combine(dir, exe.TestRootSubPath);
         }
@@ -102,5 +104,21 @@ public static class AppTestHelper
         Assert.True(File.Exists(path), path);
     }
 
-    public static string SolutionRoot => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    public static string SolutionRoot =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+
+    public static string GetDeviceName(Driver driver)
+    {
+        var deviceFileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".naps2", "devices");
+        if (!File.Exists(deviceFileName)) return null;
+        var driverStr = driver.ToString().ToLowerInvariant();
+        foreach (var line in File.ReadLines(deviceFileName))
+        {
+            if (line.StartsWith(driverStr + "="))
+            {
+                return line.Trim().Substring(driverStr.Length + 1);
+            }
+        }
+        return null;
+    }
 }

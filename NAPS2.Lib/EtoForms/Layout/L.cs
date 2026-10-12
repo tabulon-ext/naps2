@@ -1,3 +1,4 @@
+using Eto.Drawing;
 using Eto.Forms;
 
 namespace NAPS2.EtoForms.Layout;
@@ -53,5 +54,10 @@ public static class L
     public static LayoutElement Buffer(LayoutElement element, int left, int top, int right, int bottom)
     {
         return new BufferLayoutElement(element, left, top, right, bottom);
+    }
+
+    public static LayoutLeftPanel LeftPanel(LayoutElement left, LayoutElement right)
+    {
+        return new LayoutLeftPanel(left, right);
     }
 }

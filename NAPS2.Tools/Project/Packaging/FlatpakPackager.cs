@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using NAPS2.Tools.Project.Targets;
 
 namespace NAPS2.Tools.Project.Packaging;
@@ -15,14 +14,6 @@ public static class FlatpakPackager
 
         VerifyCanBuildArch(packageInfo.Platform);
 
-        // Update metainfo file with the current version/date
-        var metaInfo = File.ReadAllText(Path.Combine(Paths.SetupLinux, "com.naps2.Naps2.metainfo.xml"));
-        var version = ProjectHelper.GetDefaultProjectVersion();
-        var date = DateTime.Now.ToString("yyyy-MM-dd");
-        metaInfo = Regex.Replace(metaInfo,
-            @"<release [^>]+/>",
-            $"<release version=\"{version}\" date=\"{date}\" />");
-
         // Update manifest file with the correct paths
         var manifest = File.ReadAllText(Path.Combine(Paths.SetupLinux, "com.naps2.Naps2.yml"));
         // TODO: Update this after we use a real repo path
@@ -31,7 +22,8 @@ public static class FlatpakPackager
         // Copy metainfo, manifest, icon, and desktop files to a temp folder
         var packageDir = Path.Combine(Paths.SetupObj, "flatpak");
         Directory.CreateDirectory(packageDir);
-        File.WriteAllText(Path.Combine(packageDir, "com.naps2.Naps2.metainfo.xml"), metaInfo);
+        File.WriteAllText(Path.Combine(packageDir, "com.naps2.Naps2.metainfo.xml"),
+            ProjectHelper.GetLinuxMetaInfo(packageInfo));
         File.WriteAllText(Path.Combine(packageDir, "com.naps2.Naps2.yml"), manifest);
         File.Copy(
             Path.Combine(Paths.SetupLinux, "com.naps2.Naps2.desktop"),
@@ -39,6 +31,9 @@ public static class FlatpakPackager
         File.Copy(
             Path.Combine(Paths.SolutionRoot, "NAPS2.Lib", "Icons", "scanner-128.png"),
             Path.Combine(packageDir, "com.naps2.Naps2.png"), true);
+        File.Copy(
+            Path.Combine(Paths.SetupLinux, "sane-streamdevices.patch"),
+            Path.Combine(packageDir, "sane-streamdevices.patch"), true);
 
         if (!noPre)
         {
@@ -63,16 +58,21 @@ public static class FlatpakPackager
             _ => "x86_64"
         };
         var stateDir = Path.Combine(packageDir, "builder-state");
-        Cli.Run("flatpak-builder", $"--arch {arch} --force-clean --state-dir {stateDir} {buildDir} {manifestPath}");
+        Cli.Run("flatpak", $"run org.flatpak.Builder --arch {arch} --force-clean --state-dir {stateDir} {buildDir} {manifestPath}");
 
         // Generate a temp repo with the package info
         Output.Verbose("Creating flatpak repo");
-        var repoDir = Path.Combine(packageDir, "repo");
-        Cli.Run("flatpak", $"build-export --arch {arch} {repoDir} {buildDir}");
+        var repoDir = N2Config.FlatpakRepo;
+        repoDir = string.IsNullOrEmpty(repoDir) ? Path.Combine(packageDir, "repo") : repoDir;
+        var branch = packageInfo.VersionName.Contains('b') ? "beta" : "stable";
+        var gpg = N2Config.FlatpakGpgKey;
+        var gpgArgs = string.IsNullOrEmpty(gpg) ? "" : $"--gpg-sign={gpg}";
+        Cli.Run("flatpak", $"build-export {gpgArgs} --arch {arch} {repoDir} {buildDir} {branch}");
 
         // Generate a single-file bundle from the temp repo
         Output.Verbose("Building flatpak bundle");
-        Cli.Run("flatpak", $"build-bundle --arch {arch} {repoDir} {bundlePath} com.naps2.Naps2");
+        Cli.Run("flatpak",
+            $"build-bundle {gpgArgs} --arch {arch} {repoDir} {bundlePath} com.naps2.Naps2 {branch} --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo");
 
         Output.OperationEnd($"Packaged flatpak: {bundlePath}");
     }

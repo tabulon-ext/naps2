@@ -2,9 +2,9 @@
 
 public enum ImagePixelFormat
 {
-    Unsupported,
+    Unknown,
     BW1,
     Gray8,
-    RGB24, // This is actually BGR in the binary representation
+    RGB24,
     ARGB32
 }

@@ -18,6 +18,9 @@
   <data name="DeviceOffline" xml:space="preserve">
     <value>Wybrany skaner jest w trybie offline.</value>
   </data>
+  <data name="DeviceCommunicationFailure" xml:space="preserve">
+    <value>Komunikacja z urządzeniem skanującym została przerwana.</value>
+  </data>
   <data name="NAPS2" xml:space="preserve">
     <value>NAPS2</value>
   </data>
@@ -68,5 +71,20 @@
   </data>
   <data name="DriverNotSupported" xml:space="preserve">
     <value>Wybrany sterownik nie jest obsługiwany w tym systemie.</value>
+  </data>
+  <data name="OcrError" xml:space="preserve">
+    <value>Wystąpił błąd podczas uruchamiania OCR.</value>
+  </data>
+  <data name="OcrTimeout" xml:space="preserve">
+    <value>Upłynął limit czasu operacji OCR.</value>
+  </data>
+  <data name="WorkerCrash" xml:space="preserve">
+    <value>Proces roboczy uległ awarii.</value>
+  </data>
+  <data name="WorkerCrashWindows" xml:space="preserve">
+    <value>Proces roboczy uległ awarii. Sprawdź podgląd zdarzeń systemu Windows.</value>
+  </data>
+  <data name="UnknownScanner" xml:space="preserve">
+    <value>Skaner nieznany</value>
   </data>
 </root>

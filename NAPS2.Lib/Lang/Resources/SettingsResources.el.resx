@@ -21,41 +21,29 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Κλίμακα του Γκρι</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 dpi</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 dpi</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 dpi</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 dpi</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 dpi</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 dpi</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 dpi</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} dpi</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
-    <value>Custom SMTP</value>
+    <value>Προσαρμοσμένο SMTP</value>
   </data>
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (new)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
-    <value>Outlook Web Access</value>
+    <value>Outlook Πρόσβαση μέσω Web</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
-    <value>No provider selected.</value>
+    <value>Δεν έχει επιλεγεί πάροχος.</value>
   </data>
   <data name="HorizontalAlign_Center" xml:space="preserve">
     <value>Κέντρο</value>
@@ -99,6 +87,9 @@
   <data name="PageSize_Letter" xml:space="preserve">
     <value>US Letter (8.5x11 ιν.)</value>
   </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Προσαρμογή...</value>
+  </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>Προεπιλεγμένο</value>
   </data>
@@ -141,8 +132,11 @@
   <data name="TwainImpl_Legacy" xml:space="preserve">
     <value>Παρωχημένο (εγγενές περιβάλλον μόνο)</value>
   </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Native Transfer</value>
+  </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Εναλλακτική Μεταφορά</value>
+    <value>Memory Transfer</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>Παλαιός Διαχειριστής Πηγής Δεδομένων (DSM)</value>
@@ -154,9 +148,36 @@
     <value>Προεπιλεγμένο</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Γρήγορα</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Βέλτιστα</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Αποθήκευση Όλων</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Αποθήκευση Επιλεγμένων</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Always Prompt</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Prompt If Selected</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Scan With Default Profile</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Always Prompt</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>Προεπιλεγμένο</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Σκοτεινό</value>
   </data>
 </root>

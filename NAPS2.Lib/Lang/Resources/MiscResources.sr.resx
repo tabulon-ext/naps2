@@ -190,7 +190,7 @@
     <value>од {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>Дошло је до непознате грешке у току пакетног скенирања.</value>
+    <value>An unknown error occurred during the batch scan.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Пакетна обрада отказана.</value>
@@ -339,6 +339,12 @@
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 is completely free. Consider making a donation.</value>
   </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Leave a Review</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Like NAPS2?</value>
+  </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>The SANE driver is not available. Make sure to install the required packages:</value>
   </data>
@@ -364,13 +370,13 @@
     <value>No updates available.</value>
   </data>
   <data name="CheckingForUpdates" xml:space="preserve">
-    <value>Checking...</value>
+    <value>Проверавам...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
     <value>Update checking is disabled.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
-    <value>An error occured when trying to install the update.</value>
+    <value>An error occurred when trying to install the update.</value>
   </data>
   <data name="Install" xml:space="preserve">
     <value>Install {0}</value>

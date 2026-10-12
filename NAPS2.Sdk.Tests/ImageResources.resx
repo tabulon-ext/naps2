@@ -202,6 +202,9 @@
   <data name="skewed_bw" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\skewed_bw.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="cat" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\cat.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="stock_cat" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\stock-cat.jpeg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -210,6 +213,12 @@
   </data>
   <data name="patcht" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\patcht.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="patcht_cropped_bl" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\patcht_cropped_bl.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="patcht_cropped_br" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\patcht_cropped_br.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="ocr_test" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\ocr_test.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -222,6 +231,9 @@
   </data>
   <data name="dog_alpha" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\dog_alpha.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="dog_alpha_sc_50pct" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_alpha_sc_50pct.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="dog_alpha_tiff" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\dog_alpha.tiff;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -256,6 +268,9 @@
   <data name="dog_gray" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\dog_gray.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="dog_gray_8bit" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_gray_8bit.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="dog_gray_png" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\dog_gray.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -270,5 +285,50 @@
   </data>
   <data name="dog_gray_24bit_tiff" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\dog_gray_24bit.tiff;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="dog_99w" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_99w.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="blank1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\blank1.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="blank2" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\blank2.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="notblank" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\notblank.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="bw_alternating" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\bw_alternating.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="filled_form_annotated" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\filled_form_annotated.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="dog_jfif" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_jfif.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="dog_headerless" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_headerless.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="dog_exif" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_exif.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="dog_cat_combined" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_cat_combined.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="dog_cat_combined_bw" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\dog_cat_combined_bw.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="autocrop_doc" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\autocrop_doc.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="autocrop_photo" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\autocrop_photo.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="autocrop_receipt" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\autocrop_receipt.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="autocrop_table" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\autocrop_table.jpg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>

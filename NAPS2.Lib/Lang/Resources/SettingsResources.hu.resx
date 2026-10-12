@@ -16,46 +16,34 @@
     <value>Fekete-fehér</value>
   </data>
   <data name="BitDepth_24Color" xml:space="preserve">
-    <value>Szines (24 bit)</value>
+    <value>24 bites szín</value>
   </data>
   <data name="BitDepth_8Grayscale" xml:space="preserve">
-    <value>Szürkeárnylatos</value>
+    <value>Szürkeárnyalatos</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 dpi</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 dpi</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 dpi</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 dpi</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 dpi</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 dpi</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 dpi</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} dpi</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
-    <value>Custom SMTP</value>
+    <value>Egyéni SMTP</value>
   </data>
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (új)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
     <value>Outlook Web Access</value>
   </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
+  </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
-    <value>No provider selected.</value>
+    <value>Nincs levelező kiválasztva.</value>
   </data>
   <data name="HorizontalAlign_Center" xml:space="preserve">
     <value>Középre</value>
@@ -70,7 +58,7 @@
     <value>cm</value>
   </data>
   <data name="PageSizeUnit_Inch" xml:space="preserve">
-    <value>in</value>
+    <value>hüvelyk</value>
   </data>
   <data name="PageSizeUnit_Millimetre" xml:space="preserve">
     <value>mm</value>
@@ -91,13 +79,16 @@
     <value>B5 (176 x 250 mm)</value>
   </data>
   <data name="PageSize_Custom" xml:space="preserve">
-    <value>Custom...</value>
+    <value>Egyéni...</value>
   </data>
   <data name="PageSize_Legal" xml:space="preserve">
-    <value>US Legal (8.5x14 in)</value>
+    <value>US Legal (8.5x14 hüvelyk)</value>
   </data>
   <data name="PageSize_Letter" xml:space="preserve">
-    <value>US Letter (8.5x11 in)</value>
+    <value>US Letter (8,5x11 hüvelyk)</value>
+  </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Egyéni...</value>
   </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>Alapértelmezett</value>
@@ -124,7 +115,7 @@
     <value>Síkágy</value>
   </data>
   <data name="TiffComp_Auto" xml:space="preserve">
-    <value>Auto</value>
+    <value>Automatikus</value>
   </data>
   <data name="TiffComp_Ccitt4" xml:space="preserve">
     <value>CCITT4</value>
@@ -133,19 +124,22 @@
     <value>LZW</value>
   </data>
   <data name="TiffComp_None" xml:space="preserve">
-    <value>None</value>
+    <value>Nincs</value>
   </data>
   <data name="TwainImpl_Default" xml:space="preserve">
     <value>Alapértelmezett</value>
   </data>
   <data name="TwainImpl_Legacy" xml:space="preserve">
-    <value>Legacy (native UI only)</value>
+    <value>Régi (csak natív felhasználói felület)</value>
+  </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Natív átvitel</value>
   </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Alternative Transfer</value>
+    <value>Memória átvitel</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
-    <value>Old DSM</value>
+    <value>Régi DSM</value>
   </data>
   <data name="TwainImpl_X64" xml:space="preserve">
     <value>x64</value>
@@ -154,9 +148,36 @@
     <value>Alapértelmezett</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Gyors</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Legjobb</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Összes mentése</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Kiválasztott mentése</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Mindig kérdezzen rá</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Kérdezzen rá, ha kiválasztva</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Beolvasás az alapértelmezett profillal</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Mindig kérdezzen rá</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>Alapértelmezett</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Világos</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Sötét</value>
   </data>
 </root>

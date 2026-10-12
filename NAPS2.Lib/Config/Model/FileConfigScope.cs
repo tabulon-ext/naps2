@@ -5,19 +5,20 @@ namespace NAPS2.Config.Model;
 
 public class FileConfigScope<TConfig> : ConfigScope<TConfig>
 {
-    private static readonly TimeSpan READ_INTERVAL = TimeSpan.FromMilliseconds(100); 
-    
+    private static readonly TimeSpan READ_INTERVAL = TimeSpan.FromMilliseconds(5000);
+
     private readonly string _filePath;
     private readonly ISerializer<ConfigStorage<TConfig>> _serializer;
     private ConfigStorage<TConfig> _cache = new();
     private ConfigStorage<TConfig> _changes = new();
     private readonly TimedThrottle _readHandshakeThrottle;
 
-    public FileConfigScope(string filePath, ISerializer<ConfigStorage<TConfig>> serializer, ConfigScopeMode mode) : base(mode)
+    public FileConfigScope(string filePath, ISerializer<ConfigStorage<TConfig>> serializer, ConfigScopeMode mode,
+        TimeSpan? readInterval = null) : base(mode)
     {
         _filePath = filePath;
         _serializer = serializer;
-        _readHandshakeThrottle = new TimedThrottle(ReadHandshake, READ_INTERVAL);
+        _readHandshakeThrottle = new TimedThrottle(ReadHandshake, readInterval ?? READ_INTERVAL);
     }
 
     protected override bool TryGetInternal(ConfigLookup lookup, out object? value)
@@ -100,7 +101,8 @@ public class FileConfigScope<TConfig> : ConfigScope<TConfig>
                 catch (Exception)
                 {
                     // Failed to load. Since we're using FileShare.None, it can't be concurrent modification.
-                    // Either the file is newly created, or it was corrupted. In either case we can ignore and overwrite.
+                    // Either the file is newly created, or it was corrupted. In either case we can backup and overwrite.
+                    Backup(stream);
                 }
                 // Merge the cache and our changes into a local copy (so in case of exceptions nothing is changed)
                 copy = new ConfigStorage<TConfig>();
@@ -118,6 +120,21 @@ public class FileConfigScope<TConfig> : ConfigScope<TConfig>
         catch (IOException ex)
         {
             Log.ErrorException($"Error writing {_filePath}", ex);
+        }
+    }
+
+    private void Backup(FileStream stream)
+    {
+        try
+        {
+            using var backupStream = new FileStream(_filePath + ".bak", FileMode.Create);
+            backupStream.SetLength(0);
+            stream.Seek(0, SeekOrigin.Begin);
+            stream.CopyTo(backupStream);
+        }
+        catch (Exception)
+        {
+            // Ignore, we did our best
         }
     }
 }

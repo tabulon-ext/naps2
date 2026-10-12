@@ -1,6 +1,9 @@
 using Eto.Forms;
 using Eto.GtkSharp;
+using Gdk;
 using Gtk;
+using NAPS2.EtoForms.Widgets;
+using Drag = Gtk.Drag;
 using Label = Gtk.Label;
 using Orientation = Gtk.Orientation;
 
@@ -8,13 +11,20 @@ namespace NAPS2.EtoForms.Gtk;
 
 public class GtkListView<T> : IListView<T> where T : notnull
 {
+    private static readonly TargetEntry[] DragTargetEntries =
+    {
+        // TODO: Maybe use a different mime for different list types (profiles/images)?
+        // i.e. something similar to _behavior.CustomDragDataType but in mime format (maybe)
+        new("application/x-naps2-items", 0, 0)
+    };
+
     private readonly ListViewBehavior<T> _behavior;
 
     private ListSelection<T> _selection = ListSelection.Empty<T>();
     private bool _refreshing;
     private readonly ScrolledWindow _scrolledWindow;
     private readonly FlowBox _flowBox;
-    private List<Entry> _entries = new();
+    private List<Entry> _entries = [];
 
     public GtkListView(ListViewBehavior<T> behavior)
     {
@@ -40,37 +50,51 @@ public class GtkListView<T> : IListView<T> where T : notnull
         {
             _flowBox.SelectedChildrenChanged += FlowBoxSelectionChanged;
         }
-        _scrolledWindow.Add(_flowBox);
+        _flowBox.ChildActivated += OnChildActivated;
+        _flowBox.ButtonPressEvent += OnButtonPress;
+        var eventBox = new EventBox();
+        eventBox.Child = _flowBox;
+        if (_behavior.AllowDragDrop)
+        {
+            Drag.DestSet(eventBox, DestDefaults.All, GetDropTargetEntries(), DragAction.Copy | DragAction.Move);
+            eventBox.DragDataReceived += OnDragDataReceived;
+            eventBox.DragMotion += OnDragMotion;
+            eventBox.DragLeave += OnDragLeave;
+        }
+        _scrolledWindow.Add(eventBox);
         _scrolledWindow.StyleContext.AddClass("listview");
+        Control = _scrolledWindow.AsEto();
     }
 
-    public int ImageSize { get; set; }
+    private void OnButtonPress(object o, ButtonPressEventArgs args)
+    {
+        if (args.Event.Button == 3)
+        {
+            // Right click
+            ContextMenu?.Show();
+        }
+    }
 
-    // TODO: Properties here vs on behavior?
-    public bool AllowDrag { get; set; }
+    private void OnChildActivated(object o, ChildActivatedArgs args)
+    {
+        ItemClicked?.Invoke(this, EventArgs.Empty);
+    }
 
-    public bool AllowDrop { get; set; }
+    public Eto.Drawing.Size ImageSize { get; set; }
 
     public ScrolledWindow NativeControl => _scrolledWindow;
 
-    public Control Control => _scrolledWindow.ToEto();
+    public Control Control { get; }
 
-    // TODO: Make this work
     public ContextMenu? ContextMenu { get; set; }
 
     public event EventHandler? Updated;
 
     public event EventHandler? SelectionChanged;
 
-    // TODO: Implement item double-click
-#pragma warning disable CS0067
     public event EventHandler? ItemClicked;
-#pragma warning restore CS0067
 
-    // TODO: Implement drag/drop
-#pragma warning disable CS0067
     public event EventHandler<DropEventArgs>? Drop;
-#pragma warning restore CS0067
 
     public void SetItems(IEnumerable<T> items)
     {
@@ -114,8 +138,8 @@ public class GtkListView<T> : IListView<T> where T : notnull
         }
         else
         {
-            using var image = _behavior.GetImage(item, ImageSize);
-            var imageWidget = image.ToGtk();
+            using var image = _behavior.GetImage(this, item);
+            var imageWidget = image.ToGdk().ToScaledImage(_flowBox.ScaleFactor);
             // TODO: Is there a better way to prevent the image from expanding in both dimensions?
             var hframe = new Box(Orientation.Horizontal, 0);
             hframe.Halign = Align.Center;
@@ -134,19 +158,30 @@ public class GtkListView<T> : IListView<T> where T : notnull
                 };
                 vframe.Add(label);
             }
-            flowBoxChild.Add(vframe);
+            // TODO: Event box around the image instead of the frame?
+            var eventBox = new EventBox();
+            eventBox.Child = vframe;
+            if (_behavior.AllowDragDrop || _behavior.AllowFileDrop)
+            {
+                eventBox.DragBegin += OnDragBegin;
+                eventBox.DragDataGet += OnDragDataGet;
+                Drag.SourceSet(eventBox, ModifierType.Button1Mask, DragTargetEntries, DragAction.Move);
+            }
+            flowBoxChild.Add(eventBox);
         }
         flowBoxChild.StyleContext.AddClass("listview-item");
         return flowBoxChild;
     }
 
-    // TODO: Do we need this method? Clean up the name/doc at least
-    // TODO: Seems like we might not need it at all, the syncer is working? Or is the idea this is faster for WinForms? But in that case we should probably not update on sync.
     public void RegenerateImages()
     {
         if (_refreshing)
         {
             throw new InvalidOperationException();
+        }
+        if (_entries.Count == 0)
+        {
+            return;
         }
         _refreshing = true;
         foreach (var entry in _entries)
@@ -287,6 +322,142 @@ public class GtkListView<T> : IListView<T> where T : notnull
     private static CheckButton GetCheckButton(Widget widget)
     {
         return (CheckButton) ((FlowBoxChild) widget).Child;
+    }
+
+    private TargetEntry[] GetDropTargetEntries()
+    {
+        var list = new List<TargetEntry>();
+        if (_behavior.AllowDragDrop)
+        {
+            list.Add(new("application/x-naps2-items", 0, 0));
+        }
+        if (_behavior.AllowFileDrop)
+        {
+            list.Add(new("text/uri-list", 0, 0));
+        }
+        return list.ToArray();
+    }
+
+    private void OnDragBegin(object sender, DragBeginArgs args)
+    {
+        // Select the item under the mouse cursor if not already.
+        var dragWidget = (FlowBoxChild) ((EventBox) sender).Parent;
+        var dragItem = ByWidget()[dragWidget].Item;
+        if (!Selection.Contains(dragItem))
+        {
+            Selection = ListSelection.Of(dragItem);
+        }
+    }
+
+    private void OnDragDataGet(object sender, DragDataGetArgs args)
+    {
+        if (Selection.Any())
+        {
+            // TODO: Can we set a pixbuf for the drag?
+            args.SelectionData.Set(
+                Atom.Intern(_behavior.CustomDragDataType, false),
+                8,
+                _behavior.SerializeCustomDragData(Selection.ToArray()));
+        }
+    }
+
+    private void OnDragDataReceived(object sender, DragDataReceivedArgs args)
+    {
+        var index = GetDragIndex();
+        if (args.SelectionData.DataType.Name == _behavior.CustomDragDataType && _behavior.AllowDragDrop)
+        {
+            Drop?.Invoke(this, new DropEventArgs(index, args.SelectionData.Data));
+        }
+        else if (args.SelectionData.Uris.Any() && _behavior.AllowFileDrop)
+        {
+            Drop?.Invoke(this, new DropEventArgs(index, args.SelectionData.Uris.Select(x => new Uri(x).LocalPath)));
+        }
+    }
+
+    private void OnDragMotion(object sender, DragMotionArgs args)
+    {
+        if (args.Context.SelectedAction != DragAction.Move) return;
+        // Show a visual indicator of the drop location
+        ClearDropIndicator();
+        var index = GetDragIndex();
+        if (index == -1) return;
+        var widgets = _flowBox.Children;
+        // Show on the left (of the image to the right) if we're moving to the left, or on the right (of the image to
+        // the left) if we're moving to the right.
+        // This gives an accurate indication of where the image will appear especially if we're dragging across rows.
+        // If the drop will have no effect (because we're dropping next to the selected image) this will show nothing.
+        // TODO: This doesn't show a drop indicator if we're dropping inside a disjointed selection 
+        var selectedIndices = Selection.ToSelectedIndices(_entries.Select(x => x.Item).ToList()).ToList();
+        var selectionMin = selectedIndices.Min();
+        var selectionMax = selectedIndices.Max() + 1;
+        if (index < selectionMin)
+        {
+            widgets[index].StyleContext.AddClass("drop-before");
+        }
+        if (index > selectionMax)
+        {
+            widgets[index - 1].StyleContext.AddClass("drop-after");
+        }
+    }
+
+    private void OnDragLeave(object sender, DragLeaveArgs args)
+    {
+        ClearDropIndicator();
+    }
+
+    private void ClearDropIndicator()
+    {
+        foreach (var widget in _flowBox.Children)
+        {
+            widget.StyleContext.RemoveClass("drop-before");
+            widget.StyleContext.RemoveClass("drop-after");
+        }
+    }
+
+    private int GetDragIndex()
+    {
+        if (_entries.Count == 0)
+        {
+            return 0;
+        }
+        var cp = GetMousePosRelativeToFlowbox();
+        var dragToItem = _flowBox.GetChildAtPos(cp.X, cp.Y);
+        if (dragToItem == null)
+        {
+            var items = _flowBox.Children.Cast<FlowBoxChild>().ToList();
+            var minY = items.Select(x => x.Allocation.Top).Min();
+            var maxY = items.Select(x => x.Allocation.Bottom).Max();
+            if (cp.Y < minY)
+            {
+                cp.Y = minY;
+            }
+            if (cp.Y > maxY)
+            {
+                cp.Y = maxY;
+            }
+            var row = items.Where(x => x.Allocation.Top <= cp.Y && x.Allocation.Bottom >= cp.Y)
+                .OrderBy(x => x.Allocation.X)
+                .ToList();
+            dragToItem = row.FirstOrDefault(x => x.Allocation.Right >= cp.X) ?? row.LastOrDefault();
+        }
+        if (dragToItem == null)
+        {
+            return -1;
+        }
+        int dragToIndex = dragToItem.Index;
+        if (cp.X > (dragToItem.Allocation.X + dragToItem.Allocation.Width / 2))
+        {
+            dragToIndex++;
+        }
+        return dragToIndex;
+    }
+
+    private Point GetMousePosRelativeToFlowbox()
+    {
+        _flowBox.Window.GetOrigin(out var boxX, out var boxY);
+        var mousePos = Mouse.Position;
+        var cp = new Point((int) mousePos.X - boxX, (int) mousePos.Y - boxY);
+        return cp;
     }
 
     private class Entry

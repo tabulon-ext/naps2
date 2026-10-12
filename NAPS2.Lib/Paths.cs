@@ -5,6 +5,7 @@ public static class Paths
     private static readonly string ExecutablePath = AssemblyHelper.EntryFolder;
     private static readonly string AppDataPath;
     private static readonly string TempPath;
+    private static readonly string TempSubfolderPath;
     private static readonly string RecoveryPath;
     private static readonly string ComponentsPath;
 
@@ -19,7 +20,15 @@ public static class Paths
         if (string.IsNullOrEmpty(userAppData) && OperatingSystem.IsMacOS())
         {
             // Not sure if this is necessary but older macOS (10.15) didn't seem to get the appdata path
+            // TODO: Technically this should be "%HOME%/.config" but keeping this for now, for backwards compatibility
             userAppData = Environment.ExpandEnvironmentVariables("/Users/%USER%/.config");
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            // For .NET 8, the macOS ApplicationData path has changed from the Linux-style "~/.config" to the more
+            // correct "~/Library/Application Support". For backwards compatibility we keep .config for now.
+            // TODO: Migrate macOS application data to "~/Library/Application Support"
+            userAppData = Environment.ExpandEnvironmentVariables("%HOME%/.config");
         }
 #else
         var subfolder = "NAPS2";
@@ -41,6 +50,7 @@ public static class Paths
         }
 
         TempPath = Path.Combine(AppDataPath, "temp");
+        TempSubfolderPath = Path.Combine(TempPath, Path.GetRandomFileName());
         RecoveryPath = Path.Combine(AppDataPath, "recovery");
         ComponentsPath = Path.Combine(AppDataPath, "components");
     }
@@ -55,6 +65,11 @@ public static class Paths
     public static string Executable => EnsureFolderExists(ExecutablePath);
 
     public static string Temp => EnsureFolderExists(TempPath);
+
+    /// <summary>
+    /// A subfolder of Temp that is tied to the process and is specifically deleted before the process exits.
+    /// </summary>
+    public static string TempSubfolder => EnsureFolderExists(TempSubfolderPath);
 
     public static string Recovery => EnsureFolderExists(RecoveryPath);
 
@@ -78,9 +93,22 @@ public static class Paths
                 Directory.CreateDirectory(TempPath);
             }
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            Log.ErrorException("Error clearing temp files", e);
+            // Ignore errors clearing temp files
+        }
+    }
+
+    public static void DeleteTempSubfolder()
+    {
+        try
+        {
+            if (!Directory.Exists(TempSubfolderPath)) return;
+            Directory.Delete(TempSubfolderPath, true);
+        }
+        catch (Exception)
+        {
+            // Ignore errors clearing temp files
         }
     }
 

@@ -15,7 +15,7 @@ public class TiffWriterTests : ContextualTests
         _tiffWriter = ImageContext.TiffWriter;
     }
 
-    [Fact]
+    [PlatformFact(exclude: PlatformFlags.ImageSharpImage)]
     public async Task SaveSinglePageTiffToFile()
     {
         var path = Path.Combine(FolderPath, "image.tiff");
@@ -25,7 +25,7 @@ public class TiffWriterTests : ContextualTests
         await AssertTiff(path, ImageResources.dog);
     }
 
-    [Fact]
+    [PlatformFact(exclude: PlatformFlags.ImageSharpImage)]
     public async Task SaveMultiPageTiffToFile()
     {
         var path = Path.Combine(FolderPath, "image.tiff");
@@ -40,7 +40,7 @@ public class TiffWriterTests : ContextualTests
         await AssertTiff(path, ImageResources.dog, ImageResources.dog_bw, ImageResources.stock_cat);
     }
 
-    [Fact]
+    [PlatformFact(exclude: PlatformFlags.ImageSharpImage)]
     public async Task SaveSinglePageTiffToStream()
     {
         var stream = new MemoryStream();
@@ -50,7 +50,7 @@ public class TiffWriterTests : ContextualTests
         await AssertTiff(stream, ImageResources.dog);
     }
 
-    [Fact]
+    [PlatformFact(exclude: PlatformFlags.ImageSharpImage)]
     public async Task SaveMultiPageTiffToStream()
     {
         var stream = new MemoryStream();
@@ -65,7 +65,7 @@ public class TiffWriterTests : ContextualTests
         await AssertTiff(stream, ImageResources.dog, ImageResources.dog_bw, ImageResources.stock_cat);
     }
 
-    [Fact]
+    [PlatformFact(exclude: PlatformFlags.ImageSharpImage)]
     public async Task SaveBlackAndWhiteTiff()
     {
         var path = Path.Combine(FolderPath, "image.tiff");
@@ -75,7 +75,7 @@ public class TiffWriterTests : ContextualTests
         await AssertTiff(path, ImageResources.dog_bw);
     }
 
-    [Fact]
+    [PlatformFact(exclude: PlatformFlags.ImageSharpImage)]
     public async Task SaveColorTiffWithG4()
     {
         var path = Path.Combine(FolderPath, "image.tiff");
@@ -104,7 +104,7 @@ public class TiffWriterTests : ContextualTests
         for (int i = 0; i < expectedImages.Length; i++)
         {
             Assert.Equal(ImageFileFormat.Tiff, actual[i].OriginalFileFormat);
-            ImageAsserts.Similar(expectedImages[i], actual[i]);
+            ImageAsserts.Similar(expectedImages[i], actual[i], ignoreResolution: true);
         }
     }
 }

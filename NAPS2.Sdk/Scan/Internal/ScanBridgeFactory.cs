@@ -1,37 +1,34 @@
-﻿namespace NAPS2.Scan.Internal;
+﻿using NAPS2.Remoting.Worker;
+
+namespace NAPS2.Scan.Internal;
 
 internal class ScanBridgeFactory : IScanBridgeFactory
 {
-    private readonly InProcScanBridge _inProcScanBridge;
-    private readonly WorkerScanBridge _workerScanBridge;
-    private readonly NetworkScanBridge _networkScanBridge;
+    private readonly ScanningContext _scanningContext;
 
     public ScanBridgeFactory(ScanningContext scanningContext)
-        : this(new InProcScanBridge(scanningContext), new WorkerScanBridge(scanningContext),
-            new NetworkScanBridge(scanningContext))
     {
-    }
-
-    public ScanBridgeFactory(InProcScanBridge inProcScanBridge, WorkerScanBridge workerScanBridge,
-        NetworkScanBridge networkScanBridge)
-    {
-        _inProcScanBridge = inProcScanBridge;
-        _workerScanBridge = workerScanBridge;
-        _networkScanBridge = networkScanBridge;
+        _scanningContext = scanningContext;
     }
 
     public IScanBridge Create(ScanOptions options)
     {
-        if (!string.IsNullOrEmpty(options.NetworkOptions.Ip))
+        if (_scanningContext.WorkerFactory == null)
         {
-            // The physical scanner is connected to a different computer, so we connect to a NAPS2 server process over the network
-            return _networkScanBridge;
+            // Worker processes generally aren't required, just preferred for stability.
+            // Where applicable, the driver (i.e. Twain) will throw an error if we're running on the wrong arch.
+            return new InProcScanBridge(_scanningContext);
+        }
+        if (options.Driver == Driver.Apple)
+        {
+            // Run ImageCaptureCore in a worker process for added stability
+            return new WorkerScanBridge(_scanningContext, WorkerType.Native);
         }
         if (options.Driver == Driver.Sane)
         {
             // Run SANE in a worker process for added stability
-            return _workerScanBridge;
+            return new WorkerScanBridge(_scanningContext, WorkerType.Native);
         }
-        return _inProcScanBridge;
+        return new InProcScanBridge(_scanningContext);
     }
 }

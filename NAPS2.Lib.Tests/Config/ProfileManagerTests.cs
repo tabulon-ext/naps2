@@ -22,7 +22,7 @@ public class ProfileManagerTests : ContextualTests
     {
         var profile = new ScanProfile
         {
-            Device = new ScanDevice("test_id", "test_name"),
+            Device = new ScanProfileDevice("test_id", "test_name"),
             DisplayName = "A Profile"
         };
         _profileManager.Mutate(new ListMutation<ScanProfile>.Append(profile), new Selectable<ScanProfile>());
@@ -45,7 +45,7 @@ public class ProfileManagerTests : ContextualTests
     [Fact]
     public void LoadOneProfile()
     {
-        var xml = ProfileSerializerTestsData.SingleProfile;
+        var xml = ConfigData.SingleProfile;
         File.WriteAllText(_userPath, xml);
 
         var profiles = _profileManager.Profiles;
@@ -60,7 +60,7 @@ public class ProfileManagerTests : ContextualTests
     [Fact]
     public void LoadVeryOldProfile()
     {
-        var xml = ProfileSerializerTestsData.VeryOldProfile;
+        var xml = ConfigData.VeryOldProfile;
         File.WriteAllText(_userPath, xml);
 
         var profiles = _profileManager.Profiles;
@@ -68,7 +68,7 @@ public class ProfileManagerTests : ContextualTests
 
         Assert.Equal("wia", profiles[0].DriverName);
         Assert.Equal("test_id", profiles[0].Device?.ID);
-        Assert.Equal(ScanDpi.Dpi200, profiles[0].Resolution);
+        Assert.Equal(200, profiles[0].Resolution.Dpi);
         Assert.Equal(2, profiles[0].Version);
         Assert.Equal(0, profiles[0].UpgradedFrom);
     }
@@ -76,7 +76,7 @@ public class ProfileManagerTests : ContextualTests
     [Fact]
     public void LoadOldProfile()
     {
-        var xml = ProfileSerializerTestsData.OldProfile;
+        var xml = ConfigData.OldProfile;
         File.WriteAllText(_userPath, xml);
 
         var profiles = _profileManager.Profiles;
@@ -84,7 +84,7 @@ public class ProfileManagerTests : ContextualTests
 
         Assert.Equal("wia", profiles[0].DriverName);
         Assert.Equal("test_id", profiles[0].Device?.ID);
-        Assert.Equal(ScanDpi.Dpi200, profiles[0].Resolution);
+        Assert.Equal(200, profiles[0].Resolution.Dpi);
         Assert.Equal(2, profiles[0].Version);
         Assert.Equal(1, profiles[0].UpgradedFrom);
     }
@@ -92,7 +92,7 @@ public class ProfileManagerTests : ContextualTests
     [Fact]
     public void LoadOldTwainProfile()
     {
-        var xml = ProfileSerializerTestsData.OldTwainProfile;
+        var xml = ConfigData.OldTwainProfile;
         File.WriteAllText(_userPath, xml);
 
         var profiles = _profileManager.Profiles;
@@ -104,4 +104,6 @@ public class ProfileManagerTests : ContextualTests
         Assert.Equal(2, profiles[0].Version);
         Assert.Equal(1, profiles[0].UpgradedFrom);
     }
+
+    // TODO: Add tests for LockSystemProfiles etc
 }

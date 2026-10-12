@@ -1,6 +1,8 @@
 using Eto.Drawing;
 using Eto.Forms;
 using NAPS2.EtoForms.Layout;
+using NAPS2.EtoForms.Widgets;
+using NAPS2.Scan;
 using NAPS2.Update;
 
 namespace NAPS2.EtoForms.Ui;
@@ -9,38 +11,38 @@ public class AboutForm : EtoDialogBase
 {
     private const string NAPS2_HOMEPAGE = "https://www.naps2.com";
     private const string ICONS_HOMEPAGE = "https://www.fatcow.com/free-icons";
-    private const string DONATE_URL = "https://www.naps2.com/donate";
+    private const string DONATE_URL = "https://www.naps2.com/donate?src=about";
 
+    private readonly Button _donateButton;
     private readonly UpdateChecker _updateChecker;
+    private readonly CheckBox _enableDebugLogging = C.CheckBox(UiStrings.EnableDebugLogging);
 
-    private readonly Control _donateButton;
-    private readonly CheckBox _checkForUpdates;
-    private readonly Panel _updatePanel;
-
-    private bool _hasCheckedForUpdates;
-    private UpdateInfo? _update;
-
-    public AboutForm(Naps2Config config, UpdateChecker updateChecker)
+    public AboutForm(Naps2Config config, UpdateChecker updateChecker, ScanningContext scanningContext)
         : base(config)
     {
+        Title = UiStrings.AboutFormTitle;
+        IconName = "information_small";
+
+        _donateButton = C.Button(UiStrings.Donate, () => ProcessHelper.OpenUrl(DONATE_URL));
+        _donateButton.BackgroundColor = Color.FromRgb(0xfeda96);
+        _donateButton.TextColor = Color.FromRgb(0x1b464e);
+        _donateButton.Font = new Font(_donateButton.Font.Family, _donateButton.Font.Size * 11 / 10,
+            FontStyle.Italic | FontStyle.Bold);
+        EtoPlatform.Current.ConfigureDonateButton(_donateButton);
+
+        _enableDebugLogging.Checked = config.Get(c => c.EnableDebugLogging);
+        _enableDebugLogging.CheckedChanged += (_, _) =>
+        {
+            config.User.Set(c => c.EnableDebugLogging, _enableDebugLogging.IsChecked());
+            NLogConfig.EnvDebugLogging = _enableDebugLogging.IsChecked();
+            scanningContext.WorkerFactory?.RecreateSpareWorkers();
+        };
+
         _updateChecker = updateChecker;
-
-        _donateButton = EtoPlatform.Current.AccessibleImageButton(
-            Icons.btn_donate_LG.ToEtoImage(),
-            UiStrings.Donate,
-            () => Process.Start(new ProcessStartInfo(DONATE_URL) { UseShellExecute = true }));
-        _checkForUpdates = new CheckBox { Text = UiStrings.CheckForUpdates };
-        _checkForUpdates.CheckedChanged += CheckForUpdatesChanged;
-        _updatePanel = new Panel();
-
-        UpdateControls();
     }
 
     protected override void BuildLayout()
     {
-        Title = UiStrings.AboutFormTitle;
-        Icon = new Icon(1f, Icons.information_small.ToEtoImage());
-
         FormStateController.Resizable = false;
         FormStateController.RestoreFormState = false;
 
@@ -54,16 +56,19 @@ public class AboutForm : EtoDialogBase
                         C.NoWrap(string.Format(MiscResources.Version, AssemblyHelper.Version)),
                         C.UrlLink(NAPS2_HOMEPAGE)
                     ),
-                    L.Column(
-                        C.Filler(),
-                        _donateButton
-                    ).Padding(left: 10)
+                    Config.Get(c => c.HiddenButtons).HasFlag(ToolbarButtons.Donate)
+                        ? C.None()
+                        : L.Column(
+                            C.Filler(),
+                            _donateButton
+                        ).Padding(left: 10)
                 ),
-                C.TextSpace(),
-                _checkForUpdates.Padding(left: 4),
-                _updatePanel,
+                GetUpdateWidget(),
                 C.TextSpace(),
                 C.NoWrap(string.Format(UiStrings.CopyrightFormat, AssemblyHelper.COPYRIGHT_YEARS)),
+                Config.AppLocked.Has(c => c.EnableDebugLogging)
+                    ? C.None()
+                    : new[] { C.Spacer(), _enableDebugLogging.Padding(left: 4) }.Expand(),
                 C.TextSpace(),
                 L.Row(
                     L.Column(
@@ -79,65 +84,15 @@ public class AboutForm : EtoDialogBase
         );
     }
 
-    private void DoUpdateCheck()
+    private LayoutElement GetUpdateWidget()
     {
-        if (_checkForUpdates.IsChecked())
-        {
-            _updateChecker.CheckForUpdates().ContinueWith(task =>
-            {
-                if (task.IsFaulted)
-                {
-                    Log.ErrorException("Error checking for updates", task.Exception!);
-                }
-                else
-                {
-                    var transact = Config.User.BeginTransaction();
-                    transact.Set(c => c.HasCheckedForUpdates, true);
-                    transact.Set(c => c.LastUpdateCheckDate, DateTime.Now);
-                    transact.Commit();
-                }
-                _update = task.Result;
-                _hasCheckedForUpdates = true;
-                Invoker.Current.SafeInvoke(UpdateControls);
-            });
-        }
-    }
-
-    private void UpdateControls()
-    {
-        _updatePanel.Content = GetUpdatePanelContent();
-    }
-
-    private Control GetUpdatePanelContent()
-    {
-        if (!_checkForUpdates.IsChecked())
-        {
-            return C.NoWrap(MiscResources.UpdateCheckDisabled);
-        }
-        if (!_hasCheckedForUpdates)
-        {
-            return C.NoWrap(MiscResources.CheckingForUpdates);
-        }
-        if (_update == null)
-        {
-            return C.NoWrap(MiscResources.NoUpdates);
-        }
-        return C.Link(string.Format(MiscResources.Install, _update.Name),
-            InstallLinkClicked);
-    }
-
-    private void InstallLinkClicked()
-    {
-        if (_update != null)
-        {
-            _updateChecker.StartUpdate(_update);
-        }
-    }
-
-    private void CheckForUpdatesChanged(object? sender, EventArgs e)
-    {
-        Config.User.Set(c => c.CheckForUpdates, _checkForUpdates.IsChecked());
-        UpdateControls();
-        DoUpdateCheck();
+#if MSI
+        return C.None();
+#else
+#if NET6_0_OR_GREATER
+        if (!OperatingSystem.IsWindows()) return C.None();
+#endif
+        return new UpdateCheckWidget(_updateChecker, Config);
+#endif
     }
 }

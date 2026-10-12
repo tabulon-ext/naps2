@@ -1,7 +1,6 @@
 ﻿namespace NAPS2.ImportExport.Images;
 
-// TODO: Cross-platform TIFF
-public class SaveImagesOperation : OperationBase
+internal class SaveImagesOperation : OperationBase
 {
     private readonly IOverwritePrompt _overwritePrompt;
     private readonly ImageContext _imageContext;
@@ -25,9 +24,11 @@ public class SaveImagesOperation : OperationBase
     /// <param name="fileName">The name of the file to save. For multiple images, this is modified by appending a number before the extension.</param>
     /// <param name="placeholders"></param>
     /// <param name="images">The collection of images to save.</param>
+    /// <param name="overwriteFile"></param>
     /// <param name="batch"></param>
+    /// <param name="imageSettings"></param>
     public bool Start(string fileName, Placeholders placeholders, IList<ProcessedImage> images,
-        ImageSettings imageSettings, bool batch = false)
+        ImageSettings imageSettings, string? overwriteFile = null, bool batch = false)
     {
         Status = new OperationStatus
         {
@@ -46,12 +47,17 @@ public class SaveImagesOperation : OperationBase
                     subFileName = placeholders.Substitute(fileName, batch);
                 }
                 var format = ImageContext.GetFileFormatFromExtension(subFileName);
+                if (format == ImageFileFormat.Unknown)
+                {
+                    throw new ArgumentException($"Could not infer file format from extension: {subFileName}");
+                }
 
                 if (format == ImageFileFormat.Tiff && !imageSettings.SinglePageTiff)
                 {
                     if (File.Exists(subFileName))
                     {
-                        if (_overwritePrompt.ConfirmOverwrite(subFileName) != OverwriteResponse.Yes)
+                        if (subFileName != overwriteFile &&
+                            _overwritePrompt.ConfirmOverwrite(subFileName) != OverwriteResponse.Yes)
                         {
                             return false;
                         }
@@ -82,7 +88,9 @@ public class SaveImagesOperation : OperationBase
 
                     if (images.Count == 1 && File.Exists(subFileName))
                     {
-                        var overwriteResponse = _overwritePrompt.ConfirmOverwrite(subFileName);
+                        var overwriteResponse = subFileName == overwriteFile
+                            ? OverwriteResponse.Yes
+                            : _overwritePrompt.ConfirmOverwrite(subFileName);
                         if (overwriteResponse == OverwriteResponse.No)
                         {
                             continue;
@@ -152,9 +160,9 @@ public class SaveImagesOperation : OperationBase
     private void DoSaveImage(ProcessedImage image, string path, ImageFileFormat format, ImageSettings imageSettings)
     {
         FileSystemHelper.EnsureParentDirExists(path);
+        using var renderedImage = image.Render();
         if (format == ImageFileFormat.Tiff)
         {
-            using var renderedImage = image.Render();
             _imageContext.TiffWriter.SaveTiff(new[] { renderedImage }, path,
                 imageSettings.TiffCompression.ToTiffCompressionType(), CancelToken);
         }
@@ -163,8 +171,7 @@ public class SaveImagesOperation : OperationBase
             // Quality will be ignored when not needed
             // TODO: Scale quality differently for jpeg2000?
             var quality = imageSettings.JpegQuality.Clamp(0, 100);
-            using var bitmap = image.Render();
-            bitmap.Save(path, format, quality);
+            renderedImage.Save(path, format, new ImageSaveOptions { Quality = quality });
         }
     }
 }

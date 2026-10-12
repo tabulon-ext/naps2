@@ -20,19 +20,6 @@ public class UpdateOperation : OperationBase
     private string? _tempFolder;
     private string? _tempPath;
 
-    static UpdateOperation()
-    {
-        try
-        {
-            const int tls13 = 12288;
-            ServicePointManager.SecurityProtocol = (SecurityProtocolType) tls13;
-        }
-        catch (NotSupportedException)
-        {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-        }
-    }
-
     public UpdateOperation(ErrorOutput errorOutput, DesktopController desktopController,
         DesktopFormProvider desktopFormProvider)
     {
@@ -170,18 +157,19 @@ public class UpdateOperation : OperationBase
 
     private bool VerifyHash()
     {
-        using var sha = SHA1.Create();
+        using var sha = SHA256.Create();
         using FileStream stream = File.OpenRead(_tempPath!);
         byte[] checksum = sha.ComputeHash(stream);
-        return checksum.SequenceEqual(_update!.Sha1);
+        return checksum.SequenceEqual(_update!.Sha256);
     }
 
     private bool VerifySignature()
     {
-        var cert = new X509Certificate2(ClientCreds_.naps2_public);
+        var cert = X509CertificateLoader.LoadCertificate(ClientCreds_.naps2_public);
         var csp = cert.GetRSAPublicKey();
         if (csp == null) return false;
-        return csp.VerifyHash(_update!.Sha1, _update.Signature, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+        return csp.VerifyHash(_update!.Sha256, _update.Signature256, HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
     }
 
     private void DownloadProgress(object sender, DownloadProgressChangedEventArgs e)

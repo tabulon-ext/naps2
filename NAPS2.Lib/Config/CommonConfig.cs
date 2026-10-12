@@ -1,16 +1,15 @@
 ﻿using System.Collections.Immutable;
 using NAPS2.Config.Model;
+using NAPS2.Escl;
 using NAPS2.ImportExport.Email;
 using NAPS2.ImportExport.Images;
-using NAPS2.ImportExport.Pdf;
+using NAPS2.Pdf;
 using NAPS2.Ocr;
 using NAPS2.Scan;
 using NAPS2.Scan.Batch;
 
 namespace NAPS2.Config;
 
-// TODO: Remove all unnecessary nullables
-// TODO: Maybe have this serialize with the root node named as AppConfig/UserConfig somehow?
 [Config]
 public class CommonConfig
 {
@@ -32,7 +31,7 @@ public class CommonConfig
     public ImmutableList<NamedPageSize> CustomPageSizePresets { get; set; } = ImmutableList<NamedPageSize>.Empty;
 
     [User]
-    public ImmutableList<ScanProxyConfig>? SavedProxies { get; set; }
+    public int LastCustomResolution { get; set; }
 
     [App]
     public string? StartupMessageTitle { get; set; }
@@ -42,6 +41,18 @@ public class CommonConfig
 
     [App]
     public MessageBoxIcon StartupMessageIcon { get; set; }
+
+    [Common]
+    public Theme Theme { get; set; }
+
+    [Common]
+    public bool ScanChangesDefaultProfile { get; set; }
+
+    [Common]
+    public bool ShowProfilesToolbar { get; set; }
+
+    [Common]
+    public ScanButtonDefaultAction ScanButtonDefaultAction { get; set; }
 
     [Common]
     public SaveButtonDefaultAction SaveButtonDefaultAction { get; set; }
@@ -64,8 +75,8 @@ public class CommonConfig
     [Common]
     public bool AlwaysRememberDevice { get; set; }
 
-    [App]
-    public bool DisableGenericPdfImport { get; set; }
+    [Common]
+    public bool DeviceListAsTextOnly { get; set; }
 
     [Common]
     public bool NoUpdatePrompt { get; set; }
@@ -91,8 +102,17 @@ public class CommonConfig
     [User]
     public DateTime? LastDonatePromptDate { get; set; }
 
+    [User]
+    public bool HasBeenPromptedForReview { get; set; }
+
+    [User]
+    public DateTime? LastReviewPromptDate { get; set; }
+
     [Common]
     public bool DeleteAfterSaving { get; set; }
+
+    [Common]
+    public bool KeepSession { get; set; }
 
     [Common]
     public bool DisableSaveNotifications { get; set; }
@@ -116,7 +136,13 @@ public class CommonConfig
     public string? OcrLanguageCode { get; set; }
 
     [Common]
+    public string? LastOcrMultiLangCode { get; set; }
+
+    [Common]
     public LocalizedOcrMode OcrMode { get; set; }
+
+    [Common]
+    public bool OcrPreProcessing { get; set; }
 
     [Common]
     public bool OcrAfterScanning { get; set; }
@@ -124,14 +150,30 @@ public class CommonConfig
     [User]
     public string? LastImageExt { get; set; }
 
+    [User]
+    public string? LastPdfOrImageExt { get; set; }
+
     [Common]
     public int ThumbnailSize { get; set; }
 
     [Common]
     public DockStyle DesktopToolStripDock { get; set; }
 
+    [Common]
+    public DockStyle ProfilesToolStripDock { get; set; }
+
+    [Common]
+    public EsclSecurityPolicy EsclSecurityPolicy { get; set; }
+
+    [Common]
+    public string? EsclServerCertificatePath { get; set; }
+
     [App]
     public EventType EventLogging { get; set; }
+
+    [Config]
+    [Common]
+    public ManualDuplexSettings ManualDuplexSettings { get; set; } = new();
 
     [Config]
     [Common]
@@ -168,4 +210,28 @@ public class CommonConfig
 
     [Common]
     public ScanProfile? DefaultProfileSettings { get; set; }
+
+    [Common]
+    public bool EnableDebugLogging { get; set; }
+    
+    [User]
+    public bool ShowPageNumbers { get; set; }
+
+    [Common]
+    public bool DisableScannerSharing { get; set; }
+
+    [User]
+    public bool SidebarVisible { get; set; }
+
+    [User]
+    public int SidebarWidth { get; set; }
+
+    [User]
+    public string? EditWithAppPath { get; set; }
+
+    [User]
+    public string? EditWithAppName { get; set; }
+
+    [User]
+    public bool ApplyToAllSelected { get; set; }
 }

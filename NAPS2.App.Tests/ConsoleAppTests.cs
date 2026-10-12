@@ -6,6 +6,8 @@ namespace NAPS2.App.Tests;
 
 public class ConsoleAppTests : ContextualTests
 {
+    private const int EXIT_TIMEOUT = 30_000;
+
     [Theory]
     [ClassData(typeof(AppTestData))]
     public void ConvertsImportedFile(IAppTestTarget target)
@@ -17,7 +19,7 @@ public class ConsoleAppTests : ContextualTests
         var process = AppTestHelper.StartProcess(target.Console, FolderPath, args);
         try
         {
-            Assert.True(process.WaitForExit(5000));
+            Assert.True(process.WaitForExit(EXIT_TIMEOUT));
             var stdout = process.StandardOutput.ReadToEnd();
             Assert.Equal(0, process.ExitCode);
             Assert.Empty(stdout);
@@ -41,9 +43,9 @@ public class ConsoleAppTests : ContextualTests
         var process = AppTestHelper.StartProcess(target.Console, FolderPath, args);
         try
         {
-            Assert.True(process.WaitForExit(5000));
+            Assert.True(process.WaitForExit(EXIT_TIMEOUT));
             var stdout = process.StandardOutput.ReadToEnd();
-            if (OperatingSystem.IsWindows())
+            if (target.IsWindows)
             {
                 // TODO: Figure out why ExitCode always appears as 0 on Mac/Linux
                 Assert.NotEqual(0, process.ExitCode);

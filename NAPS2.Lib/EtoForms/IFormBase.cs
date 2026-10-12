@@ -1,11 +1,16 @@
+using NAPS2.EtoForms.Layout;
+
 namespace NAPS2.EtoForms;
 
 public interface IFormBase
 {
     FormStateController FormStateController { get; }
 
-    // TODO: Make these constructor injected, Eto requires things to be defined in the constructor so property injection is error-prone
     IFormFactory FormFactory { get; set; }
 
     Naps2Config Config { get; set; }
+
+    LayoutController LayoutController { get; }
+
+    IntPtr NativeHandle { get; }
 }

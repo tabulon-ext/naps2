@@ -3,7 +3,7 @@ using MimeKit;
 
 namespace NAPS2.ImportExport.Email;
 
-public abstract class MimeEmailProvider : IEmailProvider
+internal abstract class MimeEmailProvider : IEmailProvider
 {
     public async Task<bool> SendEmail(EmailMessage emailMessage, ProgressHandler progress = default)
     {
@@ -35,7 +35,14 @@ public abstract class MimeEmailProvider : IEmailProvider
     {
         foreach (var recip in recips.Where(x => x.Type == type))
         {
-            outputList.Add(new MailboxAddress(Encoding.UTF8, recip.Name, recip.Address));
+            if (recip.Address != null)
+            {
+                outputList.Add(new MailboxAddress(Encoding.UTF8, recip.Name, recip.Address));
+            }
         }
     }
+
+    public abstract bool ShowInList { get; }
+
+    public virtual bool CanSelectInList => true;
 }

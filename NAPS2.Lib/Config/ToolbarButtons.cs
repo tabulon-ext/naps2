@@ -22,5 +22,8 @@ public enum ToolbarButtons
     Language = 1 << 15,
     Settings = 1 << 16,
     About = 1 << 17,
-    Donate = 1 << 18
+    Donate = 1 << 18,
+    Sidebar = 1 << 19,
+    ManualDuplex =  1 << 20,
+    Interleave =  1 << 21
 }

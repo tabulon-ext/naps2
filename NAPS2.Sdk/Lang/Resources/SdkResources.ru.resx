@@ -18,6 +18,9 @@
   <data name="DeviceOffline" xml:space="preserve">
     <value>Выбранный сканер отключён.</value>
   </data>
+  <data name="DeviceCommunicationFailure" xml:space="preserve">
+    <value>Связь с устройством сканирования была прервана.</value>
+  </data>
   <data name="NAPS2" xml:space="preserve">
     <value>NAPS2</value>
   </data>
@@ -37,13 +40,13 @@
     <value>Файл '{0}' не может быть импортирован.</value>
   </data>
   <data name="NoFeederSupport" xml:space="preserve">
-    <value>Выбранный сканер не поддерживает использование автоподатчика. Если ваш сканер имеет АПД, попробуйте другой драйвер..</value>
+    <value>Выбранный сканер не поддерживает использование автоподатчика. Если ваш сканер имеет АПД, попробуйте другой драйвер.</value>
   </data>
   <data name="NoPagesInFeeder" xml:space="preserve">
     <value>В податчике нет листов.</value>
   </data>
   <data name="PdfNoPermissionToExtractContent" xml:space="preserve">
-    <value>У вас нет разрешения копировать содержимое из файла '{0}'..</value>
+    <value>У вас нет разрешения копировать содержимое из файла '{0}'.</value>
   </data>
   <data name="NoDuplexSupport" xml:space="preserve">
     <value>Выбранный сканер не поддерживает дуплекс. Если Ваш сканер поддерживает двустраничное сканирование, попробуйте использовать другой драйвер.</value>
@@ -68,5 +71,20 @@
   </data>
   <data name="DriverNotSupported" xml:space="preserve">
     <value>Выбранный драйвер не поддерживается в этой системе.</value>
+  </data>
+  <data name="OcrError" xml:space="preserve">
+    <value>При распознавании текста произошла ошибка.</value>
+  </data>
+  <data name="OcrTimeout" xml:space="preserve">
+    <value>Время выполнения операции распознавания текста истекло.</value>
+  </data>
+  <data name="WorkerCrash" xml:space="preserve">
+    <value>Рабочий процесс завершился сбоем.</value>
+  </data>
+  <data name="WorkerCrashWindows" xml:space="preserve">
+    <value>Рабочий процесс завершился сбоем. Проверьте средство просмотра событий Windows.</value>
+  </data>
+  <data name="UnknownScanner" xml:space="preserve">
+    <value>Не найден сканер</value>
   </data>
 </root>

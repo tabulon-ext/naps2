@@ -4,39 +4,22 @@ using NAPS2.Wia;
 
 namespace NAPS2.Scan.Internal.Wia;
 
-public class WiaScanErrors
+internal class WiaScanErrors
 {
     public static void ThrowDeviceError(WiaException e)
     {
-        if (e.ErrorCode == WiaErrorCodes.NO_DEVICE_AVAILABLE)
+        throw e.ErrorCode switch
         {
-            throw new DeviceNotFoundException();
-        }
-        if (e.ErrorCode == WiaErrorCodes.PAPER_EMPTY)
-        {
-            throw new NoPagesException();
-        }
-        if (e.ErrorCode == WiaErrorCodes.OFFLINE)
-        {
-            throw new DeviceException(SdkResources.DeviceOffline);
-        }
-        if (e.ErrorCode == WiaErrorCodes.BUSY)
-        {
-            throw new DeviceException(SdkResources.DeviceBusy);
-        }
-        if (e.ErrorCode == WiaErrorCodes.COVER_OPEN)
-        {
-            throw new DeviceException(SdkResources.DeviceCoverOpen);
-        }
-        if (e.ErrorCode == WiaErrorCodes.PAPER_JAM)
-        {
-            throw new DeviceException(SdkResources.DevicePaperJam);
-        }
-        if (e.ErrorCode == WiaErrorCodes.WARMING_UP)
-        {
-            throw new DeviceException(SdkResources.DeviceWarmingUp);
-        }
-        throw new ScanDriverUnknownException(e);
+            WiaErrorCodes.NO_DEVICE_AVAILABLE => new DeviceNotFoundException(),
+            WiaErrorCodes.PAPER_EMPTY => new DeviceFeederEmptyException(),
+            WiaErrorCodes.OFFLINE => new DeviceOfflineException(),
+            WiaErrorCodes.COMMUNICATION => new DeviceCommunicationException(),
+            WiaErrorCodes.BUSY => new DeviceBusyException(),
+            WiaErrorCodes.COVER_OPEN => new DeviceCoverOpenException(),
+            WiaErrorCodes.PAPER_JAM => new DevicePaperJamException(),
+            WiaErrorCodes.WARMING_UP => new DeviceWarmingUpException(),
+            _ => new ScanDriverUnknownException(e)
+        };
     }
 }
 #endif

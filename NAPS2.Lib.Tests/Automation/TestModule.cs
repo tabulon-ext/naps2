@@ -5,7 +5,6 @@ using NAPS2.Recovery;
 using NAPS2.Scan;
 using NAPS2.Scan.Internal;
 using NAPS2.Sdk.Tests.Mocks;
-using Xunit.Abstractions;
 
 namespace NAPS2.Lib.Tests.Automation;
 
@@ -14,27 +13,29 @@ internal class TestModule : Module
     private readonly ScanningContext _scanningContext;
     private readonly ImageContext _imageContext;
     private readonly IScanDriverFactory _scanDriverFactory;
-    private readonly ITestOutputHelper _testOutputHelper;
+    private readonly TextWriter _outputWriter;
     private readonly string _folderPath;
+    private readonly Action<ContainerBuilder> _containerBuilderSetup;
 
-    public TestModule(ScanningContext scanningContext, ImageContext imageContext,
-        IScanDriverFactory scanDriverFactory,
-        ITestOutputHelper testOutputHelper, string folderPath)
+    public TestModule(ScanningContext scanningContext, ImageContext imageContext, IScanDriverFactory scanDriverFactory,
+        TextWriter outputWriter, string folderPath, Action<ContainerBuilder> containerBuilderSetup)
     {
         _scanningContext = scanningContext;
         _imageContext = imageContext;
         _scanDriverFactory = scanDriverFactory;
-        _testOutputHelper = testOutputHelper;
+        _outputWriter = outputWriter;
         _folderPath = folderPath;
+        _containerBuilderSetup = containerBuilderSetup;
     }
 
     protected override void Load(ContainerBuilder builder)
     {
+        builder.RegisterInstance(_scanningContext);
         builder.RegisterInstance(_imageContext);
         builder.RegisterInstance(_scanDriverFactory);
         builder.RegisterType<InProcScanBridgeFactory>().As<IScanBridgeFactory>();
         builder.RegisterType<ConsoleOutput>().AsSelf()
-            .WithParameter("writer", new TestOutputTextWriter(_testOutputHelper));
+            .WithParameter("writer", _outputWriter);
         builder.RegisterInstance(Naps2Config.Stub());
         builder.Register<IProfileManager>(_ =>
         {
@@ -44,7 +45,7 @@ internal class TestModule : Module
             var defaultProfile = new ScanProfile
             {
                 IsDefault = true,
-                Device = new ScanDevice("001", "Some Scanner")
+                Device = new ScanProfileDevice("001", "Some Scanner")
             };
             profileManager.Mutate(
                 new ListMutation<ScanProfile>.Append(defaultProfile),
@@ -65,6 +66,12 @@ internal class TestModule : Module
         builder.RegisterInstance(new FileStorageManager(recoveryFolderPath));
 
         builder.RegisterBuildCallback(ctx =>
-            ctx.Resolve<ScanningContext>().TempFolderPath = _scanningContext.TempFolderPath);
+        {
+            var scanningContext = ctx.Resolve<ScanningContext>();
+            scanningContext.OcrEngine = ctx.Resolve<IOcrEngine>();
+            scanningContext.TempFolderPath = _scanningContext.TempFolderPath;
+        });
+
+        _containerBuilderSetup?.Invoke(builder);
     }
 }

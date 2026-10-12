@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using NAPS2.Images.Bitwise;
 using NAPS2.Util;
 
@@ -37,6 +38,7 @@ internal class LibTiffIo : ITiffWriter
             foreach (var image in images)
             {
                 if (progress.IsCancellationRequested) return false;
+                image.UpdateLogicalPixelFormat();
                 var pixelFormat =
                     image.LogicalPixelFormat == ImagePixelFormat.BW1 || compression == TiffCompressionType.Ccitt4
                         ? ImagePixelFormat.BW1
@@ -83,11 +85,10 @@ internal class LibTiffIo : ITiffWriter
     {
         // TODO: A lot of these types are wrong (e.g. int32 instead of int16)
         // http://www.libtiff.org/man/TIFFSetField.3t.html
-        LibTiff.TIFFSetField(tiff, TiffTag.ImageWidth, image.Width);
-        LibTiff.TIFFSetField(tiff, TiffTag.ImageHeight, image.Height);
-        LibTiff.TIFFSetField(tiff, TiffTag.PlanarConfig, 1);
-        // TODO: Test setting g4 compression when it's not a BW image
-        LibTiff.TIFFSetField(tiff, TiffTag.Compression, (int) (compression switch
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.ImageWidth, image.Width);
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.ImageHeight, image.Height);
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.PlanarConfig, 1);
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.Compression, (int) (compression switch
         {
             TiffCompressionType.Ccitt4 => TiffCompression.G4,
             TiffCompressionType.Lzw => TiffCompression.Lzw,
@@ -96,29 +97,29 @@ internal class LibTiffIo : ITiffWriter
                 ? TiffCompression.G4
                 : TiffCompression.Lzw
         }));
-        LibTiff.TIFFSetField(tiff, TiffTag.Orientation, 1);
-        LibTiff.TIFFSetField(tiff, TiffTag.BitsPerSample, pixelFormat == ImagePixelFormat.BW1 ? 1 : 8);
-        LibTiff.TIFFSetField(tiff, TiffTag.SamplesPerPixel, pixelFormat switch
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.Orientation, 1);
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.BitsPerSample, pixelFormat == ImagePixelFormat.BW1 ? 1 : 8);
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.SamplesPerPixel, pixelFormat switch
         {
             ImagePixelFormat.RGB24 => 3,
             ImagePixelFormat.ARGB32 => 4,
             _ => 1
         });
-        LibTiff.TIFFSetField(tiff, TiffTag.Photometric, (int) (pixelFormat switch
+        LibTiff.TIFFSetFieldInt(tiff, TiffTag.Photometric, (int) (pixelFormat switch
         {
             ImagePixelFormat.RGB24 or ImagePixelFormat.ARGB32 => TiffPhotometric.Rgb,
             _ => TiffPhotometric.MinIsBlack
         }));
         if (pixelFormat == ImagePixelFormat.ARGB32)
         {
-            LibTiff.TIFFSetField(tiff, TiffTag.ExtraSamples, 1, new short[] { 2 });
+            LibTiff.TIFFSetFieldShortArray(tiff, TiffTag.ExtraSamples, 1, new short[] { 2 });
         }
         if (image.HorizontalResolution != 0 && image.VerticalResolution != 0)
         {
-            LibTiff.TIFFSetField(tiff, TiffTag.ResolutionUnit, 2);
+            LibTiff.TIFFSetFieldInt(tiff, TiffTag.ResolutionUnit, 2);
             // TODO: Why do we need to write as a double? It's supposed to be a float.
-            LibTiff.TIFFSetField(tiff, TiffTag.XResolution, (double) image.HorizontalResolution);
-            LibTiff.TIFFSetField(tiff, TiffTag.YResolution, (double) image.VerticalResolution);
+            LibTiff.TIFFSetFieldDouble(tiff, TiffTag.XResolution, image.HorizontalResolution);
+            LibTiff.TIFFSetFieldDouble(tiff, TiffTag.YResolution, image.VerticalResolution);
         }
     }
 
@@ -129,16 +130,11 @@ internal class LibTiffIo : ITiffWriter
         EnumerateTiffFrames(produceImage, tiff, progress, client);
     }
 
-    public void LoadTiff(Action<IMemoryImage> produceImage, string path, ProgressHandler progress)
-    {
-        var tiff = LibTiff.TIFFOpen(path, "r");
-        EnumerateTiffFrames(produceImage, tiff, progress);
-    }
-
     private void EnumerateTiffFrames(Action<IMemoryImage> produceImage, IntPtr tiff,
-        ProgressHandler progress, LibTiffStreamClient? client = null)
+        ProgressHandler progress, LibTiffStreamClient client)
     {
         // We keep a reference to the client to avoid garbage collection
+        var handle = GCHandle.Alloc(client);
         try
         {
             var count = LibTiff.TIFFNumberOfDirectories(tiff);
@@ -147,11 +143,11 @@ internal class LibTiffIo : ITiffWriter
             do
             {
                 if (progress.IsCancellationRequested) break;
-                LibTiff.TIFFGetField(tiff, TiffTag.ImageWidth, out int w);
-                LibTiff.TIFFGetField(tiff, TiffTag.ImageHeight, out int h);
+                LibTiff.TIFFGetFieldInt(tiff, TiffTag.ImageWidth, out int w);
+                LibTiff.TIFFGetFieldInt(tiff, TiffTag.ImageHeight, out int h);
                 // TODO: Check return values
-                LibTiff.TIFFGetField(tiff, TiffTag.XResolution, out float xres);
-                LibTiff.TIFFGetField(tiff, TiffTag.YResolution, out float yres);
+                LibTiff.TIFFGetFieldFloat(tiff, TiffTag.XResolution, out float xres);
+                LibTiff.TIFFGetFieldFloat(tiff, TiffTag.YResolution, out float yres);
                 var img = _imageContext.Create(w, h, ImagePixelFormat.ARGB32);
                 img.SetResolution(xres, yres);
                 img.OriginalFileFormat = ImageFileFormat.Tiff;
@@ -160,13 +156,14 @@ internal class LibTiffIo : ITiffWriter
                 imageLock.Dispose();
                 // LibTiff always produces pre-multiplied alpha, which we don't want
                 new UnmultiplyAlphaOp().Perform(img);
-                produceImage(img);
                 progress.Report(++i, count);
+                produceImage(img);
             } while (LibTiff.TIFFReadDirectory(tiff) == 1);
         }
         finally
         {
             LibTiff.TIFFClose(tiff);
+            handle.Free();
         }
     }
 

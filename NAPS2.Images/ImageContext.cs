@@ -1,12 +1,12 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using NAPS2.Util;
 
 namespace NAPS2.Images;
 
 public abstract class ImageContext
 {
-    private readonly IPdfRenderer? _pdfRenderer;
-
     public static ImageFileFormat GetFileFormatFromExtension(string path)
     {
         return Path.GetExtension(path).ToLowerInvariant() switch
@@ -16,7 +16,7 @@ public abstract class ImageContext
             ".jpg" or ".jpeg" => ImageFileFormat.Jpeg,
             ".tif" or ".tiff" => ImageFileFormat.Tiff,
             ".jp2" or ".jpx" => ImageFileFormat.Jpeg2000,
-            _ => throw new ArgumentException($"Could not infer file format from extension: {path}")
+            _ => ImageFileFormat.Unknown
         };
     }
 
@@ -24,74 +24,64 @@ public abstract class ImageContext
     {
         if (!stream.CanSeek)
         {
-            return ImageFileFormat.Unspecified;
+            return ImageFileFormat.Unknown;
         }
         var firstBytes = new byte[8];
         stream.Seek(0, SeekOrigin.Begin);
-        stream.Read(firstBytes, 0, 8);
+        stream.ReadExactly(firstBytes, 0, 8);
         stream.Seek(0, SeekOrigin.Begin);
-        if (firstBytes[0] == 0x89 && firstBytes[1] == 0x50 && firstBytes[2] == 0x4E && firstBytes[3] == 0x47)
-        {
-            return ImageFileFormat.Png;
-        }
-        if (firstBytes[0] == 0xFF && firstBytes[1] == 0xD8)
-        {
-            return ImageFileFormat.Jpeg;
-        }
-        if (firstBytes[0] == 0x42 && firstBytes[1] == 0x4D)
-        {
-            return ImageFileFormat.Bmp;
-        }
-        if (firstBytes[0] == 0x49 && firstBytes[1] == 0x49 && firstBytes[2] == 0x2A && firstBytes[3] == 0x00)
-        {
-            return ImageFileFormat.Tiff;
-        }
-        if (firstBytes[0] == 0x4D && firstBytes[1] == 0x4D && firstBytes[2] == 0x00 && firstBytes[3] == 0x2A)
-        {
-            return ImageFileFormat.Tiff;
-        }
-        if (firstBytes[4] == 0x6A && firstBytes[5] == 0x50 && firstBytes[6] == 0x20 && firstBytes[7] == 0x20)
-        {
-            return ImageFileFormat.Jpeg2000;
-        }
-        return ImageFileFormat.Unspecified;
+
+        return GetFileFormatFromFirstBytes(firstBytes);
     }
 
-    protected ImageContext(Type imageType, IPdfRenderer? pdfRenderer = null)
+    public static ImageFileFormat GetFileFormatFromFirstBytes(byte[] firstBytes)
+    {
+        return firstBytes switch
+        {
+            [0x89, 0x50, 0x4E, 0x47, ..] => ImageFileFormat.Png,
+            [0xFF, 0xD8, ..] => ImageFileFormat.Jpeg,
+            [0x42, 0x4D, ..] => ImageFileFormat.Bmp,
+            [0x49, 0x49, 0x2A, 0x00, ..] => ImageFileFormat.Tiff,
+            [0x4D, 0x4D, 0x00, 0x2A, ..] => ImageFileFormat.Tiff,
+            [_, _, _, _, 0x6A, 0x50, 0x20, 0x20, ..] => ImageFileFormat.Jpeg2000,
+            _ => ImageFileFormat.Unknown
+        };
+    }
+
+    protected ImageContext(Type imageType)
     {
         ImageType = imageType;
-        _pdfRenderer = pdfRenderer;
     }
 
-    // TODO: Add NotNullWhen attribute?
-    private bool MaybeRenderPdf(ImageFileStorage fileStorage, out IMemoryImage? renderedPdf)
+    private bool MaybeRenderPdf(ImageFileStorage fileStorage, IPdfRenderer? pdfRenderer,
+        [NotNullWhen(true)] out IMemoryImage? renderedPdf)
     {
         if (Path.GetExtension(fileStorage.FullPath).ToLowerInvariant() == ".pdf")
         {
-            if (_pdfRenderer == null)
+            if (pdfRenderer == null)
             {
                 throw new InvalidOperationException(
-                    "Unable to render pdf page as the ImageContext wasn't created with an IPdfRenderer.");
+                    "Unable to render pdf page as the IRenderableImage didn't implement IPdfRendererProvider.");
             }
-            renderedPdf = _pdfRenderer.Render(this, fileStorage.FullPath, PdfRenderSize.Default).Single();
+            renderedPdf = pdfRenderer.RenderPage(this, fileStorage.FullPath, PdfRenderSize.Default);
             return true;
         }
         renderedPdf = null;
         return false;
     }
 
-    private bool MaybeRenderPdf(ImageMemoryStorage memoryStorage, out IMemoryImage? renderedPdf)
+    private bool MaybeRenderPdf(ImageMemoryStorage memoryStorage, IPdfRenderer? pdfRenderer,
+        [NotNullWhen(true)] out IMemoryImage? renderedPdf)
     {
         if (memoryStorage.TypeHint == ".pdf")
         {
-            if (_pdfRenderer == null)
+            if (pdfRenderer == null)
             {
                 throw new InvalidOperationException(
-                    "Unable to render pdf page as the ImageContext wasn't created with an IPdfRenderer.");
+                    "Unable to render pdf page as the IRenderableImage didn't implement IPdfRendererProvider.");
             }
             var stream = memoryStorage.Stream;
-            renderedPdf = _pdfRenderer.Render(this, stream.GetBuffer(), (int) stream.Length, PdfRenderSize.Default)
-                .Single();
+            renderedPdf = pdfRenderer.RenderPage(this, stream.GetBuffer(), (int) stream.Length, PdfRenderSize.Default);
             return true;
         }
         renderedPdf = null;
@@ -133,8 +123,6 @@ public abstract class ImageContext
     protected virtual bool SupportsTiff => false;
     protected virtual bool SupportsJpeg2000 => false;
 
-    // TODO: Implement these 4 load methods here, calling protected abstract internal methods.
-    // TODO: That will let us implement common behavior (reading file formats, setting originalfileformat/logicalpixelformat) consistently.
     /// <summary>
     /// Loads an image from the given file path.
     /// </summary>
@@ -156,11 +144,10 @@ public abstract class ImageContext
         var format = GetFileFormatFromFirstBytes(stream);
         CheckSupportsFormat(format);
         var image = LoadCore(stream, format);
-        if (image.OriginalFileFormat == ImageFileFormat.Unspecified)
+        if (image.OriginalFileFormat == ImageFileFormat.Unknown)
         {
             image.OriginalFileFormat = format;
         }
-        image.UpdateLogicalPixelFormat();
         return image;
     }
 
@@ -234,11 +221,10 @@ public abstract class ImageContext
     {
         await foreach (var image in source)
         {
-            if (image.OriginalFileFormat == ImageFileFormat.Unspecified)
+            if (image.OriginalFileFormat == ImageFileFormat.Unknown)
             {
                 image.OriginalFileFormat = format;
             }
-            image.UpdateLogicalPixelFormat();
             yield return image;
         }
     }
@@ -253,26 +239,72 @@ public abstract class ImageContext
 
     public virtual ITiffWriter TiffWriter => throw new NotSupportedException();
 
+    /// <summary>
+    /// Encoders to use instead of the platform encoder for specific file formats. This is process-wide, as images
+    /// don't necessarily share the ImageContext instance they were created from.
+    /// </summary>
+    internal static ConcurrentDictionary<ImageFileFormat, IBundledEncoder> BundledEncoders { get; } = new();
+
+    /// <summary>
+    /// Saves the image with a bundled encoder if there's one for the given format. Returns false if the platform encoder
+    /// should be used instead.
+    /// </summary>
+    internal bool TryBundledEncode(IMemoryImage image, Stream stream, ImageFileFormat format,
+        ImageSaveOptions? options)
+    {
+        return BundledEncoders.TryGetValue(format, out var encoder) &&
+               encoder.TryEncode(image, stream, options ?? new ImageSaveOptions());
+    }
+
+    /// <summary>
+    /// Saves the image with a bundled encoder if there's one for the given format. Returns false if the platform encoder
+    /// should be used instead.
+    /// </summary>
+    internal bool TryBundledEncode(IMemoryImage image, string path, ImageFileFormat format,
+        ImageSaveOptions? options)
+    {
+        if (!BundledEncoders.TryGetValue(format, out var encoder))
+        {
+            return false;
+        }
+        bool success;
+        using (var stream = new FileStream(path, FileMode.Create))
+        {
+            success = encoder.TryEncode(image, stream, options ?? new ImageSaveOptions());
+        }
+        if (!success)
+        {
+            // Don't leave an empty file behind if the platform encoder fails too
+            File.Delete(path);
+        }
+        return success;
+    }
+
     public IMemoryImage Render(IRenderableImage image)
     {
-        var bitmap = RenderFromStorage(image.Storage);
+        var bitmap = RenderWithoutTransforms(image);
         return PerformAllTransforms(bitmap, image.TransformState.Transforms);
     }
 
-    public IMemoryImage RenderFromStorage(IImageStorage storage)
+    public IMemoryImage RenderWithoutTransforms(IRenderableImage image)
+    {
+        return RenderFromStorage(image.Storage, (image as IPdfRendererProvider)?.PdfRenderer);
+    }
+
+    private IMemoryImage RenderFromStorage(IImageStorage storage, IPdfRenderer? pdfRenderer)
     {
         switch (storage)
         {
             case ImageFileStorage fileStorage:
-                if (MaybeRenderPdf(fileStorage, out var renderedPdf))
+                if (MaybeRenderPdf(fileStorage, pdfRenderer, out var renderedPdf))
                 {
-                    return renderedPdf!;
+                    return renderedPdf;
                 }
                 return Load(fileStorage.FullPath);
             case ImageMemoryStorage memoryStorage:
-                if (MaybeRenderPdf(memoryStorage, out var renderedMemoryPdf))
+                if (MaybeRenderPdf(memoryStorage, pdfRenderer, out var renderedMemoryPdf))
                 {
-                    return renderedMemoryPdf!;
+                    return renderedMemoryPdf;
                 }
                 return Load(memoryStorage.Stream);
             case IMemoryImage image:

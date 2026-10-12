@@ -55,7 +55,7 @@
     <value>Enhanced Windows Metafile (*.emf)</value>
   </data>
   <data name="FileTypeExif" xml:space="preserve">
-    <value>Exchangeable Image File (*.exif)</value>
+    <value>Fișier imagine interschimbabil (*.exif)</value>
   </data>
   <data name="FileTypeGif" xml:space="preserve">
     <value>Fișier GIF (*.gif)</value>
@@ -64,7 +64,7 @@
     <value>Fișier JPEG (*.jpg, *.jpeg)</value>
   </data>
   <data name="FileTypePdf" xml:space="preserve">
-    <value>PDF Document (*.pdf)</value>
+    <value>Document PDF (*.pdf)</value>
   </data>
   <data name="FileTypePng" xml:space="preserve">
     <value>Fișier PNG (*.png)</value>
@@ -73,7 +73,7 @@
     <value>Fișier TIFF (*.tiff, *.tif)</value>
   </data>
   <data name="FileTypeJp2" xml:space="preserve">
-    <value>JPEG2000 File (*.jp2, *.jpx)</value>
+    <value>Fișier JPEG2000 (*.jp2, *.jpx)</value>
   </data>
   <data name="NameMissing" xml:space="preserve">
     <value>Lipsește numele.</value>
@@ -100,13 +100,13 @@
     <value>Selectați un profil înainte de a apăsa Scanare.</value>
   </data>
   <data name="UnknownDriverError" xml:space="preserve">
-    <value>A apărut o eroare la driver-ul de scanare..</value>
+    <value>A apărut o eroare la driver-ul de scanare.</value>
   </data>
   <data name="Version" xml:space="preserve">
     <value>Versiune {0}</value>
   </data>
   <data name="EmailError" xml:space="preserve">
-    <value>A intervenit o eroare la trimiterea email-ului..</value>
+    <value>A intervenit o eroare la trimiterea email-ului.</value>
   </data>
   <data name="InstallComplete" xml:space="preserve">
     <value>Instalare încheiată</value>
@@ -130,7 +130,7 @@
     <value>Mărime estimată de download: {0} MB</value>
   </data>
   <data name="FilesProgressFormat" xml:space="preserve">
-    <value>0} / {1} files</value>
+    <value>{0} / {1} fișiere</value>
   </data>
   <data name="SizeProgress" xml:space="preserve">
     <value>{0} / {1} MB</value>
@@ -187,10 +187,10 @@
     <value>A apărut o eroare la salvarea fișierului.</value>
   </data>
   <data name="OfN" xml:space="preserve">
-    <value>din {0}</value>
+    <value>Din {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>A apărut o eroare necunoscută la scanarea multiplă.</value>
+    <value>A apărut o eroare necunoscută în timpul scanării lotului.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Scanare multiplă anulată.</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>Sigur doriți să ștergeți {0} elemente?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>Fișierul nu poate fi suprascris deoarece este în uz.</value>
@@ -334,13 +334,19 @@
     <value>Anuleaza Batch-ul</value>
   </data>
   <data name="Donate" xml:space="preserve">
-    <value>Donate</value>
+    <value>Donează</value>
   </data>
   <data name="DonatePrompt" xml:space="preserve">
-    <value>NAPS2 is completely free. Consider making a donation.</value>
+    <value>NAPS2 este complet gratuit. Luați în considerare să faceți o donație.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Scrieți o Recenzie</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Vă place NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
-    <value>The SANE driver is not available. Make sure to install the required packages:</value>
+    <value>Driverul SANE nu este disponibil. Asigurați-vă că instalați pachetele necesare:</value>
   </data>
   <data name="TesseractNotAvailable" xml:space="preserve">
     <value>Motorul OCR nu este disponibil. Asigură-te că ai instalat pachetul necesar.:</value>
@@ -349,10 +355,10 @@
     <value>Driver-ul selectat nu este suportat de acest sistem..</value>
   </data>
   <data name="OcrProgress" xml:space="preserve">
-    <value>OCR Progress</value>
+    <value>OCR în lucru</value>
   </data>
   <data name="RunningOcr" xml:space="preserve">
-    <value>Running OCR...</value>
+    <value>Se rulează OCR...</value>
   </data>
   <data name="UpdateProgress" xml:space="preserve">
     <value>Progres Actualizare</value>
@@ -367,7 +373,7 @@
     <value>Verificare...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>Verificarea actualizării este dezactivată.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
     <value>A intervenit o eroare la instalarea actualizării.</value>
@@ -379,7 +385,7 @@
     <value>Este disponibilă o actualizare.</value>
   </data>
   <data name="AuthError" xml:space="preserve">
-    <value>A survenit o eroare la încercarea de autorizare.</value>
+    <value>A apărut o eroare la încercarea de autorizare.</value>
   </data>
   <data name="UploadingEmail" xml:space="preserve">
     <value>Se încarcă e-mailul ...</value>

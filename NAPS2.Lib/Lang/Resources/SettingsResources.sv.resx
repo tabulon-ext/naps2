@@ -21,29 +21,8 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Gråskala</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 dpi</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 dpi</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 dpi</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 dpi</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 dpi</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 dpi</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 dpi</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} dpi</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
     <value>Modifierad SMTP</value>
@@ -51,8 +30,17 @@
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (ny)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
     <value>Outlook Web Access</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
     <value>Ingen leverantör vald.</value>
@@ -94,10 +82,13 @@
     <value>Anpassad...</value>
   </data>
   <data name="PageSize_Legal" xml:space="preserve">
-    <value>US Legal (8.5x14 in)</value>
+    <value>US Legal (8,5x14 tum)</value>
   </data>
   <data name="PageSize_Letter" xml:space="preserve">
-    <value>US Letter (8.5x11 in)</value>
+    <value>US Letter (8,5x11 tum)</value>
+  </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Anpassad...</value>
   </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>Standard</value>
@@ -139,10 +130,13 @@
     <value>Standard</value>
   </data>
   <data name="TwainImpl_Legacy" xml:space="preserve">
-    <value>Inbyggd (endast inbyggt användargränssnitt)</value>
+    <value>Äldre (endast inbyggt gränssnitt)</value>
+  </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Inbyggd överföring</value>
   </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Annan överföring</value>
+    <value>Minnesöverföring</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>Gammal DSM</value>
@@ -154,9 +148,36 @@
     <value>Standard</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Snabb</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Bäst</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Spara alla</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Spara markerade</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Fråga alltid</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Fråga vid markering</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Skanna med standardprofil</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Fråga alltid</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Ljust</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Mörkt</value>
   </data>
 </root>

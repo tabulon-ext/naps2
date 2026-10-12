@@ -1,16 +1,24 @@
-﻿using NAPS2.Serialization;
+﻿using NAPS2.Scan.Exceptions;
+using NAPS2.Serialization;
 
 namespace NAPS2.Scan.Internal;
 
 // TODO: Add tests for this and/or scanperformer
-public class ScanOptionsValidator
+internal class ScanOptionsValidator
 {
     public ScanOptions ValidateAll(ScanOptions options, ScanningContext scanningContext, bool requireDevice)
     {
-        // Easy deep copy. Ideally we'd do this in a more efficient way.
-        options = options.ToXml().FromXml<ScanOptions>();
+        options = options.Clone();
 
-        options.Driver = ValidateDriver(options.Driver);
+        if (options.Device != null && options.Driver != Driver.Default)
+        {
+            // Verify driver consistency
+            if (options.Driver != options.Device.Driver)
+            {
+                throw new ArgumentException("ScanOptions.Device.Driver must match ScanOptions.Driver");
+            }
+        }
+        options.Driver = ValidateDriver(options.Device?.Driver ?? options.Driver);
         if (options.Driver == Driver.Sane)
         {
             options.UseNativeUI = false;
@@ -58,21 +66,40 @@ public class ScanOptionsValidator
             throw new ArgumentException("OCR is enabled but no OCR engine is set on ScanningContext.");
         }
 
-        if (string.IsNullOrEmpty(options.NetworkOptions.Ip) != (options.NetworkOptions.Port == null))
-        {
-            throw new ArgumentException("NetworkOptions.Ip and .Port must both be either set or unset.");
-        }
-
         // TODO: Do we need to validate the presence of a device?
         // TODO: Probably more things as well.
 
         return options;
     }
 
-    public Driver ValidateDriver(Driver driver) =>
-        driver == Driver.Default
-            ? SystemDefaultDriver
-            : driver;
+    public Driver ValidateDriver(Driver driver)
+    {
+        if (driver == Driver.Default)
+        {
+            return SystemDefaultDriver;
+        }
+        if (driver == Driver.Wia && !PlatformCompat.System.IsWiaDriverSupported ||
+            driver == Driver.Twain && !PlatformCompat.System.IsTwainDriverSupported ||
+            driver == Driver.Escl && !PlatformCompat.System.IsEsclDriverSupported ||
+            driver == Driver.Sane && !PlatformCompat.System.IsSaneDriverSupported ||
+            driver == Driver.Apple && !PlatformCompat.System.IsAppleDriverSupported)
+        {
+            throw new DriverNotSupportedException($"The \"{driver}\" driver is not supported on this platform.");
+        }
+        return driver;
+    }
+
+    public static IEnumerable<Driver> SupportedDrivers
+    {
+        get
+        {
+            if (PlatformCompat.System.IsWiaDriverSupported) yield return Driver.Wia;
+            if (PlatformCompat.System.IsTwainDriverSupported) yield return Driver.Twain;
+            if (PlatformCompat.System.IsEsclDriverSupported) yield return Driver.Escl;
+            if (PlatformCompat.System.IsSaneDriverSupported) yield return Driver.Sane;
+            if (PlatformCompat.System.IsAppleDriverSupported) yield return Driver.Apple;
+        }
+    }
 
     public static Driver SystemDefaultDriver
     {
@@ -80,8 +107,6 @@ public class ScanOptionsValidator
         {
             if (PlatformCompat.System.IsWiaDriverSupported)
             {
-                // TODO: Maybe default to TWAIN
-                // TODO: Also in general "default driver" handling should change
                 return Driver.Wia;
             }
             if (PlatformCompat.System.IsAppleDriverSupported)

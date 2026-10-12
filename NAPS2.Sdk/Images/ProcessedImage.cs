@@ -1,3 +1,5 @@
+using NAPS2.Pdf;
+
 namespace NAPS2.Images;
 
 /// <summary>
@@ -9,39 +11,29 @@ namespace NAPS2.Images;
 /// reference with Clone() that will need to be disposed, and the underlying image storage will only be disposed once
 /// all related instances are disposed (or the parent ScanningContext is disposed).
 /// </summary>
-public class ProcessedImage : IRenderableImage, IDisposable, IEquatable<ProcessedImage>
+public class ProcessedImage : IRenderableImage, IPdfRendererProvider, IDisposable, IEquatable<ProcessedImage>
 {
     private readonly RefCount.Token _token;
     private bool _disposed;
 
     internal ProcessedImage(ImageContext imageContext, IImageStorage storage, ImageMetadata metadata,
-        PostProcessingData postProcessingData, TransformState transformState, RefCount refCount)
+        PostProcessingData postProcessingData, TransformState transformState, RefCount storageRefCount)
     {
         ImageContext = imageContext;
         Storage = storage;
         Metadata = metadata;
         PostProcessingData = postProcessingData;
         TransformState = transformState;
-        _token = refCount.NewToken();
-    }
-
-    public ProcessedImage(ImageContext imageContext, IImageStorage storage, ImageMetadata metadata,
-        PostProcessingData postProcessingData, TransformState transformState, IProcessedImageOwner? owner = null)
-    {
-        ImageContext = imageContext;
-        Storage = storage;
-        Metadata = metadata;
-        PostProcessingData = postProcessingData;
-        TransformState = transformState;
-        var internalDisposer = new InternalDisposer(this, owner);
-        var refCount = new RefCount(internalDisposer);
-        _token = refCount.NewToken();
+        StorageRefCount = storageRefCount;
+        _token = StorageRefCount.NewToken();
     }
 
     public ImageContext ImageContext { get; }
 
     // TODO: Consider having two copies of the image on disk - one before transforms, one after.
     public IImageStorage Storage { get; }
+
+    internal RefCount StorageRefCount { get; }
 
     public ImageMetadata Metadata { get; }
 
@@ -54,12 +46,22 @@ public class ProcessedImage : IRenderableImage, IDisposable, IEquatable<Processe
     /// appended to the TransformState. All instances will need to be disposed before the underlying image storage is
     /// disposed.
     /// </summary>
-    /// <param name="transform"></param>
-    /// <returns></returns>
-    public ProcessedImage WithTransform(Transform transform, bool disposeSelf = false)
+    public ProcessedImage WithTransform(Transform transform, bool disposeSelf = false) =>
+        WithTransformState(TransformState.AddOrSimplify(transform), disposeSelf);
+
+    /// <summary>
+    /// Creates a new ProcessedImage instance with the same underlying image storage/metadata and no transforms. All
+    /// instances will need to be disposed before the underlying image storage is disposed.
+    /// </summary>
+    public ProcessedImage WithNoTransforms(bool disposeSelf = false) =>
+        WithTransformState(TransformState.Empty, disposeSelf);
+
+    /// <summary>
+    /// Creates a new ProcessedImage instance with the same underlying image storage/metadata and a new transform
+    /// state. All instances will need to be disposed before the underlying image storage is disposed.
+    /// </summary>
+    public ProcessedImage WithTransformState(TransformState newTransformState, bool disposeSelf = false)
     {
-        // TODO: Should metadata update for some transforms?
-        var newTransformState = TransformState.AddOrSimplify(transform);
         var result =
             new ProcessedImage(ImageContext, Storage, Metadata, PostProcessingData, newTransformState, _token.RefCount);
         if (disposeSelf)
@@ -71,14 +73,19 @@ public class ProcessedImage : IRenderableImage, IDisposable, IEquatable<Processe
     }
 
     /// <summary>
-    /// Creates a new ProcessedImage instance with the same underlying image storage/metadata and no transforms. All
-    /// instances will need to be disposed before the underlying image storage is disposed.
+    /// Creates a new ProcessedImage instance with the same underlying image storage and new metadata. All instances
+    /// will need to be disposed before the underlying image storage is disposed.
     /// </summary>
-    /// <returns></returns>
-    public ProcessedImage WithNoTransforms()
+    public ProcessedImage WithMetadata(ImageMetadata metadata, bool disposeSelf = false)
     {
-        return new ProcessedImage(
-            ImageContext, Storage, Metadata, PostProcessingData, TransformState.Empty, _token.RefCount);
+        var result =
+            new ProcessedImage(ImageContext, Storage, metadata, PostProcessingData, TransformState, _token.RefCount);
+        if (disposeSelf)
+        {
+            Dispose();
+        }
+
+        return result;
     }
 
     public ProcessedImage WithPostProcessingData(PostProcessingData postProcessingData, bool disposeSelf)
@@ -151,14 +158,16 @@ public class ProcessedImage : IRenderableImage, IDisposable, IEquatable<Processe
         }
     }
 
-    private class InternalDisposer : IDisposable
+    internal class InternalDisposer : IDisposable
     {
-        private readonly ProcessedImage _processedImage;
+        private readonly IImageStorage _storage;
+        private readonly PostProcessingData _postProcessingData;
         private bool _disposed;
 
-        public InternalDisposer(ProcessedImage processedImage, IProcessedImageOwner? owner)
+        public InternalDisposer(IImageStorage storage, PostProcessingData postProcessingData, IProcessedImageOwner? owner)
         {
-            _processedImage = processedImage;
+            _storage = storage;
+            _postProcessingData = postProcessingData;
             owner?.Register(this);
         }
 
@@ -174,9 +183,9 @@ public class ProcessedImage : IRenderableImage, IDisposable, IEquatable<Processe
                 _disposed = true;
             }
 
-            _processedImage.Storage.Dispose();
-            _processedImage.PostProcessingData.Thumbnail?.Dispose();
-            _processedImage.PostProcessingData.OcrCts?.Cancel();
+            _storage.Dispose();
+            _postProcessingData.Thumbnail?.Dispose();
+            _postProcessingData.OcrCts?.Cancel();
         }
     }
 
@@ -189,4 +198,6 @@ public class ProcessedImage : IRenderableImage, IDisposable, IEquatable<Processe
     /// at any moment.
     /// </param>
     public record WeakReference(ProcessedImage ProcessedImage);
+
+    IPdfRenderer IPdfRendererProvider.PdfRenderer => new PdfiumPdfRenderer();
 }

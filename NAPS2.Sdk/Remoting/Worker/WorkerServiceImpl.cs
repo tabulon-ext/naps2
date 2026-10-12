@@ -1,10 +1,11 @@
 ﻿using System.Threading;
 using Google.Protobuf;
 using Grpc.Core;
+using NAPS2.ImportExport;
 using NAPS2.ImportExport.Email;
 using NAPS2.ImportExport.Email.Mapi;
 using NAPS2.ImportExport.Images;
-using NAPS2.ImportExport.Pdf;
+using NAPS2.Pdf;
 using NAPS2.Scan;
 using NAPS2.Scan.Internal;
 using NAPS2.Scan.Internal.Twain;
@@ -16,39 +17,33 @@ using NAPS2.Serialization;
 
 namespace NAPS2.Remoting.Worker;
 
-// TODO: Scan and GetDeviceList are obsolete (see TwainScan and TwainGetDeviceList), as Twain is the only thing that
-// needs the worker. But I'm keeping them around for now as they could come in handy later. 
-public class WorkerServiceImpl : WorkerService.WorkerServiceBase
+internal class WorkerServiceImpl : WorkerService.WorkerServiceBase
 {
     private readonly ScanningContext _scanningContext;
     private readonly IRemoteScanController _remoteScanController;
     private readonly ThumbnailRenderer _thumbnailRenderer;
     private readonly IMapiWrapper _mapiWrapper;
-    private readonly ITwainSessionController _twainSessionController;
-    private readonly ImportPostProcessor _importPostProcessor;
+    private readonly ITwainController _twainController;
 
     private readonly AutoResetEvent _ongoingCallFinished = new(false);
     private int _ongoingCallCount;
 
     public WorkerServiceImpl(ScanningContext scanningContext, ThumbnailRenderer thumbnailRenderer,
-        IMapiWrapper mapiWrapper, ITwainSessionController twainSessionController)
+        IMapiWrapper mapiWrapper, ITwainController twainController)
         : this(scanningContext, new RemoteScanController(scanningContext),
-            thumbnailRenderer, mapiWrapper, twainSessionController,
-            new ImportPostProcessor())
+            thumbnailRenderer, mapiWrapper, twainController)
     {
     }
 
     internal WorkerServiceImpl(ScanningContext scanningContext, IRemoteScanController remoteScanController,
         ThumbnailRenderer thumbnailRenderer,
-        IMapiWrapper mapiWrapper, ITwainSessionController twainSessionController,
-        ImportPostProcessor importPostProcessor)
+        IMapiWrapper mapiWrapper, ITwainController twainController)
     {
         _scanningContext = scanningContext;
         _remoteScanController = remoteScanController;
         _thumbnailRenderer = thumbnailRenderer;
         _mapiWrapper = mapiWrapper;
-        _twainSessionController = twainSessionController;
-        _importPostProcessor = importPostProcessor;
+        _twainController = twainController;
     }
 
     public override Task<InitResponse> Init(InitRequest request, ServerCallContext context)
@@ -75,6 +70,9 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
 #if MAC
         throw new NotSupportedException();
 #else
+#if NET6_0_OR_GREATER
+        if (!OperatingSystem.IsWindows()) throw new NotSupportedException();
+#endif
         using var callRef = StartCall();
         try
         {
@@ -108,22 +106,40 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
 #endif
     }
 
-    public override async Task<GetDeviceListResponse> GetDeviceList(GetDeviceListRequest request,
-        ServerCallContext context)
+    public override async Task GetDevices(GetDevicesRequest request,
+        IServerStreamWriter<GetDevicesResponse> responseStream, ServerCallContext context)
+    {
+        using var callRef = StartCall();
+        var sequencedWriter = new SequencedWriter<GetDevicesResponse>(responseStream);
+        try
+        {
+            var scanOptions = request.OptionsXml.FromXml<ScanOptions>();
+            await _remoteScanController.GetDevices(scanOptions,
+                context.CancellationToken,
+                device => sequencedWriter.Write(new GetDevicesResponse
+                {
+                    DeviceXml = device.ToXml()
+                }));
+        }
+        catch (Exception e)
+        {
+            sequencedWriter.Write(new GetDevicesResponse { Error = RemotingHelper.ToError(e) });
+        }
+        await sequencedWriter.WaitForCompletion();
+    }
+
+    public override async Task<GetCapsResponse> GetCaps(GetCapsRequest request, ServerCallContext context)
     {
         using var callRef = StartCall();
         try
         {
             var scanOptions = request.OptionsXml.FromXml<ScanOptions>();
-            var deviceList = await _remoteScanController.GetDeviceList(scanOptions);
-            return new GetDeviceListResponse
-            {
-                DeviceListXml = deviceList.ToXml()
-            };
+            var caps = await _remoteScanController.GetCaps(scanOptions, context.CancellationToken);
+            return new GetCapsResponse { ScanCapsXml = caps?.ToXml() ?? "" };
         }
         catch (Exception e)
         {
-            return new GetDeviceListResponse { Error = RemotingHelper.ToError(e) };
+            return new GetCapsResponse { Error = RemotingHelper.ToError(e) };
         }
     }
 
@@ -144,6 +160,14 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
                     Progress = new ProgressEvent
                     {
                         Value = progress
+                    }
+                }),
+                (iconUri, connectionUri) => sequencedWriter.Write(new ScanResponse
+                {
+                    DeviceUriChanged = new DeviceUriChangedEvent
+                    {
+                        IconUri = iconUri,
+                        ConnectionUri = connectionUri
                     }
                 })
             );
@@ -168,6 +192,27 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
         await sequencedWriter.WaitForCompletion();
     }
 
+    public override Task<LoadMapiResponse> LoadMapi(LoadMapiRequest request,
+        ServerCallContext context)
+    {
+        using var callRef = StartCall();
+        try
+        {
+            var loaded = _mapiWrapper.CanLoadClient(request.ClientName);
+            return Task.FromResult(new LoadMapiResponse
+            {
+                Loaded = loaded
+            });
+        }
+        catch (Exception)
+        {
+            return Task.FromResult(new LoadMapiResponse
+            {
+                Loaded = false
+            });
+        }
+    }
+
     public override async Task<SendMapiEmailResponse> SendMapiEmail(SendMapiEmailRequest request,
         ServerCallContext context)
     {
@@ -187,7 +232,7 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
         }
     }
 
-    public override Task<RenderThumbnailResponse> RenderThumbnail(RenderThumbnailRequest request,
+    public override async Task<RenderThumbnailResponse> RenderThumbnail(RenderThumbnailRequest request,
         ServerCallContext context)
     {
         using var callRef = StartCall();
@@ -199,16 +244,16 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
             };
             using var image =
                 ImageSerializer.Deserialize(_scanningContext, request.Image, deserializeOptions);
-            var thumbnail = _thumbnailRenderer.Render(image, request.Size);
+            var thumbnail = await _thumbnailRenderer.Render(image, request.Size);
             var stream = thumbnail.SaveToMemoryStream(ImageFileFormat.Png);
-            return Task.FromResult(new RenderThumbnailResponse
+            return new RenderThumbnailResponse
             {
                 Thumbnail = ByteString.FromStream(stream)
-            });
+            };
         }
         catch (Exception e)
         {
-            return Task.FromResult(new RenderThumbnailResponse { Error = RemotingHelper.ToError(e) });
+            return new RenderThumbnailResponse { Error = RemotingHelper.ToError(e) };
         }
     }
 
@@ -218,8 +263,8 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
         try
         {
             var renderer = new PdfiumPdfRenderer();
-            using var image = renderer
-                .Render(_scanningContext.ImageContext, request.Path, PdfRenderSize.FromDpi(request.Dpi)).Single();
+            using var image = renderer.RenderPage(_scanningContext.ImageContext, request.Path,
+                PdfRenderSize.FromDpi(request.Dpi));
             var stream = image.SaveToMemoryStream(ImageFileFormat.Png);
             return Task.FromResult(new RenderPdfResponse
             {
@@ -243,7 +288,7 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
             int? thumbnailSize = request.ThumbnailSize == 0 ? null : request.ThumbnailSize;
             var barcodeOptions = request.BarcodeDetectionOptionsXml.FromXml<BarcodeDetectionOptions>();
             using var newImage =
-                _importPostProcessor.AddPostProcessingData(image, null, thumbnailSize, barcodeOptions, true);
+                ImportPostProcessor.AddPostProcessingData(image, null, thumbnailSize, barcodeOptions, true);
             return Task.FromResult(new ImportPostProcessResponse
             {
                 Image = ImageSerializer.Serialize(newImage,
@@ -293,7 +338,7 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
         try
         {
             var options = request.OptionsXml.FromXml<ScanOptions>();
-            var deviceList = await _twainSessionController.GetDeviceList(options);
+            var deviceList = await _twainController.GetDeviceList(options);
             return new GetDeviceListResponse
             {
                 DeviceListXml = deviceList.ToXml()
@@ -302,6 +347,24 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
         catch (Exception e)
         {
             return new GetDeviceListResponse { Error = RemotingHelper.ToError(e) };
+        }
+    }
+
+    public override async Task<GetCapsResponse> TwainGetCaps(GetCapsRequest request, ServerCallContext context)
+    {
+        using var callRef = StartCall();
+        try
+        {
+            var options = request.OptionsXml.FromXml<ScanOptions>();
+            var caps = await _twainController.GetCaps(options);
+            return new GetCapsResponse
+            {
+                ScanCapsXml = caps?.ToXml() ?? ""
+            };
+        }
+        catch (Exception e)
+        {
+            return new GetCapsResponse { Error = RemotingHelper.ToError(e) };
         }
     }
 
@@ -324,10 +387,14 @@ public class WorkerServiceImpl : WorkerService.WorkerServiceBase
                 memoryBuffer => sequencedWriter.Write(new TwainScanResponse
                 {
                     MemoryBuffer = memoryBuffer
+                }),
+                canceled => sequencedWriter.Write(new TwainScanResponse
+                {
+                    TransferCanceled = canceled
                 })
             );
             var options = request.OptionsXml.FromXml<ScanOptions>();
-            await _twainSessionController.StartScan(options, twainEvents, context.CancellationToken);
+            await _twainController.StartScan(options, twainEvents, context.CancellationToken);
         }
         catch (Exception e)
         {

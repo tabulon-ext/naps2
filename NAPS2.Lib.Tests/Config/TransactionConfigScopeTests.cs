@@ -1,5 +1,6 @@
-using Moq;
 using NAPS2.Config.Model;
+using NAPS2.Sdk.Tests;
+using NSubstitute;
 using Xunit;
 
 namespace NAPS2.Lib.Tests.Config;
@@ -55,49 +56,49 @@ public class TransactionConfigScopeTests
     [Fact]
     public void ChangeEvent()
     {
-        var mockHandler = new Mock<EventHandler>();
-        _transact.HasChangesChanged += mockHandler.Object;
-        mockHandler.VerifyNoOtherCalls();
+        var mockHandler = Substitute.For<EventHandler>();
+        _transact.HasChangesChanged += mockHandler;
+        mockHandler.ReceivedCallsCount(0);
 
         _transact.Set(c => c.Culture, "de");
-        mockHandler.Verify(x => x(_transact, EventArgs.Empty));
+        mockHandler.Received()(_transact, EventArgs.Empty);
         _transact.Set(c => c.LastImageExt, ".png");
-        mockHandler.VerifyNoOtherCalls();
+        mockHandler.ReceivedCallsCount(1);
 
         _transact.Rollback();
-        mockHandler.Verify(x => x(_transact, EventArgs.Empty));
-        mockHandler.VerifyNoOtherCalls();
+        mockHandler.Received()(_transact, EventArgs.Empty);
+        mockHandler.ReceivedCallsCount(2);
 
         _transact.Set(c => c.Culture, "de");
-        mockHandler.Verify(x => x(_transact, EventArgs.Empty));
-        mockHandler.VerifyNoOtherCalls();
+        mockHandler.Received()(_transact, EventArgs.Empty);
+        mockHandler.ReceivedCallsCount(3);
 
         _transact.Commit();
-        mockHandler.Verify(x => x(_transact, EventArgs.Empty));
-        mockHandler.VerifyNoOtherCalls();
+        mockHandler.Received()(_transact, EventArgs.Empty);
+        mockHandler.ReceivedCallsCount(4);
     }
 
     [Fact]
     public void SetThenRemove()
     {
         _transact.Set(c => c.Culture, "de");
-        Assert.True(_transact.TryGet(c => c.Culture, out _));
+        Assert.True(_transact.Has(c => c.Culture));
         _transact.Remove(c => c.Culture);
-        Assert.False(_transact.TryGet(c => c.Culture, out _));
+        Assert.False(_transact.Has(c => c.Culture));
         Assert.True(_transact.HasChanges);
 
         _transact.Commit();
         Assert.False(_transact.HasChanges);
-        Assert.False(_baseScope.TryGet(c => c.Culture, out _));
+        Assert.False(_baseScope.Has(c => c.Culture));
     }
 
     [Fact]
     public void RemoveThenSet()
     {
         _transact.Remove(c => c.Culture);
-        Assert.False(_transact.TryGet(c => c.Culture, out _));
+        Assert.False(_transact.Has(c => c.Culture));
         _transact.Set(c => c.Culture, "de");
-        Assert.True(_transact.TryGet(c => c.Culture, out _));
+        Assert.True(_transact.Has(c => c.Culture));
         Assert.True(_transact.HasChanges);
 
         _transact.Commit();
@@ -109,9 +110,9 @@ public class TransactionConfigScopeTests
     public void RemoveParentThenSet()
     {
         _transact.Remove(c => c.PdfSettings);
-        Assert.False(_transact.TryGet(c => c.PdfSettings.DefaultFileName, out _));
+        Assert.False(_transact.Has(c => c.PdfSettings.DefaultFileName));
         _transact.Set(c => c.PdfSettings.DefaultFileName, "test");
-        Assert.True(_transact.TryGet(c => c.PdfSettings.DefaultFileName, out _));
+        Assert.True(_transact.Has(c => c.PdfSettings.DefaultFileName));
         Assert.True(_transact.HasChanges);
 
         _transact.Commit();
@@ -123,13 +124,13 @@ public class TransactionConfigScopeTests
     public void SetThenRemoveParent()
     {
         _transact.Set(c => c.PdfSettings.DefaultFileName, "test");
-        Assert.True(_transact.TryGet(c => c.PdfSettings.DefaultFileName, out _));
+        Assert.True(_transact.Has(c => c.PdfSettings.DefaultFileName));
         _transact.Remove(c => c.PdfSettings);
-        Assert.False(_transact.TryGet(c => c.PdfSettings.DefaultFileName, out _));
+        Assert.False(_transact.Has(c => c.PdfSettings.DefaultFileName));
         Assert.True(_transact.HasChanges);
 
         _transact.Commit();
         Assert.False(_transact.HasChanges);
-        Assert.False(_transact.TryGet(c => c.PdfSettings.DefaultFileName, out _));
+        Assert.False(_transact.Has(c => c.PdfSettings.DefaultFileName));
     }
 }

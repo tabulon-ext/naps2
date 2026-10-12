@@ -1,7 +1,8 @@
 using Eto.Drawing;
 using Eto.Forms;
 using NAPS2.EtoForms.Layout;
-using NAPS2.ImportExport.Pdf;
+using NAPS2.EtoForms.Widgets;
+using NAPS2.Pdf;
 
 namespace NAPS2.EtoForms.Ui;
 
@@ -19,9 +20,10 @@ public class PdfSettingsForm : EtoDialogBase
     private readonly PasswordBoxWithToggle _userPassword = new() { Title = UiStrings.UserPasswordLabel };
     private readonly CheckBox _rememberSettings = new() { Text = UiStrings.RememberTheseSettings };
     private readonly Button _restoreDefaults = new() { Text = UiStrings.RestoreDefaults };
+    private readonly LayoutVisibility _encryptVis = new(false);
 
-    private readonly List<CheckBox> _permissions = new()
-    {
+    private readonly List<CheckBox> _permissions =
+    [
         new CheckBox { Text = UiStrings.AllowPrinting },
         new CheckBox { Text = UiStrings.AllowFullQualityPrinting },
         new CheckBox { Text = UiStrings.AllowDocumentModification },
@@ -30,21 +32,25 @@ public class PdfSettingsForm : EtoDialogBase
         new CheckBox { Text = UiStrings.AllowContentCopyingForAccessibility },
         new CheckBox { Text = UiStrings.AllowAnnotations },
         new CheckBox { Text = UiStrings.AllowFormFilling }
-    };
+    ];
 
-    private readonly DropDown _compat = C.EnumDropDown<PdfCompat>(compat => compat switch
-    {
-        PdfCompat.Default => UiStrings.Default,
-        PdfCompat.PdfA1B => "PDF/A-1b",
-        PdfCompat.PdfA2B => "PDF/A-2b",
-        PdfCompat.PdfA3B => "PDF/A-3b",
-        PdfCompat.PdfA3U => "PDF/A-3u",
-        _ => throw new ArgumentException()
-    });
+    private readonly EnumDropDownWidget<PdfCompat> _compat = new();
 
-    public PdfSettingsForm(Naps2Config config, DialogHelper dialogHelper) : base(config)
+    public PdfSettingsForm(Naps2Config config, DialogHelper dialogHelper, IIconProvider iconProvider) : base(config)
     {
-        _defaultFilePath = new(this, dialogHelper);
+        Title = UiStrings.PdfSettingsFormTitle;
+        IconName = "file_extension_pdf_small";
+
+        _defaultFilePath = new(this, dialogHelper) { PdfOnly = true };
+        _compat.Format = compat => compat switch
+        {
+            PdfCompat.Default => UiStrings.Default,
+            PdfCompat.PdfA1B => "PDF/A-1b",
+            PdfCompat.PdfA2B => "PDF/A-2b",
+            PdfCompat.PdfA3B => "PDF/A-3b",
+            PdfCompat.PdfA3U => "PDF/A-3u",
+            _ => throw new ArgumentException()
+        };
 
         UpdateValues(Config);
         UpdateEnabled();
@@ -56,9 +62,6 @@ public class PdfSettingsForm : EtoDialogBase
 
     protected override void BuildLayout()
     {
-        Title = UiStrings.PdfSettingsFormTitle;
-        Icon = new Icon(1f, Icons.file_extension_pdf_small.ToEtoImage());
-
         FormStateController.DefaultExtraLayoutSize = new Size(60, 0);
         FormStateController.FixedHeightLayout = true;
 
@@ -84,9 +87,11 @@ public class PdfSettingsForm : EtoDialogBase
                 UiStrings.Encryption,
                 L.Column(
                     _encryptPdf,
-                    _ownerPassword,
-                    _userPassword,
-                    L.Column(_permissions.Expand()).Spacing(0)
+                    L.Column(
+                        _ownerPassword,
+                        _userPassword,
+                        L.Column(_permissions.Expand()).Spacing(0)
+                    ).Visible(_encryptVis)
                 )
             ),
             L.GroupBox(
@@ -126,22 +131,15 @@ public class PdfSettingsForm : EtoDialogBase
             config.Get(c => c.PdfSettings.Encryption.AllowContentCopyingForAccessibility);
         _permissions[6].Checked = config.Get(c => c.PdfSettings.Encryption.AllowAnnotations);
         _permissions[7].Checked = config.Get(c => c.PdfSettings.Encryption.AllowFormFilling);
-        _compat.SelectedIndex = (int) config.Get(c => c.PdfSettings.Compat);
+        _compat.SelectedItem = config.Get(c => c.PdfSettings.Compat);
         _rememberSettings.Checked = config.Get(c => c.RememberPdfSettings);
     }
 
     private void UpdateEnabled()
     {
         _skipSavePrompt.Enabled = Path.IsPathRooted(_defaultFilePath.Text);
-
-        bool encrypt = _encryptPdf.IsChecked();
-        _userPassword.Enabled = _ownerPassword.Enabled = encrypt;
-        foreach (var perm in _permissions)
-        {
-            perm.Enabled = encrypt;
-        }
-
-        _compat.Enabled = !Config.AppLocked.TryGet(c => c.PdfSettings.Compat, out _);
+        _encryptVis.IsVisible = _encryptPdf.IsChecked();
+        _compat.Enabled = !Config.AppLocked.Has(c => c.PdfSettings.Compat);
     }
 
     private void Save()
@@ -172,7 +170,7 @@ public class PdfSettingsForm : EtoDialogBase
                 AllowAnnotations = _permissions[6].IsChecked(),
                 AllowFormFilling = _permissions[7].IsChecked()
             },
-            Compat = (PdfCompat) _compat.SelectedIndex
+            Compat = _compat.SelectedItem
         };
 
         var runTransact = Config.Run.BeginTransaction();

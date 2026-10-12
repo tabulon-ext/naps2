@@ -1,6 +1,5 @@
 ﻿using System.Threading;
 using GrpcDotNetNamedPipes;
-using Moq;
 using NAPS2.ImportExport.Email.Mapi;
 using NAPS2.ImportExport.Images;
 using NAPS2.Remoting.Worker;
@@ -8,22 +7,21 @@ using NAPS2.Scan;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Internal;
 using NAPS2.Scan.Internal.Twain;
+using NSubstitute;
 using Xunit;
 
 namespace NAPS2.Sdk.Tests.Worker;
 
-// TODO: Should these tests really be disabled on non-windows? Not sure if we still need the worker for mac/linux
-// Although in that case we really need to test GrpcDotNetNamedPipes for mac/linux.
 public class WorkerChannelTests : ContextualTests
 {
     private Channel Start(IRemoteScanController remoteScanController = null, ThumbnailRenderer thumbnailRenderer = null,
-        IMapiWrapper mapiWrapper = null, ITwainSessionController twainSessionController = null)
+        IMapiWrapper mapiWrapper = null, ITwainController twainController = null)
     {
         string pipeName = $"WorkerNamedPipeTests.{Path.GetRandomFileName()}";
         NamedPipeServer server = new NamedPipeServer(pipeName);
         WorkerService.BindService(server.ServiceBinder,
             new WorkerServiceImpl(ScanningContext, remoteScanController, thumbnailRenderer, mapiWrapper,
-                twainSessionController, new ImportPostProcessor()));
+                twainController));
         server.Start();
         var client = new WorkerServiceAdapter(new NamedPipeChannel(".", pipeName));
         return new Channel
@@ -33,18 +31,7 @@ public class WorkerChannelTests : ContextualTests
         };
     }
 
-    // TODO: Move this to a client/server test
-    // [PlatformFact(include: Platform.Windows)]
-    // public void SslCreds()
-    // {
-    //     var (cert, privateKey) = SslHelper.GenerateRootCertificate();
-    //     var serverCreds = RemotingHelper.GetServerCreds(cert, privateKey);
-    //     var clientCreds = RemotingHelper.GetClientCreds(cert, privateKey);
-    //     using var channel = Start(serverCreds: serverCreds, clientCreds: clientCreds);
-    //     channel.Client.Init(null);
-    // }
-
-    [PlatformFact(include: PlatformFlags.Windows)]
+    [Fact]
     public void Init()
     {
         using var channel = Start();
@@ -52,41 +39,48 @@ public class WorkerChannelTests : ContextualTests
         Assert.StartsWith(@"C:\Somewhere", ScanningContext.FileStorageManager.NextFilePath());
     }
 
-    [PlatformFact(include: PlatformFlags.Windows)]
+    [Fact]
     public void Wia10NativeUi()
     {
         // TODO: This is not testable yet
         // channel.Client.Wia10NativeUI(...);
     }
 
-    [PlatformFact(include: PlatformFlags.Windows)]
-    public async Task GetDeviceList()
+    [Fact]
+    public async Task GetDevices()
     {
-        var remoteScanController = new Mock<IRemoteScanController>();
-        using var channel = Start(remoteScanController.Object);
-        remoteScanController
-            .Setup(rsc => rsc.GetDeviceList(It.IsAny<ScanOptions>()))
-            .ReturnsAsync(new List<ScanDevice> { new ScanDevice("test_id", "test_name") });
+        var remoteScanController = Substitute.For<IRemoteScanController>();
+        using var channel = Start(remoteScanController);
+        remoteScanController.GetDevices(Arg.Any<ScanOptions>(), Arg.Any<CancellationToken>(),
+                Arg.Any<Action<ScanDevice>>())
+            .Returns(x =>
+            {
+                var callback = (Action<ScanDevice>) x[2];
+                callback(new ScanDevice(Driver.Wia, "test_id", "test_name"));
+                return Task.CompletedTask;
+            });
 
-        var deviceList = await channel.Client.GetDeviceList(new ScanOptions());
+        var deviceList = new List<ScanDevice>();
+        await channel.Client.GetDevices(new ScanOptions(), CancellationToken.None, deviceList.Add);
 
         Assert.Single(deviceList);
         Assert.Equal("test_id", deviceList[0].ID);
         Assert.Equal("test_name", deviceList[0].Name);
-        remoteScanController.Verify(rsc => rsc.GetDeviceList(It.IsAny<ScanOptions>()));
-        remoteScanController.VerifyNoOtherCalls();
+        _ = remoteScanController.Received().GetDevices(Arg.Any<ScanOptions>(), Arg.Any<CancellationToken>(),
+            Arg.Any<Action<ScanDevice>>());
+        remoteScanController.ReceivedCallsCount(1);
     }
 
-    [PlatformFact(include: PlatformFlags.Windows)]
+    [Fact]
     public async Task ScanWithMemoryStorage()
     {
         await ScanInternalTest();
     }
 
-    [PlatformFact(include: PlatformFlags.Windows)]
+    [Fact]
     public async Task ScanWithFileStorage()
     {
-        ScanningContext.FileStorageManager = FileStorageManager.CreateFolder(Path.Combine(FolderPath, "recovery"));
+        SetUpFileStorage();
         await ScanInternalTest();
     }
 
@@ -94,11 +88,11 @@ public class WorkerChannelTests : ContextualTests
     {
         var remoteScanController = new MockRemoteScanController
         {
-            Images = new List<ProcessedImage>
-            {
+            Images =
+            [
                 CreateScannedImage(),
                 CreateScannedImage()
-            }
+            ]
         };
 
         using var channel = Start(remoteScanController);
@@ -114,16 +108,16 @@ public class WorkerChannelTests : ContextualTests
         // TODO: Verify that thumbnails are set correctly (with and without revertible transforms)
     }
 
-    [PlatformFact(include: PlatformFlags.Windows)]
+    [Fact]
     public async Task ScanException()
     {
         var remoteScanController = new MockRemoteScanController
         {
-            Images = new List<ProcessedImage>
-            {
+            Images =
+            [
                 CreateScannedImage(),
                 CreateScannedImage()
-            },
+            ],
             Exception = new DeviceException("Test error")
         };
         using var channel = Start(remoteScanController);
@@ -137,41 +131,47 @@ public class WorkerChannelTests : ContextualTests
         Assert.Contains("Test error", ex.Message);
     }
 
-    [PlatformFact(include: PlatformFlags.Windows)]
+    [Fact]
     public async Task TwainScan()
     {
-        var twainEvents = new Mock<ITwainEvents>();
-        var sessionController = new Mock<ITwainSessionController>();
+        var twainEvents = Substitute.For<ITwainEvents>();
+        var twainController = Substitute.For<ITwainController>();
 
-        sessionController.Setup(x =>
-            x.StartScan(It.IsAny<ScanOptions>(), It.IsAny<TwainEvents>(), It.IsAny<CancellationToken>())).Returns(
-            new InvocationFunc(ctx =>
-            {
-                var serverTwainEvents = (ITwainEvents) ctx.Arguments[1];
-                serverTwainEvents.PageStart(new TwainPageStart());
-                serverTwainEvents.MemoryBufferTransferred(new TwainMemoryBuffer());
-                serverTwainEvents.PageStart(new TwainPageStart());
-                serverTwainEvents.NativeImageTransferred(new TwainNativeImage());
-                return Task.CompletedTask;
-            }));
+        twainController.StartScan(Arg.Any<ScanOptions>(), Arg.Any<TwainEvents>(), Arg.Any<CancellationToken>())
+            .Returns(
+                x =>
+                {
+                    var serverTwainEvents = (ITwainEvents) x[1];
+                    serverTwainEvents.PageStart(new TwainPageStart());
+                    serverTwainEvents.MemoryBufferTransferred(new TwainMemoryBuffer());
+                    serverTwainEvents.PageStart(new TwainPageStart());
+                    serverTwainEvents.NativeImageTransferred(new TwainNativeImage());
+                    return Task.CompletedTask;
+                });
 
-        using var channel = Start(twainSessionController: sessionController.Object);
-        await channel.Client.TwainScan(new ScanOptions(), CancellationToken.None, twainEvents.Object);
-        
-        twainEvents.Verify(x => x.PageStart(It.IsAny<TwainPageStart>()));
-        twainEvents.Verify(x => x.MemoryBufferTransferred(It.IsAny<TwainMemoryBuffer>()));
-        twainEvents.Verify(x => x.PageStart(It.IsAny<TwainPageStart>()));
-        twainEvents.Verify(x => x.NativeImageTransferred(It.IsAny<TwainNativeImage>()));
-        twainEvents.VerifyNoOtherCalls();
+        using var channel = Start(twainController: twainController);
+        await channel.Client.TwainScan(new ScanOptions(), CancellationToken.None, twainEvents);
+
+        twainEvents.Received().PageStart(Arg.Any<TwainPageStart>());
+        twainEvents.Received().MemoryBufferTransferred(Arg.Any<TwainMemoryBuffer>());
+        twainEvents.Received().PageStart(Arg.Any<TwainPageStart>());
+        twainEvents.Received().NativeImageTransferred(Arg.Any<TwainNativeImage>());
+        twainEvents.ReceivedCallsCount(4);
     }
 
     private class MockRemoteScanController : IRemoteScanController
     {
-        public List<ProcessedImage> Images { get; set; } = new();
+        public List<ProcessedImage> Images { get; set; } = [];
 
         public Exception Exception { get; set; }
 
-        public Task<List<ScanDevice>> GetDeviceList(ScanOptions options) => throw new NotSupportedException();
+        public Task GetDevices(ScanOptions options, CancellationToken cancelToken, Action<ScanDevice> callback) =>
+            throw new NotSupportedException();
+
+        public Task<ScanCaps> GetCaps(ScanOptions options, CancellationToken cancelToken)
+        {
+            return null!;
+        }
 
         public Task Scan(ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents,
             Action<ProcessedImage, PostProcessingContext> callback)

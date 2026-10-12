@@ -21,29 +21,8 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>E hirtë</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 dpi</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 dpi</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 dpi</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 dpi</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 dpi</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 dpi</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 dpi</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} dpi</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
     <value>SMTP e personalizuar</value>
@@ -51,8 +30,17 @@
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (i ri)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
     <value>Hyrja nga Uebi në Outlook</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
     <value>Nuk u zgjodh asnjë ofrues.</value>
@@ -76,13 +64,13 @@
     <value>mm</value>
   </data>
   <data name="PageSize_A3" xml:space="preserve">
-    <value>A3 (297 x 420 mm)</value>
+    <value>A3 (297x420 mm)</value>
   </data>
   <data name="PageSize_A4" xml:space="preserve">
-    <value>A4 (210 x 297 mm)</value>
+    <value>A4 (210x297 mm)</value>
   </data>
   <data name="PageSize_A5" xml:space="preserve">
-    <value>A5 (148 x 210 mm)</value>
+    <value>A5 (148x210 mm)</value>
   </data>
   <data name="PageSize_B4" xml:space="preserve">
     <value>B4 (250x353 mm)</value>
@@ -98,6 +86,9 @@
   </data>
   <data name="PageSize_Letter" xml:space="preserve">
     <value>Letër SHBA (8.5 x 11 inç)</value>
+  </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>E personalizuar...</value>
   </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>E paracaktuar</value>
@@ -141,8 +132,11 @@
   <data name="TwainImpl_Legacy" xml:space="preserve">
     <value>E vjetër (vetëm ndërfaqja e përdoruesit origjinale)</value>
   </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Transferim nativ</value>
+  </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Transfertë alternative</value>
+    <value>Transferim në kujtesë</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>DSM e vjetër</value>
@@ -154,9 +148,36 @@
     <value>E paracaktuar</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>I shpejtë</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Më e mira</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Ruaji të gjitha</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Ruaj pjesën e zgjedhur</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Всегда спрашивать</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Kërkoje nëse është e zgjedhur</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Skano me profilin e paracaktuar</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Всегда спрашивать</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>E paracaktuar</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>E zbardhur</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>E errët</value>
   </data>
 </root>

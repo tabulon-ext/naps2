@@ -11,9 +11,9 @@ namespace NAPS2.App.Tests.Appium;
 [Collection("appium")]
 public class LanguageSelectionTests : AppiumTests
 {
-    private static readonly HashSet<string> ExpectedMissingLanguages = new() { "bn", "hi", "id", "th", "ur" };
+    private static readonly HashSet<string> ExpectedMissingLanguages = ["bn", "ur"];
 
-    [VerifyTheory(AllowDebug = true)]
+    [VerifyTheory(AllowDebug = true, WindowsAppium = true)]
     [ClassData(typeof(AppiumTestData))]
     public void OpenLanguageDropdown(IAppTestTarget target)
     {

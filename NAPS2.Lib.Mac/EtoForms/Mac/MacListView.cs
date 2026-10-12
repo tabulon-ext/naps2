@@ -1,8 +1,13 @@
+using Eto.Drawing;
 using Eto.Forms;
 using Eto.Mac;
 using Eto.Mac.Forms.Menu;
+using NAPS2.EtoForms.Widgets;
 
 namespace NAPS2.EtoForms.Mac;
+
+// NSPasteboardTypeFileUrl is deprecated but still needed
+#pragma warning disable CS0618 // Type or member is obsolete
 
 public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> where T : notnull
 {
@@ -10,48 +15,70 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
     private readonly NSCollectionView _view = new();
     private readonly NSScrollView _scrollView = new();
     private readonly Panel _panel = new();
-    private readonly NSCollectionViewFlowLayout _layout;
+    private readonly NSCollectionViewLayout _layout;
     private readonly ListViewDataSource<T> _dataSource;
 
     private ListSelection<T> _selection = ListSelection.Empty<T>();
     private bool _refreshing;
     private ContextMenu? _contextMenu;
+    private NSIndexPath? _lastClickedIndexPath;
 
     public MacListView(ListViewBehavior<T> behavior)
     {
         _behavior = behavior;
-        _layout = new CustomFlowLayout
-        {
-            SectionInset = behavior.ShowLabels
-                ? new NSEdgeInsets(5, 5, 5, 5)
-                : new NSEdgeInsets(20, 20, 20, 20),
-            MinimumInteritemSpacing = behavior.ShowLabels ? 5 : 15,
-            MinimumLineSpacing = behavior.ShowLabels ? 5 : 15,
-            TopAlign = behavior.ShowLabels,
-            LeftGravity = false // TODO: I prefer this true, but it glitches out selection
-        };
-        _dataSource = new ListViewDataSource<T>(this, _behavior);
+        _layout = _behavior.Checkboxes
+            ? new NSCollectionViewGridLayout
+            {
+                MinimumInteritemSpacing = 0,
+                MinimumLineSpacing = 0,
+                MinimumItemSize = new CGSize(200, 17)
+            }
+            : new CustomFlowLayout
+            {
+                SectionInset = behavior.ShowLabels
+                    ? new NSEdgeInsets(5, 5, 5, 5)
+                    : new NSEdgeInsets(20, 20, 20, 20),
+                MinimumInteritemSpacing = behavior.ShowLabels ? 5 : 15,
+                MinimumLineSpacing = behavior.ShowLabels ? 5 : 15,
+                TopAlign = behavior.ShowLabels,
+                LeftGravity = false // TODO: I prefer this true, but it glitches out selection
+            };
+        _dataSource = new ListViewDataSource<T>(this, _behavior, ItemChecked, ItemActivated);
         _view.DataSource = _dataSource;
         _view.Delegate = this;
         _view.CollectionViewLayout = _layout;
-        _view.Selectable = true;
-        _view.AllowsMultipleSelection = behavior.MultiSelect;
+        _view.Selectable = !behavior.Checkboxes;
+        _view.AllowsMultipleSelection = !behavior.Checkboxes && behavior.MultiSelect;
         if (_behavior.AllowDragDrop)
         {
-            _view.RegisterForDraggedTypes(new[] { _behavior.CustomDragDataType });
+            _view.RegisterForDraggedTypes([_behavior.CustomDragDataType]);
         }
         if (_behavior.AllowFileDrop)
         {
-            _view.RegisterForDraggedTypes(new string[] { NSPasteboard.NSPasteboardTypeFileUrl });
+            _view.RegisterForDraggedTypes([NSPasteboard.NSPasteboardTypeFileUrl]);
         }
         _scrollView.DocumentView = _view;
         _panel.Content = _scrollView.ToEto();
     }
 
-    public int ImageSize
+    private void ItemChecked(T item, bool isChecked)
     {
-        get => (int) _layout.ItemSize.Width;
-        set => _layout.ItemSize = new CGSize(value, value);
+        _selection = ListSelection.From(isChecked ? _selection.Append(item) : _selection.Except([item]));
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ItemActivated(T item)
+    {
+        // TODO: Propagate the item back to the click handler
+        // That doesn't matter on e.g. Windows where double clicking sets the item as the sole selection. But on Mac
+        // it's possible to select multiple items and double-click on one without losing your selection.
+        ItemClicked?.Invoke(this, EventArgs.Empty);
+    }
+
+    public Size ImageSize
+    {
+        get => Size.Truncate(((NSCollectionViewFlowLayout) _layout).ItemSize.ToEto());
+        set => ((NSCollectionViewFlowLayout) _layout).ItemSize = new CGSize(value.Width, value.Height);
     }
 
     public Control Control => _panel;
@@ -68,10 +95,7 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
 
     public event EventHandler? SelectionChanged;
 
-    // TODO: Implement item double-click
-#pragma warning disable CS0067
     public event EventHandler? ItemClicked;
-#pragma warning restore CS0067
 
     public event EventHandler<DropEventArgs>? Drop;
 
@@ -82,9 +106,12 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
         _view.ReloadData();
     }
 
-    // TODO: Do we need this method? Clean up the name/doc at least
     public void RegenerateImages()
     {
+        if (_dataSource.Items.Count == 0)
+        {
+            return;
+        }
         _view.ReloadData();
     }
 
@@ -111,6 +138,12 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
             // TODO: Can we do this for anything else (e.g. multi-item moves)?
             var animator = (NSCollectionView) _view.Animator;
             animator.MoveItem(NSIndexPath.Create(0, fromIndex), NSIndexPath.Create(0, toIndex));
+        }
+        else if (!diffs.AppendOperations.Any() && !diffs.TrimOperations.Any())
+        {
+            // Only updating items
+            var indexPaths = diffs.ReplaceOperations.Select(op => NSIndexPath.Create(0, op.Index)).ToArray();
+            _view.ReloadItems(new NSSet<NSIndexPath>(indexPaths));
         }
         else
         {
@@ -180,14 +213,22 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
         if (!_refreshing)
         {
             _refreshing = true;
-            _view.SelectionIndexes =
-                NSIndexSet.FromArray(_selection.ToSelectedIndices(_dataSource.Items).Where(x => x != -1).ToArray());
+            if (_behavior.Checkboxes)
+            {
+                // TODO: Support this?
+            }
+            else
+            {
+                _view.SelectionIndexes =
+                    NSIndexSet.FromArray(_selection.ToSelectedIndices(_dataSource.Items).Where(x => x != -1).ToArray());
+            }
             _refreshing = false;
         }
     }
 
     public override void ItemsSelected(NSCollectionView collectionView, NSSet indexPaths)
     {
+        if (_behavior.Checkboxes) return;
         _selection = ListSelection.FromSelectedIndices(_dataSource.Items,
             _view.SelectionIndexes.Select(x => (int) x));
         SelectionChanged?.Invoke(this, EventArgs.Empty);
@@ -195,9 +236,43 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
 
     public override void ItemsDeselected(NSCollectionView collectionView, NSSet indexPaths)
     {
+        if (_behavior.Checkboxes) return;
         _selection = ListSelection.FromSelectedIndices(_dataSource.Items,
             _view.SelectionIndexes.Select(x => (int) x));
         SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public override NSSet ShouldDeselectItems(NSCollectionView collectionView, NSSet indexPaths)
+    {
+        _lastClickedIndexPath = null;
+        return indexPaths;
+    }
+
+    public override NSSet ShouldSelectItems(NSCollectionView collectionView, NSSet indexPaths)
+    {
+        // We want shift+click to select a range, instead of behaving the same as command+click.
+        if (indexPaths.Count != 1)
+        {
+            _lastClickedIndexPath = null;
+            return indexPaths;
+        }
+        var indexPath = (NSIndexPath) indexPaths.AnyObject;
+        var prevIndexPath = _lastClickedIndexPath;
+        _lastClickedIndexPath = indexPath;
+
+        var isShiftHeld = (NSEvent.CurrentModifierFlags & NSEventModifierMask.ShiftKeyMask) != 0;
+        if (!isShiftHeld || prevIndexPath == null)
+        {
+            return indexPaths;
+        }
+        var newIndexPaths = new NSMutableSet();
+        var min = Math.Min((int) indexPath.Item, (int) prevIndexPath.Item);
+        var max = Math.Max((int) indexPath.Item, (int) prevIndexPath.Item);
+        for (var i = min; i <= max; i++)
+        {
+            newIndexPaths.Add(NSIndexPath.Create(0, i));
+        }
+        return newIndexPaths;
     }
 
     public override void ItemsChanged(NSCollectionView collectionView, NSSet indexPaths,
@@ -212,16 +287,17 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
         var item = _dataSource.Items[(int) indexPath.Item];
         if (_behavior.ShowLabels)
         {
-            using var image = _behavior.GetImage(item, ImageSize);
-            using var listItem = new ListViewItem(image, _behavior.GetLabel(item));
+            using var image = _behavior.Checkboxes ? null : _behavior.GetImage(this, item);
+            using var listItem = new ListViewItem(
+                image, _behavior.GetLabel(item), _behavior.Checkboxes, _behavior.ColorScheme, null, false, () => { });
             listItem.LoadView();
             return listItem.View.FittingSize;
         }
         else
         {
-            var size = _behavior.GetImage(item, ImageSize).Size;
+            var size = _behavior.GetImage(this, item).Size;
             var max = (double) Math.Max(size.Width, size.Height);
-            return new CGSize(size.Width * ImageSize / max, size.Height * ImageSize / max);
+            return new CGSize(size.Width * ImageSize.Width / max, size.Height * ImageSize.Width / max);
         }
     }
 
@@ -254,8 +330,7 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
 
     private bool GetCustomData(INSDraggingInfo draggingInfo, out byte[] data)
     {
-        if (draggingInfo.DraggingPasteboard.CanReadItemWithDataConformingToTypes(new[]
-                { _behavior.CustomDragDataType }))
+        if (draggingInfo.DraggingPasteboard.CanReadItemWithDataConformingToTypes([_behavior.CustomDragDataType]))
         {
             var items = draggingInfo.DraggingPasteboard.PasteboardItems;
             data = items.Length > 1
@@ -270,8 +345,8 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
 
     private bool GetFilePaths(INSDraggingInfo draggingInfo, out IEnumerable<string> filePaths)
     {
-        if (draggingInfo.DraggingPasteboard.CanReadItemWithDataConformingToTypes(new string[]
-                { NSPasteboard.NSPasteboardTypeFileUrl }))
+        if (draggingInfo.DraggingPasteboard.CanReadItemWithDataConformingToTypes(
+                [NSPasteboard.NSPasteboardTypeFileUrl]))
         {
             var items = draggingInfo.DraggingPasteboard.PasteboardItems;
             filePaths =
@@ -309,8 +384,7 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
                 return _behavior.GetCustomDragEffect(data).ToNS();
             }
             if (_behavior.AllowFileDrop && draggingInfo.DraggingPasteboard.CanReadItemWithDataConformingToTypes(
-                    new string[]
-                        { NSPasteboard.NSPasteboardTypeFileUrl }))
+                    [NSPasteboard.NSPasteboardTypeFileUrl]))
             {
                 return NSDragOperation.Copy;
             }
@@ -332,7 +406,7 @@ public class MacListView<T> : NSCollectionViewDelegateFlowLayout, IListView<T> w
         try
         {
             var item = new NSPasteboardItem();
-            var binaryData = _behavior.SerializeCustomDragData(new[] { _dataSource.Items[(int) indexPath.Item] });
+            var binaryData = _behavior.SerializeCustomDragData([_dataSource.Items[(int) indexPath.Item]]);
             item.SetDataForType(NSData.FromArray(binaryData), _behavior.CustomDragDataType);
             return item;
         }

@@ -5,24 +5,35 @@
   <StartupMessageTitle></StartupMessageTitle>
   <StartupMessageText></StartupMessageText>
   <StartupMessageIcon>Information</StartupMessageIcon>
-  <SaveButtonDefaultAction>SaveAll</SaveButtonDefaultAction>
+  <Theme mode="default">Default</Theme>
+  <ShowPageNumbers mode="default">false</ShowPageNumbers>
+  <ShowProfilesToolbar mode="default">false</ShowProfilesToolbar>
+  <ScanChangesDefaultProfile mode="default">true</ScanChangesDefaultProfile>
+  <ScanButtonDefaultAction mode="default">ScanWithDefaultProfile</ScanButtonDefaultAction>
+  <SaveButtonDefaultAction mode="default">SaveAll</SaveButtonDefaultAction>
+  <DeleteAfterSaving mode="default">false</DeleteAfterSaving>
+  <KeepSession mode="default">false</KeepSession>
+  <SingleInstance mode="default">false</SingleInstance>
   <HideOcrButton>false</HideOcrButton>
   <HideImportButton>false</HideImportButton>
   <HideSavePdfButton>false</HideSavePdfButton>
   <HideSaveImagesButton>false</HideSaveImagesButton>
   <HideEmailButton>false</HideEmailButton>
   <HidePrintButton>false</HidePrintButton>
+  <HideSettingsButton>false</HideSettingsButton>
   <HideDonateButton>false</HideDonateButton>
+  <HideSidebar>false</HideSidebar>
+  <HideManualDuplex>false</HideManualDuplex>
+  <HideInterleave>false</HideInterleave>
   <DisableAutoSave>false</DisableAutoSave>
   <LockSystemProfiles>false</LockSystemProfiles>
   <LockUnspecifiedDevices>false</LockUnspecifiedDevices>
   <NoUserProfiles>false</NoUserProfiles>
   <AlwaysRememberDevice>false</AlwaysRememberDevice>
-  <DisableGenericPdfImport>false</DisableGenericPdfImport>
   <NoUpdatePrompt>false</NoUpdatePrompt>
-  <DeleteAfterSaving>false</DeleteAfterSaving>
+  <NoDebugLogging>false</NoDebugLogging>
+  <NoScannerSharing>false</NoScannerSharing>
   <DisableSaveNotifications>false</DisableSaveNotifications>
-  <SingleInstance>false</SingleInstance>
   <ComponentsPath></ComponentsPath>
   <OcrTimeoutInSeconds>600</OcrTimeoutInSeconds>
   <OcrState>UserConfig</OcrState>
@@ -30,6 +41,8 @@
   <OcrDefaultMode>Fast</OcrDefaultMode>
   <OcrDefaultAfterScanning>true</OcrDefaultAfterScanning>
   <ForcePdfCompat>Default</ForcePdfCompat>
+  <EsclSecurityPolicy>None</EsclSecurityPolicy>
+  <EsclServerCertificatePath></EsclServerCertificatePath>
   <EventLogging>None</EventLogging>
   <DefaultProfileSettings>
     <DriverName></DriverName>
@@ -42,7 +55,7 @@
     <UseNativeUI>false</UseNativeUI>
     <PaperSource>Glass</PaperSource>
     <BitDepth>C24Bit</BitDepth>
-    <PageSize>Letter</PageSize>
+    <PageSize>SystemDefault</PageSize>
     <!--
     <CustomPageSizeName></CustomPageSizeName>
     <CustomPageSize>
@@ -75,7 +88,7 @@
     <FlipDuplexedPages>false</FlipDuplexedPages>
     <TwainImpl>Default</TwainImpl>
   </DefaultProfileSettings>
-  <KeyboardShortcuts>
+  <KeyboardShortcuts mode="default">
     <ScanDefault>Ctrl+Enter</ScanDefault>
     <ScanProfile1>F2</ScanProfile1>
     <ScanProfile2>F3</ScanProfile2>
@@ -89,20 +102,21 @@
     <ScanProfile10>F11</ScanProfile10>
     <ScanProfile11>F12</ScanProfile11>
     <ScanProfile12></ScanProfile12>
-    <NewProfile></NewProfile>
+    <NewProfile>Ctrl+N</NewProfile>
     <BatchScan>Ctrl+B</BatchScan>
-    <Profiles></Profiles>
-    <Ocr></Ocr>
+    <Profiles>Ctrl+L</Profiles>
+    <ScannerSharing>Ctrl+G</ScannerSharing>
+    <Ocr>Ctrl+Alt+O</Ocr>
     <Import>Ctrl+O</Import>
-    <SavePDF>Ctrl+S</SavePDF>
-    <SavePDFAll></SavePDFAll>
-    <SavePDFSelected></SavePDFSelected>
-    <SaveImages></SaveImages>
-    <SaveImagesAll></SaveImagesAll>
-    <SaveImagesSelected></SaveImagesSelected>
-    <EmailPDF></EmailPDF>
-    <EmailPDFAll></EmailPDFAll>
-    <EmailPDFSelected></EmailPDFSelected>
+    <SavePDFAll>Ctrl+S</SavePDFAll>
+    <SavePDFSelected>Ctrl+Shift+S</SavePDFSelected>
+    <PDFSettings>Ctrl+Alt+P</PDFSettings>
+    <SaveImagesAll>Ctrl+I</SaveImagesAll>
+    <SaveImagesSelected>Ctrl+Shift+I</SaveImagesSelected>
+    <ImageSettings>Ctrl+Alt+I</ImageSettings>
+    <EmailPDFAll>Ctrl+E</EmailPDFAll>
+    <EmailPDFSelected>Ctrl+Shift+E</EmailPDFSelected>
+    <EmailSettings>Ctrl+Alt+E</EmailSettings>
     <Print>Ctrl+P</Print>
     <ImageView></ImageView>
     <ImageBlackWhite></ImageBlackWhite>
@@ -112,13 +126,20 @@
     <ImageHue></ImageHue>
     <ImageSaturation></ImageSaturation>
     <ImageSharpen></ImageSharpen>
+    <ImageDocumentCorrection></ImageDocumentCorrection>
+    <ImageSplit></ImageSplit>
+    <ImageCombine></ImageCombine>
+    <ImageEditWith></ImageEditWith>
     <ImageReset></ImageReset>
-    <RotateLeft></RotateLeft>
-    <RotateRight></RotateRight>
-    <RotateFlip></RotateFlip>
+    <RotateLeft>Ctrl+Shift+Left</RotateLeft>
+    <RotateRight>Ctrl+Shift+Right</RotateRight>
+    <RotateFlip>Ctrl+Shift+Down</RotateFlip>
+    <RotateDeskew></RotateDeskew>
     <RotateCustom></RotateCustom>
     <MoveUp>Ctrl+Up</MoveUp>
     <MoveDown>Ctrl+Down</MoveDown>
+    <ReorderManualDuplex></ReorderManualDuplex>
+    <ReorderManualDuplexPreview></ReorderManualDuplexPreview>
     <ReorderInterleave></ReorderInterleave>
     <ReorderDeinterleave></ReorderDeinterleave>
     <ReorderAltInterleave></ReorderAltInterleave>
@@ -127,6 +148,7 @@
     <ReorderReverseSelected></ReorderReverseSelected>
     <Delete></Delete>
     <Clear>Ctrl+Shift+Del</Clear>
+    <Settings></Settings>
     <About>F1</About>
     <ZoomIn>Ctrl+Oemplus</ZoomIn>
     <ZoomOut>Ctrl+OemMinus</ZoomOut>

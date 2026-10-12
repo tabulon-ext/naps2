@@ -9,7 +9,7 @@ public class GtkImageContext : ImageContext
     private readonly GtkImageTransformer _imageTransformer;
     private readonly LibTiffIo _tiffIo;
 
-    public GtkImageContext(IPdfRenderer? pdfRenderer = null) : base(typeof(GtkImage), pdfRenderer)
+    public GtkImageContext() : base(typeof(GtkImage))
     {
         _imageTransformer = new GtkImageTransformer(this);
         _tiffIo = new LibTiffIo(this);
@@ -32,7 +32,7 @@ public class GtkImageContext : ImageContext
             _tiffIo.LoadTiff(img => { image = img; cts.Cancel(); }, stream, cts.Token);
             return image;
         }
-        return new GtkImage(this, new Pixbuf(stream));
+        return new GtkImage(new Pixbuf(stream));
     }
 
     protected override void LoadFramesCore(Action<IMemoryImage> produceImage, Stream stream,
@@ -53,13 +53,18 @@ public class GtkImageContext : ImageContext
 
     internal LibTiffIo TiffIo => _tiffIo;
 
+    public Pixbuf RenderToPixbuf(IRenderableImage image)
+    {
+        return ((GtkImage) Render(image)).Pixbuf;
+    }
+
     public override IMemoryImage Create(int width, int height, ImagePixelFormat pixelFormat)
     {
-        if (pixelFormat == ImagePixelFormat.Unsupported)
+        if (pixelFormat == ImagePixelFormat.Unknown)
         {
             throw new ArgumentException("Unsupported pixel format");
         }
         var pixbuf = new Pixbuf(Colorspace.Rgb, pixelFormat == ImagePixelFormat.ARGB32, 8, width, height);
-        return new GtkImage(this, pixbuf);
+        return new GtkImage(pixbuf);
     }
 }

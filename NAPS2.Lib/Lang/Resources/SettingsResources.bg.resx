@@ -21,41 +21,29 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Степени на сивото</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 dpi</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>100 dpi</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 dpi</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 dpi</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 dpi</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 dpi</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 dpi</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} dpi</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
-    <value>Custom SMTP</value>
+    <value>Персонализиран SMTP</value>
   </data>
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (new)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
     <value>Outlook Web Access</value>
   </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple имейл</value>
+  </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
-    <value>No provider selected.</value>
+    <value>Няма избран доставчик.</value>
   </data>
   <data name="HorizontalAlign_Center" xml:space="preserve">
     <value>Център</value>
@@ -99,6 +87,9 @@
   <data name="PageSize_Letter" xml:space="preserve">
     <value>US писмо (8.5x11 инч)</value>
   </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>По избор...</value>
+  </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>По подразбиране</value>
   </data>
@@ -130,19 +121,22 @@
     <value>CCITT4</value>
   </data>
   <data name="TiffComp_Lzw" xml:space="preserve">
-    <value>LZW</value>
+    <value>LZW - алгоритъм за компресиране на данни без загуби</value>
   </data>
   <data name="TiffComp_None" xml:space="preserve">
-    <value>None</value>
+    <value>Нито един</value>
   </data>
   <data name="TwainImpl_Default" xml:space="preserve">
     <value>По подразбиране</value>
   </data>
   <data name="TwainImpl_Legacy" xml:space="preserve">
-    <value>Legacy (native UI only)</value>
+    <value>Остаряло (само с присъщия потребителски интерфейс)</value>
+  </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Местен трансфер</value>
   </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Alternative Transfer</value>
+    <value>Прехвърляне на паметта</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>Стар DSM</value>
@@ -154,9 +148,36 @@
     <value>По подразбиране</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Бърз</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Най-добър</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Запазване на всички</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Запазване на избраното</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Постоянно напомняне</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Ако е избрано напомняне</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Сканиране с профил по подразбиране</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Постоянно напомняне</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>По подразбиране</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Светла</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Тъмна</value>
   </data>
 </root>

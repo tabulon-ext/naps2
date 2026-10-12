@@ -4,7 +4,7 @@ namespace NAPS2.EtoForms;
 
 public class MenuProvider
 {
-    private readonly List<Item> _items = new();
+    private readonly List<Item> _items = [];
 
     public MenuProvider Dynamic(ListProvider<Command> commandListProvider)
     {
@@ -16,11 +16,15 @@ public class MenuProvider
         return this;
     }
 
-    public MenuProvider Append(Command command)
+    public MenuProvider Append(Command? command)
     {
+        if (command == null)
+        {
+            return this;
+        }
         _items.Add(new CommandItem
         {
-            Command = command ?? throw new ArgumentNullException(nameof(command))
+            Command = command
         });
         return this;
     }

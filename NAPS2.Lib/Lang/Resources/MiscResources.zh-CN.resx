@@ -22,13 +22,13 @@
     <value>您确定要清除 {0} 个项目吗？</value>
   </data>
   <data name="ConfirmDeleteItems" xml:space="preserve">
-    <value>您确定要删除{0}个项目吗?</value>
+    <value>您确定要删除{0} 个项目吗?</value>
   </data>
   <data name="ConfirmDeleteMultipleProfiles" xml:space="preserve">
-    <value>您确定要删除{0}个配置吗？</value>
+    <value>您确定要删除{0} 个配置吗？</value>
   </data>
   <data name="ConfirmDeleteSingleProfile" xml:space="preserve">
-    <value>您确定要删除这个{0}配置吗？</value>
+    <value>您确定要删除这个{0} 配置吗？</value>
   </data>
   <data name="ConfirmOverwriteFile" xml:space="preserve">
     <value>文件 {0} 已存在，是否覆盖？</value>
@@ -73,7 +73,7 @@
     <value>TIFF 文件 (*.tiff, *.tif)</value>
   </data>
   <data name="FileTypeJp2" xml:space="preserve">
-    <value>JPEG2000 File (*.jp2, *.jpx)</value>
+    <value>JPEG 文件(*.jp2, *.jpx)</value>
   </data>
   <data name="NameMissing" xml:space="preserve">
     <value>请输入配置名称.</value>
@@ -121,7 +121,7 @@
     <value>安装失败</value>
   </data>
   <data name="AllCount" xml:space="preserve">
-    <value>全部 ({0})</value>
+    <value>所有 ({0})</value>
   </data>
   <data name="SelectedCount" xml:space="preserve">
     <value>已选择 ({0})</value>
@@ -154,7 +154,7 @@
     <value>扫描</value>
   </data>
   <data name="ConfirmResetImages" xml:space="preserve">
-    <value>您确定要撤销您对{0}个图像的修改吗？</value>
+    <value>您确定要撤销您对{0} 个图像的修改吗？</value>
   </data>
   <data name="ResetImage" xml:space="preserve">
     <value>重置图像</value>
@@ -163,7 +163,7 @@
     <value>您有未保存的修改，确定要放弃这些修改并退出吗？</value>
   </data>
   <data name="ExitWithActiveOperations" xml:space="preserve">
-    <value>操作进行中，是否取消操作并退出？</value>
+    <value>一个操作正在进行中。您确定要退出并取消操作吗？</value>
   </data>
   <data name="UnsavedChanges" xml:space="preserve">
     <value>未保存的更改</value>
@@ -310,7 +310,7 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>您确定要删除“{0}”吗？</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>文件正在使用，无法覆盖.</value>
@@ -338,6 +338,12 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 是完全免费的。请考虑捐款资助.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>撰写评论</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>喜欢NAPS2吗？</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>SANE 驱动不可用。请确认已安装所需的软件包:</value>
@@ -367,7 +373,7 @@
     <value>正在检查...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>更新检查已禁用</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
     <value>尝试安装更新时发生错误.</value>

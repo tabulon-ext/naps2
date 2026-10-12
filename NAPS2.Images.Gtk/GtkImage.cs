@@ -7,18 +7,15 @@ namespace NAPS2.Images.Gtk;
 
 public class GtkImage : IMemoryImage
 {
-    public GtkImage(ImageContext imageContext, Pixbuf pixbuf)
+    public GtkImage(Pixbuf pixbuf)
     {
-        if (imageContext is not GtkImageContext) throw new ArgumentException("Expected GtkImageContext");
         LeakTracer.StartTracking(this);
-        ImageContext = imageContext;
         Pixbuf = pixbuf;
-        LogicalPixelFormat = PixelFormat;
         HorizontalResolution = float.TryParse(pixbuf.GetOption("x-dpi"), out var xDpi) ? xDpi : 0;
         VerticalResolution = float.TryParse(pixbuf.GetOption("y-dpi"), out var yDpi) ? yDpi : 0;
     }
 
-    public ImageContext ImageContext { get; }
+    public ImageContext ImageContext { get; } = new GtkImageContext();
 
     public Pixbuf Pixbuf { get; }
 
@@ -45,6 +42,10 @@ public class GtkImage : IMemoryImage
 
     public ImageLockState Lock(LockMode lockMode, out BitwiseImageData imageData)
     {
+        if (lockMode != LockMode.ReadOnly)
+        {
+            LogicalPixelFormat = ImagePixelFormat.Unknown;
+        }
         var ptr = Pixbuf.Pixels;
         var stride = Pixbuf.Rowstride;
         var subPixelType = PixelFormat switch
@@ -58,7 +59,7 @@ public class GtkImage : IMemoryImage
     }
 
     // TODO: Should we implement some kind of actual locking?
-    public class GtkImageLockState : ImageLockState
+    internal class GtkImageLockState : ImageLockState
     {
         public override void Dispose()
         {
@@ -69,39 +70,54 @@ public class GtkImage : IMemoryImage
 
     public ImagePixelFormat LogicalPixelFormat { get; set; }
 
-    public void Save(string path, ImageFileFormat imageFormat = ImageFileFormat.Unspecified, int quality = -1)
+    public void Save(string path, ImageFileFormat imageFormat = ImageFileFormat.Unknown,
+        ImageSaveOptions? options = null)
     {
-        if (imageFormat == ImageFileFormat.Unspecified)
+        if (imageFormat == ImageFileFormat.Unknown)
         {
             imageFormat = ImageContext.GetFileFormatFromExtension(path);
         }
         if (imageFormat == ImageFileFormat.Tiff)
         {
-            ((GtkImageContext) ImageContext).TiffIo.SaveTiff(new List<IMemoryImage> { this }, path);
+            ((GtkImageContext) ImageContext).TiffIo.SaveTiff([this], path);
             return;
         }
         ImageContext.CheckSupportsFormat(imageFormat);
+        if (ImageContext.TryBundledEncode(this, path, imageFormat, options))
+        {
+            return;
+        }
+        options ??= new ImageSaveOptions();
         var type = GetType(imageFormat);
-        var (keys, values) = GetSaveOptions(imageFormat, quality);
-        Pixbuf.Savev(path, type, keys, values);
+        var (keys, values) = GetSaveOptions(imageFormat, options.Quality);
+        using var helper = PixelFormatHelper.Create(this, options.PixelFormatHint, minFormat: ImagePixelFormat.RGB24);
+        helper.Image.Pixbuf.Savev(path, type, keys, values);
     }
 
-    public void Save(Stream stream, ImageFileFormat imageFormat, int quality = -1)
+    public void Save(Stream stream, ImageFileFormat imageFormat, ImageSaveOptions? options = null)
     {
-        if (imageFormat == ImageFileFormat.Unspecified)
+        if (imageFormat == ImageFileFormat.Unknown)
         {
             throw new ArgumentException("Format required to save to a stream", nameof(imageFormat));
         }
         if (imageFormat == ImageFileFormat.Tiff)
         {
-            ((GtkImageContext) ImageContext).TiffIo.SaveTiff(new List<IMemoryImage> { this }, stream);
+            ((GtkImageContext) ImageContext).TiffIo.SaveTiff([this], stream);
             return;
         }
         ImageContext.CheckSupportsFormat(imageFormat);
+        if (ImageContext.TryBundledEncode(this, stream, imageFormat, options))
+        {
+            return;
+        }
+        options ??= new ImageSaveOptions();
         var type = GetType(imageFormat);
-        var (keys, values) = GetSaveOptions(imageFormat, quality);
+        var (keys, values) = GetSaveOptions(imageFormat, options.Quality);
+        // TODO: GDK doesn't support optimizing bit depth (e.g. 1bit/8bit instead of 24bit/32bit) for BMP/PNG/JPEG.
+        // We'd probably need to use libpng/libjpeg etc. directly to fix that.
+        using var helper = PixelFormatHelper.Create(this, options.PixelFormatHint, minFormat: ImagePixelFormat.RGB24);
         // TODO: Map to OutputStream directly?
-        stream.Write(Pixbuf.SaveToBuffer(type, keys, values));
+        stream.Write(helper.Image.Pixbuf.SaveToBuffer(type, keys, values));
     }
 
     private string GetType(ImageFileFormat fileFormat) => fileFormat switch
@@ -132,7 +148,7 @@ public class GtkImage : IMemoryImage
         return (keys.ToArray(), values.ToArray());
     }
 
-    public IMemoryImage Clone() => new GtkImage(ImageContext, (Pixbuf) Pixbuf.Clone())
+    public IMemoryImage Clone() => new GtkImage((Pixbuf) Pixbuf.Clone())
     {
         OriginalFileFormat = OriginalFileFormat,
         LogicalPixelFormat = LogicalPixelFormat,

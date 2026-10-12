@@ -73,7 +73,7 @@
     <value>TIFF-fil (*.tiff, *.tif)</value>
   </data>
   <data name="FileTypeJp2" xml:space="preserve">
-    <value>JPEG2000 File (*.jp2, *.jpx)</value>
+    <value>JPEG2000-fil (*.jp2, *.jpx)</value>
   </data>
   <data name="NameMissing" xml:space="preserve">
     <value>Namn saknas.</value>
@@ -190,7 +190,7 @@
     <value>av {0}</value>
   </data>
   <data name="BatchError" xml:space="preserve">
-    <value>Ett okänt fel inträffade under mängdskanning.</value>
+    <value>Ett okänt fel uppstod under mängdskanningen.</value>
   </data>
   <data name="BatchStatusCancelled" xml:space="preserve">
     <value>Mängdskanning avbruten.</value>
@@ -310,16 +310,16 @@
     <value>{0} ({1}x{2} {3})</value>
   </data>
   <data name="ConfirmDelete" xml:space="preserve">
-    <value>Are you sure you want to delete "{0}"?</value>
+    <value>Vill du verkligen ta bort {0} objekt?</value>
   </data>
   <data name="FileInUse" xml:space="preserve">
     <value>Filen kunde inte skrivas över eftersom den används.</value>
   </data>
   <data name="AutoDeskewing" xml:space="preserve">
-    <value>Rättar...</value>
+    <value>Rätar upp...</value>
   </data>
   <data name="AutoDeskewProgress" xml:space="preserve">
-    <value>Rättar upp framsteg</value>
+    <value>Förlopp för Räta upp</value>
   </data>
   <data name="DownloadNeeded" xml:space="preserve">
     <value>Nerladdning behövs</value>
@@ -337,7 +337,13 @@
     <value>Donerar</value>
   </data>
   <data name="DonatePrompt" xml:space="preserve">
-    <value>NAPS2 är helt gratis. Tänk gärna på att donera..</value>
+    <value>NAPS2 är helt gratis. Överväg gärna att donera.</value>
+  </data>
+  <data name="LeaveAReview" xml:space="preserve">
+    <value>Skriv en recension</value>
+  </data>
+  <data name="ReviewPrompt" xml:space="preserve">
+    <value>Gillar du NAPS2?</value>
   </data>
   <data name="SaneNotAvailable" xml:space="preserve">
     <value>SANE drivrutin är inte tillgänglig. Kontroller och installera nödvändigt paket:</value>
@@ -367,7 +373,7 @@
     <value>Kontrollerar...</value>
   </data>
   <data name="UpdateCheckDisabled" xml:space="preserve">
-    <value>Update checking is disabled.</value>
+    <value>Sökning efter uppdateringar är inaktiverad.</value>
   </data>
   <data name="UpdateError" xml:space="preserve">
     <value>Ett fel inträffade när uppdateringen försökte installeras.</value>
@@ -379,13 +385,13 @@
     <value>En uppdatering är tillgänglig.</value>
   </data>
   <data name="AuthError" xml:space="preserve">
-    <value>An error occurred when trying to authorize.</value>
+    <value>Ett fel uppstod vid försök att auktorisera.</value>
   </data>
   <data name="UploadingEmail" xml:space="preserve">
     <value>Laddar upp e-post...</value>
   </data>
   <data name="ErrorEmailing" xml:space="preserve">
-    <value>Ett fel uppstod när man försökte skicka till E-Post.</value>
+    <value>Ett fel uppstod vid försök att skicka e-post.</value>
   </data>
   <data name="ScanProgressPage" xml:space="preserve">
     <value>Skannar sidan {0}...</value>

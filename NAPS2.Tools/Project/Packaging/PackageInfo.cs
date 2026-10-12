@@ -4,27 +4,37 @@ namespace NAPS2.Tools.Project.Packaging;
 
 public class PackageInfo
 {
-    private readonly List<PackageFile> _files = new();
-    private readonly HashSet<string> _destPaths = new();
+    private readonly List<PackageFile> _files = [];
+    private readonly HashSet<string> _destPaths = [];
 
-    public PackageInfo(Platform platform, string version)
+    public PackageInfo(Platform platform, string versionName, string versionNumber, string? packageName)
     {
         Platform = platform;
-        Version = version;
+        VersionName = versionName;
+        VersionNumber = versionNumber;
+        PackageName = packageName == null ? platform.PackageName() : $"{platform.PackageName()}-{packageName}";;
     }
 
     public Platform Platform { get; }
     
-    public string Version { get; }
+    public string VersionName { get; }
+
+    public string VersionNumber { get; }
+
+    public string PackageName { get; }
 
     public string GetPath(string ext)
     {
-        return ProjectHelper.GetPackagePath(ext, Platform, Version);
+        return ProjectHelper.GetPackagePath(ext, Platform, VersionName, PackageName);
     }
 
     public IEnumerable<PackageFile> Files => _files;
 
-    public HashSet<string> Languages { get; } = new();
+    /// <summary>
+    /// The set of languages that have resource files. This may be different from the set of NAPS2-supported languages
+    /// as WinForms etc. provide resources for a disjoint set of languages.
+    /// </summary>
+    public HashSet<string> Languages { get; } = [];
 
     public void AddFile(FileInfo file, string destFolder, string? destFileName = null)
     {

@@ -21,29 +21,8 @@
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Gråtoner</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 ppt</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 ppt</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 ppt</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 ppt</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 ppt</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 ppt</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 ppt</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 ppt</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} ppt</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
     <value>Custom SMTP</value>
@@ -51,8 +30,17 @@
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (new)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
     <value>Outlook Web Access</value>
+  </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
   </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
     <value>No provider selected.</value>
@@ -99,6 +87,9 @@
   <data name="PageSize_Letter" xml:space="preserve">
     <value>US Letter (8.5x11 in)</value>
   </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Egendefinert...</value>
+  </data>
   <data name="PdfCompat_Default" xml:space="preserve">
     <value>Standard</value>
   </data>
@@ -141,8 +132,11 @@
   <data name="TwainImpl_Legacy" xml:space="preserve">
     <value>Legacy (native UI only)</value>
   </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Native Transfer</value>
+  </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Alternativ overføring</value>
+    <value>Memory Transfer</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
     <value>Old DSM</value>
@@ -158,5 +152,32 @@
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
     <value>Best</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Save All</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Save Selected</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Always Prompt</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Prompt If Selected</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Scan With Default Profile</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Always Prompt</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
   </data>
 </root>

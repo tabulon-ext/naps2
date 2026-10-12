@@ -13,58 +13,46 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="BitDepth_1BlackAndWhite" xml:space="preserve">
-    <value>Чорно-білий</value>
+    <value>Чорно-біле</value>
   </data>
   <data name="BitDepth_24Color" xml:space="preserve">
-    <value>Кольорове 24-біти</value>
+    <value>Кольорове (24-бітне)</value>
   </data>
   <data name="BitDepth_8Grayscale" xml:space="preserve">
     <value>Відтінки сірого</value>
   </data>
-  <data name="Dpi_100" xml:space="preserve">
-    <value>100 т/д</value>
-  </data>
-  <data name="Dpi_1200" xml:space="preserve">
-    <value>1200 т/д</value>
-  </data>
-  <data name="Dpi_150" xml:space="preserve">
-    <value>150 т/д</value>
-  </data>
-  <data name="Dpi_200" xml:space="preserve">
-    <value>200 т/д</value>
-  </data>
-  <data name="Dpi_300" xml:space="preserve">
-    <value>300 т/д</value>
-  </data>
-  <data name="Dpi_400" xml:space="preserve">
-    <value>400 т/д</value>
-  </data>
-  <data name="Dpi_600" xml:space="preserve">
-    <value>600 т/д</value>
-  </data>
-  <data name="Dpi_800" xml:space="preserve">
-    <value>800 т/д</value>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0} DPI (точок на дюйм)</value>
   </data>
   <data name="EmailProviderType_CustomSmtp" xml:space="preserve">
-    <value>Custom SMTP</value>
+    <value>Власний SMTP</value>
   </data>
   <data name="EmailProviderType_Gmail" xml:space="preserve">
     <value>Gmail</value>
   </data>
+  <data name="EmailProviderType_OutlookNew" xml:space="preserve">
+    <value>Outlook (новий)</value>
+  </data>
   <data name="EmailProviderType_OutlookWeb" xml:space="preserve">
     <value>Outlook Web Access</value>
   </data>
+  <data name="EmailProviderType_Thunderbird" xml:space="preserve">
+    <value>Thunderbird</value>
+  </data>
+  <data name="EmailProviderType_AppleMail" xml:space="preserve">
+    <value>Apple Mail</value>
+  </data>
   <data name="EmailProvider_NotSelected" xml:space="preserve">
-    <value>No provider selected.</value>
+    <value>Не вибрано постачальника.</value>
   </data>
   <data name="HorizontalAlign_Center" xml:space="preserve">
     <value>По центру</value>
   </data>
   <data name="HorizontalAlign_Left" xml:space="preserve">
-    <value>Вліво</value>
+    <value>Ліворуч</value>
   </data>
   <data name="HorizontalAlign_Right" xml:space="preserve">
-    <value>Вправо</value>
+    <value>Праворуч</value>
   </data>
   <data name="PageSizeUnit_Centimetre" xml:space="preserve">
     <value>см</value>
@@ -85,22 +73,25 @@
     <value>A5 (148 x 210 мм)</value>
   </data>
   <data name="PageSize_B4" xml:space="preserve">
-    <value>B4 (250x353 мм)</value>
+    <value>B4 (250 x 353 мм)</value>
   </data>
   <data name="PageSize_B5" xml:space="preserve">
-    <value>B5 (176x250 мм)</value>
+    <value>B5 (176 x 250 мм)</value>
   </data>
   <data name="PageSize_Custom" xml:space="preserve">
-    <value>Інший...</value>
+    <value>Власний розмір...</value>
   </data>
   <data name="PageSize_Legal" xml:space="preserve">
-    <value>US Legal (8.5x11 дюймів)</value>
+    <value>US Legal (8,5 x 14 дюймів)</value>
   </data>
   <data name="PageSize_Letter" xml:space="preserve">
-    <value>US Letter (8.5x11 дюймів)</value>
+    <value>US Letter (8,5 x 11 дюймів)</value>
+  </data>
+  <data name="Resolution_Custom" xml:space="preserve">
+    <value>Власний розмір...</value>
   </data>
   <data name="PdfCompat_Default" xml:space="preserve">
-    <value>Default</value>
+    <value>За замовчуванням</value>
   </data>
   <data name="PdfCompat_PdfA1B" xml:space="preserve">
     <value>PDF/A-1b</value>
@@ -115,16 +106,16 @@
     <value>PDF/A-3u</value>
   </data>
   <data name="Source_Duplex" xml:space="preserve">
-    <value>Двосторонній</value>
+    <value>Двостороннє</value>
   </data>
   <data name="Source_Feeder" xml:space="preserve">
-    <value>Автоподача</value>
+    <value>Автоподавач</value>
   </data>
   <data name="Source_Glass" xml:space="preserve">
-    <value>Зі скла</value>
+    <value>Скло сканера</value>
   </data>
   <data name="TiffComp_Auto" xml:space="preserve">
-    <value>Auto</value>
+    <value>Автоматично</value>
   </data>
   <data name="TiffComp_Ccitt4" xml:space="preserve">
     <value>CCITT4</value>
@@ -133,30 +124,60 @@
     <value>LZW</value>
   </data>
   <data name="TiffComp_None" xml:space="preserve">
-    <value>None</value>
+    <value>Нічого</value>
   </data>
   <data name="TwainImpl_Default" xml:space="preserve">
-    <value>Default</value>
+    <value>За замовчуванням</value>
   </data>
   <data name="TwainImpl_Legacy" xml:space="preserve">
-    <value>Legacy (native UI only)</value>
+    <value>Застарілий (лише вбудований інтерфейс)</value>
+  </data>
+  <data name="TwainImpl_NativeXfer" xml:space="preserve">
+    <value>Стандартне передавання</value>
   </data>
   <data name="TwainImpl_MemXfer" xml:space="preserve">
-    <value>Alternative Transfer</value>
+    <value>Передавання через пам'ять</value>
   </data>
   <data name="TwainImpl_OldDsm" xml:space="preserve">
-    <value>Old DSM</value>
+    <value>Застарілий DSM</value>
   </data>
   <data name="TwainImpl_X64" xml:space="preserve">
     <value>x64</value>
   </data>
   <data name="WiaVersion_Default" xml:space="preserve">
-    <value>Default</value>
+    <value>За замовчуванням</value>
   </data>
   <data name="OcrMode_Fast" xml:space="preserve">
-    <value>Fast</value>
+    <value>Швидкий</value>
   </data>
   <data name="OcrMode_Best" xml:space="preserve">
-    <value>Best</value>
+    <value>Найкращий</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveAll" xml:space="preserve">
+    <value>Зберегти все</value>
+  </data>
+  <data name="SaveButtonDefaultAction_SaveSelected" xml:space="preserve">
+    <value>Зберегти вибране</value>
+  </data>
+  <data name="SaveButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Завжди запитувати</value>
+  </data>
+  <data name="SaveButtonDefaultAction_PromptIfSelected" xml:space="preserve">
+    <value>Запитувати, якщо вибрано</value>
+  </data>
+  <data name="ScanButtonDefaultAction_ScanWithDefaultProfile" xml:space="preserve">
+    <value>Сканувати з профілем за замовчуванням</value>
+  </data>
+  <data name="ScanButtonDefaultAction_AlwaysPrompt" xml:space="preserve">
+    <value>Завжди запитувати</value>
+  </data>
+  <data name="Theme_Default" xml:space="preserve">
+    <value>За замовчуванням</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Світла</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Темна</value>
   </data>
 </root>

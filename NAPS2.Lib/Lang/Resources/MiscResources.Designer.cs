@@ -123,7 +123,7 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An unknown error ocurred during the batch scan..
+        ///   Looks up a localized string similar to An unknown error occurred during the batch scan..
         /// </summary>
         internal static string BatchError {
             get {
@@ -789,6 +789,15 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Leave a Review.
+        /// </summary>
+        internal static string LeaveAReview {
+            get {
+                return ResourceManager.GetString("LeaveAReview", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} ({1}x{2} {3}).
         /// </summary>
         internal static string NamedPageSizeFormat {
@@ -987,6 +996,15 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Like NAPS2?.
+        /// </summary>
+        internal static string ReviewPrompt {
+            get {
+                return ResourceManager.GetString("ReviewPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Running OCR....
         /// </summary>
         internal static string RunningOcr {
@@ -1158,7 +1176,7 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An error occured when trying to install the update..
+        ///   Looks up a localized string similar to An error occurred when trying to install the update..
         /// </summary>
         internal static string UpdateError {
             get {

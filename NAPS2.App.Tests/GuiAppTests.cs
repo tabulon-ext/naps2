@@ -1,4 +1,3 @@
-using System.Threading;
 using NAPS2.App.Tests.Targets;
 using NAPS2.Remoting;
 using NAPS2.Sdk.Tests;
@@ -8,14 +7,14 @@ namespace NAPS2.App.Tests;
 
 public class GuiAppTests : ContextualTests
 {
-    [Theory]
+    [GuiTheory]
     [ClassData(typeof(AppTestData))]
     public void CreatesWindow(IAppTestTarget target)
     {
         var process = AppTestHelper.StartGuiProcess(target.Gui, FolderPath);
         try
         {
-            if (OperatingSystem.IsWindows())
+            if (target.IsWindows)
             {
                 AppTestHelper.WaitForVisibleWindow(process);
                 Assert.Equal("NAPS2 - Not Another PDF Scanner", process.MainWindowTitle);
@@ -23,8 +22,8 @@ public class GuiAppTests : ContextualTests
             }
             else
             {
-                Thread.Sleep(1000);
-                Assert.True(Pipes.SendMessage(process, Pipes.MSG_CLOSE_WINDOW));
+                var helper = ProcessCoordinator.CreateDefault();
+                Assert.True(helper.CloseWindow(process, 5000));
             }
             Assert.True(process.WaitForExit(5000));
             AppTestHelper.AssertNoErrorLog(FolderPath);

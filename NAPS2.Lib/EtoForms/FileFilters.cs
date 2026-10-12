@@ -25,14 +25,11 @@ public class FileFilters
         if (groups.HasFlag(FileFilterGroup.AllImages))
         {
             filters.Add(new FileFilter(MiscResources.FileTypeImageFiles,
-                ".bmp", ".emf", ".exif", ".gif", "jpg", ".jpeg", ".png", ".tiff", ".tif"));
+                ".bmp", "jpg", ".jpeg", ".png", ".tiff", ".tif"));
         }
         if (groups.HasFlag(FileFilterGroup.Image))
         {
             filters.Add(new FileFilter(MiscResources.FileTypeBmp, ".bmp"));
-            filters.Add(new FileFilter(MiscResources.FileTypeEmf, ".emf"));
-            filters.Add(new FileFilter(MiscResources.FileTypeExif, ".exif"));
-            filters.Add(new FileFilter(MiscResources.FileTypeGif, ".gif"));
             filters.Add(new FileFilter(MiscResources.FileTypeJpeg, ".jpg", ".jpeg"));
             if (_imageContext.SupportsFormat(ImageFileFormat.Jpeg2000))
             {
@@ -41,7 +38,8 @@ public class FileFilters
             filters.Add(new FileFilter(MiscResources.FileTypePng, ".png"));
             filters.Add(new FileFilter(MiscResources.FileTypeTiff, ".tiff", ".tif"));
         }
-        if (selectedExt != null)
+        // TODO: Fix setting current filter on Eto GTK
+        if (selectedExt != null && !EtoPlatform.Current.IsGtk)
         {
             selectedExt = selectedExt.Replace(".", "");
             foreach (var filter in filters)

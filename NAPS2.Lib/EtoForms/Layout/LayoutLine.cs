@@ -7,11 +7,9 @@ namespace NAPS2.EtoForms.Layout;
 /// <summary>
 /// Abstract base class for LayoutColumn and LayoutRow. We use this class to generalize column and row layout logic.
 /// </summary>
-/// <typeparam name="TOrthogonal">The orthogonal type (e.g. LayoutRow if this is LayoutColumn).</typeparam>
-public abstract class LayoutLine<TOrthogonal> : LayoutContainer
-    where TOrthogonal : LayoutContainer
+public abstract class LayoutLine : LayoutContainer
 {
-    protected LayoutLine(LayoutElement[] children) : base(children)
+    protected LayoutLine(IEnumerable<LayoutElement> children) : base(children)
     {
     }
 
@@ -19,11 +17,30 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
 
     protected int? Spacing { get; init; }
 
+    protected bool Aligned { get; set; }
+
+    protected abstract bool IsOrthogonalTo(LayoutLine other);
+
     protected abstract PointF UpdatePosition(PointF position, float delta);
 
     protected abstract PointF UpdateOrthogonalPosition(PointF position, float delta);
 
     protected abstract SizeF UpdateTotalSize(SizeF size, SizeF childSize, int spacing);
+
+    protected abstract float GetBreadth(SizeF size);
+
+    protected abstract float GetLength(SizeF size);
+
+    protected abstract SizeF GetSize(float length, float breadth);
+
+    public override void Materialize(LayoutContext context)
+    {
+        var childContext = GetChildContext(context, RectangleF.Empty, false);
+        foreach (var child in Children)
+        {
+            child.Materialize(childContext);
+        }
+    }
 
     public override void DoLayout(LayoutContext context, RectangleF bounds)
     {
@@ -34,10 +51,10 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         if (Padding is { } padding)
         {
             bounds = new RectangleF(
-                bounds.X + padding.Left, bounds.Y + padding.Top,
-                bounds.Width - padding.Horizontal, bounds.Height - padding.Vertical);
+                bounds.X + padding.Left * context.Scale, bounds.Y + padding.Top * context.Scale,
+                bounds.Width - padding.Horizontal * context.Scale, bounds.Height - padding.Vertical * context.Scale);
         }
-        var childContext = GetChildContext(context, bounds);
+        var childContext = GetChildContext(context, bounds, true);
         GetInitialCellLengthsAndScaling(context, childContext, bounds, out var cellLengths, out var cellScaling);
 
         UpdateCellLengthsForAvailableSpace(cellLengths, cellScaling, bounds, context);
@@ -46,7 +63,7 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         // the actual space the control fills. The child always fills the cell length-wise, but breadth-wise it depends
         // on the control alignment.
         var cellOrigin = bounds.Location;
-        for (int i = 0; i < Children.Length; i++)
+        for (int i = 0; i < Children.Count; i++)
         {
             var child = Children[i];
             var cellSize = GetSize(cellLengths[i], GetBreadth(bounds.Size));
@@ -69,7 +86,8 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
 
     protected virtual int GetSpacingCore(int i, LayoutContext context)
     {
-        return Children[i].SpacingAfter ?? Spacing ?? context.DefaultSpacing;
+        int spacing = Children[i].SpacingAfter ?? Spacing ?? context.DefaultSpacing;
+        return (int) (context.Scale * spacing);
     }
 
     private void GetChildSizeAndOrigin(LayoutElement child, LayoutContext childContext,
@@ -91,30 +109,50 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         childOrigin = UpdateOrthogonalPosition(cellOrigin, alignmentOffset);
     }
 
-    public override SizeF GetPreferredSize(LayoutContext context, RectangleF parentBounds)
+    protected override SizeF GetPreferredSizeCore(LayoutContext context, RectangleF parentBounds)
     {
-        var childContext = GetChildContext(context, parentBounds);
+        var childContext = GetChildContext(context, parentBounds, true);
+        if (childContext.ParentVisibility?.IsVisible == false)
+        {
+            return SizeF.Empty;
+        }
         var size = SizeF.Empty;
         GetInitialCellLengthsAndScaling(context, childContext, parentBounds, out var cellLengths, out var cellScaling);
         UpdateCellLengthsWithPreferredLength(cellLengths, cellScaling);
-        for (int i = 0; i < Children.Length; i++)
+        for (int i = 0; i < Children.Count; i++)
         {
             var childSize = Children[i].GetPreferredSize(childContext, parentBounds);
             var childLayoutSize = GetSize(cellLengths[i], GetBreadth(childSize));
             size = UpdateTotalSize(size, childLayoutSize, GetSpacing(i, context));
         }
-        size += new SizeF(Padding?.Horizontal ?? 0, Padding?.Vertical ?? 0);
+        size += new SizeF(Padding?.Horizontal ?? 0, Padding?.Vertical ?? 0) * context.Scale;
+        if (Width != null)
+        {
+            size.Width = Width.Value;
+        }
+        if (Height != null)
+        {
+            size.Height = Height.Value;
+        }
         return size;
     }
 
-    private LayoutContext GetChildContext(LayoutContext context, RectangleF bounds)
+    private LayoutContext GetChildContext(LayoutContext context, RectangleF bounds, bool includeCellInfo)
     {
-        return context with
+        var childContext = context with
         {
-            CellLengths = GetChildCellLengths(context, bounds),
-            CellScaling = GetChildCellScaling(),
-            Depth = context.Depth + 1
+            Depth = context.Depth + 1,
+            ParentVisibility = LayoutVisibility.Combine(context.ParentVisibility, Visibility)
         };
+        if (includeCellInfo)
+        {
+            childContext = childContext with
+            {
+                CellLengths = GetChildCellLengths(context, bounds),
+                CellScaling = GetChildCellScaling()
+            };
+        }
+        return childContext;
     }
 
     private void GetInitialCellLengthsAndScaling(LayoutContext context, LayoutContext childContext, RectangleF bounds,
@@ -130,8 +168,8 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         }
         // If we aren't aligned or we don't have a parent to do that pre-calculation, then we just determine our cell
         // sizes and scaling directly without any special alignment constraints.
-        cellLengths = new List<float>();
-        cellScaling = new List<bool>();
+        cellLengths = [];
+        cellScaling = [];
         var lengthChildContext = childContext with { IsCellLengthQuery = true };
         foreach (var child in Children)
         {
@@ -177,7 +215,7 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         // If some controls scale, then we take [excess = remaining space + length of all scaling controls],
         // and divide that evenly among all scaling controls so they all have equal length.
         var excess = GetLength(bounds.Size);
-        for (int i = 0; i < Children.Length; i++)
+        for (int i = 0; i < Children.Count; i++)
         {
             if (!cellScaling[i])
             {
@@ -191,7 +229,7 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         if (excess <= 0) return;
         // Update the lengths of scaling controls
         var scaleAmount = Math.DivRem((int) excess, scaleCount, out int scaleExtra);
-        for (int i = 0; i < Children.Length; i++)
+        for (int i = 0; i < Children.Count; i++)
         {
             if (cellScaling[i])
             {
@@ -205,9 +243,9 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         var cellLengths = new List<float>();
         foreach (var child in Children)
         {
-            if (child is TOrthogonal { Aligned: true } opposite)
+            if (child is LayoutLine { Aligned: true } opposite && IsOrthogonalTo(opposite))
             {
-                for (int i = 0; i < opposite.Children.Length; i++)
+                for (int i = 0; i < opposite.Children.Count; i++)
                 {
                     if (cellLengths.Count <= i) cellLengths.Add(0);
                     // TODO: We should probably shrink the bounds if needed
@@ -224,9 +262,9 @@ public abstract class LayoutLine<TOrthogonal> : LayoutContainer
         var cellScaling = new List<bool>();
         foreach (var child in Children)
         {
-            if (child is TOrthogonal { Aligned: true } opposite)
+            if (child is LayoutLine { Aligned: true } opposite && IsOrthogonalTo(opposite))
             {
-                for (int i = 0; i < opposite.Children.Length; i++)
+                for (int i = 0; i < opposite.Children.Count; i++)
                 {
                     if (cellScaling.Count <= i) cellScaling.Add(false);
                     cellScaling[i] = cellScaling[i] || opposite.Children[i].Scale;

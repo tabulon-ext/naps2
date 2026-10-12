@@ -3,6 +3,7 @@ using Grpc.Core;
 using NAPS2.ImportExport.Email;
 using NAPS2.ImportExport.Email.Mapi;
 using NAPS2.Scan;
+using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Internal;
 using NAPS2.Scan.Internal.Twain;
 using NAPS2.Scan.Internal.Wia;
@@ -10,7 +11,7 @@ using NAPS2.Serialization;
 
 namespace NAPS2.Remoting.Worker;
 
-public class WorkerServiceAdapter
+internal class WorkerServiceAdapter
 {
     private readonly WorkerService.WorkerServiceClient _client;
 
@@ -19,7 +20,7 @@ public class WorkerServiceAdapter
         _client = new WorkerService.WorkerServiceClient(callInvoker);
     }
 
-    public void Init(string recoveryFolderPath)
+    public void Init(string? recoveryFolderPath)
     {
         var req = new InitRequest { RecoveryFolderPath = recoveryFolderPath ?? "" };
         var resp = _client.Init(req);
@@ -42,12 +43,52 @@ public class WorkerServiceAdapter
         return resp.WiaConfigurationXml.FromXml<WiaConfiguration>();
     }
 
-    public async Task<List<ScanDevice>> GetDeviceList(ScanOptions options)
+    public async Task GetDevices(ScanOptions options, CancellationToken cancelToken, Action<ScanDevice> callback)
     {
-        var req = new GetDeviceListRequest { OptionsXml = options.ToXml() };
-        var resp = await _client.GetDeviceListAsync(req);
-        RemotingHelper.HandleErrors(resp.Error);
-        return resp.DeviceListXml.FromXml<List<ScanDevice>>();
+        var req = new GetDevicesRequest
+        {
+            OptionsXml = options.ToXml()
+        };
+        try
+        {
+            var streamingCall = _client.GetDevices(req, cancellationToken: cancelToken);
+            while (await streamingCall.ResponseStream.MoveNext())
+            {
+                var resp = streamingCall.ResponseStream.Current;
+                RemotingHelper.HandleErrors(resp.Error);
+                callback(resp.DeviceXml.FromXml<ScanDevice>());
+            }
+        }
+        catch (RpcException ex)
+        {
+            if (ex.StatusCode == StatusCode.Unavailable)
+            {
+                throw new ScanDriverUnknownException(PlatformCompat.System.WorkerCrashMessage);
+            }
+            if (ex.Status.StatusCode != StatusCode.Cancelled)
+            {
+                throw;
+            }
+        }
+    }
+
+    public async Task<ScanCaps> GetCaps(ScanOptions options, CancellationToken cancelToken)
+    {
+        try
+        {
+            var req = new GetCapsRequest { OptionsXml = options.ToXml() };
+            var resp = await _client.GetCapsAsync(req, cancellationToken: cancelToken);
+            RemotingHelper.HandleErrors(resp.Error);
+            return resp.ScanCapsXml.FromXml<ScanCaps>();
+        }
+        catch (RpcException ex)
+        {
+            if (ex.StatusCode == StatusCode.Unavailable)
+            {
+                throw new ScanDriverUnknownException(PlatformCompat.System.WorkerCrashMessage);
+            }
+            throw;
+        }
     }
 
     public async Task Scan(ScanningContext scanningContext, ScanOptions options, CancellationToken cancelToken,
@@ -78,15 +119,30 @@ public class WorkerServiceAdapter
                         new DeserializeImageOptions());
                     imageCallback?.Invoke(renderableImage, resp.Image.RenderedFilePath);
                 }
+                if (resp.DeviceUriChanged != null)
+                {
+                    scanEvents.DeviceUriChanged(resp.DeviceUriChanged.IconUri, resp.DeviceUriChanged.ConnectionUri);
+                }
             }
         }
         catch (RpcException ex)
         {
-            if (ex.Status.StatusCode != StatusCode.Cancelled)
+            if (ex.StatusCode == StatusCode.Unavailable)
+            {
+                throw new ScanDriverUnknownException(PlatformCompat.System.WorkerCrashMessage);
+            }
+            if (ex.StatusCode != StatusCode.Cancelled)
             {
                 throw;
             }
         }
+    }
+
+    public async Task<bool> CanLoadMapi(string? clientName)
+    {
+        var req = new LoadMapiRequest { ClientName = clientName };
+        var resp = await _client.LoadMapiAsync(req);
+        return resp.Loaded;
     }
 
     public async Task<MapiSendMailReturnCode> SendMapiEmail(string? clientName, EmailMessage message)
@@ -126,7 +182,7 @@ public class WorkerServiceAdapter
 
     public void StopWorker()
     {
-        _client.StopWorkerAsync(new StopWorkerRequest());
+        _client.StopWorker(new StopWorkerRequest());
     }
 
     public async Task TwainScan(ScanOptions options, CancellationToken cancelToken, ITwainEvents twainEvents)
@@ -154,11 +210,19 @@ public class WorkerServiceAdapter
                 {
                     twainEvents.MemoryBufferTransferred(resp.MemoryBuffer);
                 }
+                if (resp.TransferCanceled != null)
+                {
+                    twainEvents.TransferCanceled(resp.TransferCanceled);
+                }
             }
         }
         catch (RpcException ex)
         {
-            if (ex.Status.StatusCode != StatusCode.Cancelled)
+            if (ex.StatusCode == StatusCode.Unavailable)
+            {
+                throw new ScanDriverUnknownException(PlatformCompat.System.WorkerCrashMessage);
+            }
+            if (ex.StatusCode != StatusCode.Cancelled)
             {
                 throw;
             }
@@ -167,10 +231,40 @@ public class WorkerServiceAdapter
 
     public async Task<List<ScanDevice>> TwainGetDeviceList(ScanOptions options)
     {
-        var req = new GetDeviceListRequest { OptionsXml = options.ToXml() };
-        var resp = await _client.TwainGetDeviceListAsync(req);
-        RemotingHelper.HandleErrors(resp.Error);
-        return resp.DeviceListXml.FromXml<List<ScanDevice>>();
+        try
+        {
+            var req = new GetDeviceListRequest { OptionsXml = options.ToXml() };
+            var resp = await _client.TwainGetDeviceListAsync(req);
+            RemotingHelper.HandleErrors(resp.Error);
+            return resp.DeviceListXml.FromXml<List<ScanDevice>>();
+        }
+        catch (RpcException ex)
+        {
+            if (ex.StatusCode == StatusCode.Unavailable)
+            {
+                throw new ScanDriverUnknownException(PlatformCompat.System.WorkerCrashMessage);
+            }
+            throw;
+        }
+    }
+
+    public async Task<ScanCaps> TwainGetCaps(ScanOptions options)
+    {
+        try
+        {
+            var req = new GetCapsRequest { OptionsXml = options.ToXml() };
+            var resp = await _client.TwainGetCapsAsync(req);
+            RemotingHelper.HandleErrors(resp.Error);
+            return resp.ScanCapsXml.FromXml<ScanCaps>();
+        }
+        catch (RpcException ex)
+        {
+            if (ex.StatusCode == StatusCode.Unavailable)
+            {
+                throw new ScanDriverUnknownException(PlatformCompat.System.WorkerCrashMessage);
+            }
+            throw;
+        }
     }
 
     public ProcessedImage ImportPostProcess(ScanningContext scanningContext, ProcessedImage img, int? thumbnailSize,

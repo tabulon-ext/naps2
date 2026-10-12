@@ -1,4 +1,5 @@
 using Eto.Forms;
+using NAPS2.EtoForms.Notifications;
 using NAPS2.EtoForms.Ui;
 
 namespace NAPS2.EtoForms;
@@ -6,15 +7,15 @@ namespace NAPS2.EtoForms;
 public class EtoOperationProgress : OperationProgress
 {
     private readonly IFormFactory _formFactory;
-    private readonly INotificationManager _notificationManager;
+    private readonly INotify _notify;
     private readonly Naps2Config _config;
 
-    private readonly HashSet<IOperation> _activeOperations = new();
+    private readonly HashSet<IOperation> _activeOperations = [];
 
-    public EtoOperationProgress(IFormFactory formFactory, INotificationManager notificationManager, Naps2Config config)
+    public EtoOperationProgress(IFormFactory formFactory, INotify notify, Naps2Config config)
     {
         _formFactory = formFactory;
-        _notificationManager = notificationManager;
+        _notify = notify;
         _config = config;
     }
 
@@ -33,7 +34,8 @@ public class EtoOperationProgress : OperationProgress
 
     public override void ShowProgress(IOperation op)
     {
-        if (_config.Get(c => c.BackgroundOperations).Contains(op.GetType().Name))
+        if (PlatformCompat.System.ShouldRememberBackgroundOperations &&
+            _config.Get(c => c.BackgroundOperations).Contains(op.GetType().Name))
         {
             ShowBackgroundProgress(op);
         }
@@ -47,15 +49,14 @@ public class EtoOperationProgress : OperationProgress
     {
         Attach(op);
 
-        var bgOps = _config.Get(c => c.BackgroundOperations);
-        bgOps = bgOps.Remove(op.GetType().Name);
-        _config.User.Set(c => c.BackgroundOperations, bgOps);
-
         if (!op.IsFinished)
         {
-            var form = _formFactory.Create<ProgressForm>();
-            form.Operation = op;
-            form.ShowModal();
+            Invoker.Current.Invoke(() =>
+            {
+                var form = _formFactory.Create<ProgressForm>();
+                form.Operation = op;
+                form.ShowModal();
+            });
         }
 
         if (!op.IsFinished)
@@ -68,13 +69,9 @@ public class EtoOperationProgress : OperationProgress
     {
         Attach(op);
 
-        var bgOps = _config.Get(c => c.BackgroundOperations);
-        bgOps = bgOps.Add(op.GetType().Name);
-        _config.User.Set(c => c.BackgroundOperations, bgOps);
-
         if (!op.IsFinished)
         {
-            Invoker.Current.SafeInvoke(() => _notificationManager.OperationProgress(this, op));
+            Invoker.Current.Invoke(() => _notify.OperationProgress(this, op));
         }
     }
 
@@ -103,7 +100,8 @@ public class EtoOperationProgress : OperationProgress
         else
         {
             numberLabel.Text = status.ProgressType == OperationProgressType.MB
-                ? string.Format(MiscResources.SizeProgress, (status.CurrentProgress / 1000000.0).ToString("f1"), (status.MaxProgress / 1000000.0).ToString("f1"))
+                ? string.Format(MiscResources.SizeProgress, (status.CurrentProgress / 1000000.0).ToString("f1"),
+                    (status.MaxProgress / 1000000.0).ToString("f1"))
                 : string.Format(MiscResources.ProgressFormat, status.CurrentProgress, status.MaxProgress);
             progressBar.MaxValue = status.MaxProgress;
             progressBar.Value = status.CurrentProgress;

@@ -1,36 +1,45 @@
+using Microsoft.Extensions.Logging;
 using NAPS2.Scan.Internal.Sane.Native;
 
 namespace NAPS2.Scan.Internal.Sane;
 
 internal class SaneOptionController
 {
-    private readonly SaneDevice _device;
+    private readonly ISaneDevice _device;
+    // TODO: Move exception handling + logging out if we split NAPS2.Sane off into a separate library
+    private readonly ILogger _logger;
     private Dictionary<string, SaneOption> _options = null!;
 
-    public SaneOptionController(SaneDevice device)
+    public SaneOptionController(ISaneDevice device, ILogger logger)
     {
         _device = device;
+        _logger = logger;
         LoadOptions();
+        foreach (var opt in _options.Values.OrderBy(x => x.Index))
+        {
+            _logger.LogDebug($"Option: {opt}");
+        }
     }
 
     private void LoadOptions()
     {
         _options = _device.GetOptions()
             .Where(x => x.Name != null && x.Type != SaneValueType.Group)
-            .ToDictionary(x => x.Name!);
+            .GroupBy(x => x.Name!)
+            .ToDictionary(x => x.Key, x => x.First());
     }
 
-    public bool TrySet(string name, double value)
+    public bool TrySet(string name, bool value)
     {
-        Console.WriteLine($"Maybe setting {name}");
+        _logger.LogDebug($"Maybe setting {name}");
         if (!_options.ContainsKey(name))
             return false;
         var opt = _options[name];
-        if (!opt.IsActive || !opt.IsSettable || opt.Type is not (SaneValueType.Int or SaneValueType.Fixed))
+        if (!opt.IsSettable || opt.Type != SaneValueType.Bool)
             return false;
         try
         {
-            Console.WriteLine($"Setting {name} to {value}");
+            _logger.LogDebug($"Setting {name} to {value}");
             _device.SetOption(_options[name], value, out var info);
             if (info.HasFlag(SaneOptionSetInfo.ReloadOptions))
             {
@@ -40,27 +49,58 @@ internal class SaneOptionController
         }
         catch (Exception ex)
         {
-            Log.ErrorException($"Error writing SANE option {name}", ex);
+            _logger.LogError(ex, "Error writing SANE option {OptionName}", name);
             return false;
         }
     }
 
-    public bool TrySet(string name, IEnumerable<string> valueSet)
+    public bool TrySet(string name, double value)
     {
-        Console.WriteLine($"Maybe setting {name}");
+        _logger.LogDebug($"Maybe setting {name}");
         if (!_options.ContainsKey(name))
             return false;
         var opt = _options[name];
-        if (!opt.IsActive || !opt.IsSettable || opt.Type != SaneValueType.String)
+        if (!opt.IsSettable || opt.Type is not (SaneValueType.Int or SaneValueType.Fixed))
             return false;
         try
         {
-            var valueHashSet = valueSet.ToHashSet();
+            _logger.LogDebug($"Setting {name} to {value}");
+            _device.SetOption(_options[name], value, out var info);
+            if (info.HasFlag(SaneOptionSetInfo.ReloadOptions))
+            {
+                LoadOptions();
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error writing SANE option {OptionName}", name);
+            return false;
+        }
+    }
+
+    public bool TrySet(string name, SaneOptionMatcher matcher)
+    {
+        return TrySet(name, matcher, out _);
+    }
+
+    public bool TrySet(string name, SaneOptionMatcher matcher, out string? matchedValue)
+    {
+        _logger.LogDebug($"Maybe setting {name}");
+        matchedValue = null;
+        if (!_options.ContainsKey(name))
+            return false;
+        var opt = _options[name];
+        if (!opt.IsSettable || opt.Type != SaneValueType.String)
+            return false;
+        try
+        {
             foreach (var value in opt.StringList!)
             {
-                if (valueHashSet.Contains(value))
+                if (matcher.Matches(value))
                 {
-                    Console.WriteLine($"Setting {name} to {value}");
+                    matchedValue = value;
+                    _logger.LogDebug($"Setting {name} to {value}");
                     _device.SetOption(opt, value, out var info);
                     if (info.HasFlag(SaneOptionSetInfo.ReloadOptions))
                     {
@@ -72,7 +112,7 @@ internal class SaneOptionController
         }
         catch (Exception ex)
         {
-            Log.ErrorException($"Error writing SANE option {name}", ex);
+            _logger.LogError(ex, "Error writing SANE option {OptionName}", name);
         }
         return false;
     }
@@ -88,7 +128,7 @@ internal class SaneOptionController
         if (!_options.ContainsKey(name))
             return false;
         var opt = _options[name];
-        if (!opt.IsActive || opt.Type is not (SaneValueType.Int or SaneValueType.Fixed))
+        if (opt.Type is not (SaneValueType.Int or SaneValueType.Fixed))
             return false;
         try
         {
@@ -97,7 +137,7 @@ internal class SaneOptionController
         }
         catch (Exception ex)
         {
-            Log.ErrorException($"Error reading SANE option {name}", ex);
+            _logger.LogError(ex, "Error writing SANE option {OptionName}", name);
             return false;
         }
     }

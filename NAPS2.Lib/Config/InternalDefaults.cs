@@ -3,8 +3,8 @@ using NAPS2.ImportExport;
 using NAPS2.ImportExport.Email;
 using NAPS2.ImportExport.Email.Oauth;
 using NAPS2.ImportExport.Images;
-using NAPS2.ImportExport.Pdf;
 using NAPS2.Ocr;
+using NAPS2.Pdf;
 using NAPS2.Scan;
 using NAPS2.Scan.Batch;
 
@@ -20,10 +20,12 @@ public static class InternalDefaults
             FormStates = ImmutableList<FormState>.Empty,
             BackgroundOperations = ImmutableHashSet<string>.Empty,
             CustomPageSizePresets = ImmutableList<NamedPageSize>.Empty,
-            SavedProxies = ImmutableList<ScanProxyConfig>.Empty,
             StartupMessageTitle = "",
             StartupMessageText = "",
             StartupMessageIcon = MessageBoxIcon.None,
+            Theme = Theme.Default,
+            ScanChangesDefaultProfile = true,
+            ScanButtonDefaultAction = ScanButtonDefaultAction.ScanWithDefaultProfile,
             SaveButtonDefaultAction = SaveButtonDefaultAction.SaveAll,
             HiddenButtons = ToolbarButtons.None,
             DisableAutoSave = false,
@@ -31,7 +33,6 @@ public static class InternalDefaults
             LockUnspecifiedDevices = false,
             NoUserProfiles = false,
             AlwaysRememberDevice = false,
-            DisableGenericPdfImport = false,
             NoUpdatePrompt = false,
             CheckForUpdates = false,
             HasCheckedForUpdates = false,
@@ -40,6 +41,8 @@ public static class InternalDefaults
             FirstRunDate = null,
             HasBeenPromptedForDonation = false,
             LastDonatePromptDate = null,
+            HasBeenPromptedForReview = false,
+            LastReviewPromptDate = null,
             DeleteAfterSaving = false,
             DisableSaveNotifications = false,
             DisableExitConfirmation = false,
@@ -48,12 +51,26 @@ public static class InternalDefaults
             OcrTimeoutInSeconds = 10 * 60, // 10 minutes
             EnableOcr = false,
             OcrLanguageCode = "",
+            LastOcrMultiLangCode = "",
             OcrMode = LocalizedOcrMode.Fast,
+            OcrPreProcessing = false,
             OcrAfterScanning = true,
             LastImageExt = "",
+            LastPdfOrImageExt = "",
             ThumbnailSize = ThumbnailSizes.DEFAULT_SIZE,
             DesktopToolStripDock = DockStyle.Top,
             EventLogging = EventType.None,
+            ShowPageNumbers = false,
+            SidebarVisible = true,
+            SidebarWidth = 230,
+            EditWithAppPath = "",
+            EditWithAppName = "",
+            ApplyToAllSelected = false,
+            ManualDuplexSettings = new ManualDuplexSettings
+            {
+                AlwaysShowPreview = true,
+                ReverseBackSides = false
+            },
             PdfSettings = new PdfSettings
             {
                 Metadata = new PdfMetadata
@@ -125,7 +142,7 @@ public static class InternalDefaults
             },
             KeyboardShortcuts = new KeyboardShortcuts
             {
-                ScanDefault = "Ctrl+Enter",
+                ScanDefault = "Mod+Enter",
                 ScanProfile1 = "F2",
                 ScanProfile2 = "F3",
                 ScanProfile3 = "F4",
@@ -138,21 +155,25 @@ public static class InternalDefaults
                 ScanProfile10 = "F11",
                 ScanProfile11 = "F12",
                 ScanProfile12 = "",
-                NewProfile = "",
-                BatchScan = "Ctrl+B",
-                Profiles = "",
-                Ocr = "",
-                Import = "Ctrl+O",
-                SavePDF = "Ctrl+S",
-                SavePDFAll = "",
-                SavePDFSelected = "",
+                NewProfile = "Mod+N",
+                BatchScan = "Mod+B",
+                Profiles = "Mod+L",
+                ScannerSharing = "Mod+G",
+                Ocr = "Mod+Alt+O",
+                Import = "Mod+O",
+                SavePDF = "",
+                SavePDFAll = "Mod+S",
+                SavePDFSelected = "Mod+Shift+S",
+                PDFSettings = "Mod+Alt+P",
                 SaveImages = "",
-                SaveImagesAll = "",
-                SaveImagesSelected = "",
+                SaveImagesAll = "Mod+I",
+                SaveImagesSelected = "Mod+Shift+I",
+                ImageSettings = "Mod+Alt+I",
                 EmailPDF = "",
-                EmailPDFAll = "",
-                EmailPDFSelected = "",
-                Print = "Ctrl+P",
+                EmailPDFAll = "Mod+E",
+                EmailPDFSelected = "Mod+Shift+E",
+                EmailSettings = "Mod+Alt+E",
+                Print = "Mod+P",
                 ImageView = "",
                 ImageBlackWhite = "",
                 ImageBrightness = "",
@@ -162,12 +183,20 @@ public static class InternalDefaults
                 ImageReset = "",
                 ImageSaturation = "",
                 ImageSharpen = "",
-                RotateLeft = "",
-                RotateRight = "",
-                RotateFlip = "",
+                ImageDocumentCorrection = "",
+                ImageCompress = "",
+                ImageSplit = "",
+                ImageCombine = "",
+                ImageEditWith = "",
+                RotateLeft = "Mod+Shift+Left",
+                RotateRight = "Mod+Shift+Right",
+                RotateFlip = "Mod+Shift+Down",
                 RotateCustom = "",
-                MoveUp = "Ctrl+Up",
-                MoveDown = "Ctrl+Down",
+                RotateDeskew = "",
+                MoveUp = "Mod+Up",
+                MoveDown = "Mod+Down",
+                ReorderManualDuplex = "",
+                ReorderManualDuplexPreview = "",
                 ReorderInterleave = "",
                 ReorderDeinterleave = "",
                 ReorderAltInterleave = "",
@@ -175,11 +204,13 @@ public static class InternalDefaults
                 ReorderReverseAll = "",
                 ReorderReverseSelected = "",
                 Delete = "",
-                Clear = "Ctrl+Shift+Del",
+                Clear = "Mod+Shift+Del",
+                Settings = "",
                 About = "F1",
-                ZoomIn = "Ctrl+Oemplus",
-                ZoomOut = "Ctrl+OemMinus"
+                ZoomIn = "Mod+Oemplus",
+                ZoomOut = "Mod+OemMinus"
             },
-            DefaultProfileSettings = new ScanProfile { Version = ScanProfile.CURRENT_VERSION }
+            DefaultProfileSettings = new ScanProfile
+                { Version = ScanProfile.CURRENT_VERSION, PageSize = ScanPageSize.SystemDefault }
         };
 }

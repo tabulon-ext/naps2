@@ -1,44 +1,40 @@
-using System.Threading;
 using Eto.Forms;
 using NAPS2.EtoForms.Desktop;
 using NAPS2.EtoForms.Layout;
 using NAPS2.EtoForms.Mac;
-using NAPS2.ImportExport.Images;
+using NAPS2.EtoForms.Notifications;
+using NAPS2.EtoForms.Widgets;
 using NAPS2.Scan;
 
 namespace NAPS2.EtoForms.Ui;
 
 public class MacDesktopForm : DesktopForm
 {
+    private NSSlider? _zoomSlider;
+
     public MacDesktopForm(
         Naps2Config config,
         DesktopKeyboardShortcuts keyboardShortcuts,
-        INotificationManager notify,
+        NotificationManager notificationManager,
         CultureHelper cultureHelper,
+        ColorScheme colorScheme,
         IProfileManager profileManager,
         UiImageList imageList,
-        ImageTransfer imageTransfer,
         ThumbnailController thumbnailController,
         UiThumbnailProvider thumbnailProvider,
         DesktopController desktopController,
         IDesktopScanController desktopScanController,
         ImageListActions imageListActions,
+        ImageListViewBehavior imageListViewBehavior,
         DesktopFormProvider desktopFormProvider,
         IDesktopSubFormController desktopSubFormController,
-        DesktopCommands commands)
-        : base(config, keyboardShortcuts, notify, cultureHelper, profileManager,
-            imageList, imageTransfer, thumbnailController, thumbnailProvider, desktopController, desktopScanController,
-            imageListActions, desktopFormProvider, desktopSubFormController, commands)
+        Lazy<DesktopCommands> commands,
+        Sidebar sidebar,
+        IIconProvider iconProvider)
+        : base(config, keyboardShortcuts, notificationManager, cultureHelper, colorScheme, profileManager, imageList,
+            thumbnailController, thumbnailProvider, desktopController, desktopScanController, imageListActions,
+            imageListViewBehavior, desktopFormProvider, desktopSubFormController, commands, sidebar, iconProvider)
     {
-        // For retina screens
-        _thumbnailController.Oversample = 2.0;
-    }
-
-    protected override void OnLoad(EventArgs e)
-    {
-        // TODO: What's the best place to initialize this? It needs to happen from the UI event loop.
-        Invoker.Current = new SyncContextInvoker(SynchronizationContext.Current!);
-        base.OnLoad(e);
     }
 
     protected override void UpdateTitle(ScanProfile? defaultProfile)
@@ -54,22 +50,20 @@ public class MacDesktopForm : DesktopForm
     {
         Commands.MoveDown.ToolBarText = "";
         Commands.MoveUp.ToolBarText = "";
-        Commands.SaveAllPdf.Shortcut = Application.Instance.CommonModifier | Keys.S;
-        Commands.SaveSelectedPdf.Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.S;
-        Commands.SaveAllImages.Shortcut = Application.Instance.CommonModifier | Keys.M;
-        Commands.SaveSelectedImages.Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.M;
 
         Menu = new MenuBar
         {
             AboutItem = Commands.About,
             ApplicationItems =
             {
+                Commands.Settings,
                 CreateSubMenu(Commands.LanguageMenu, GetLanguageMenuProvider())
             },
             Items =
             {
                 new SubMenuItem
                 {
+                    // TODO: Localize this?
                     Text = "File",
                     Items =
                     {
@@ -77,65 +71,98 @@ public class MacDesktopForm : DesktopForm
                         new SeparatorMenuItem(),
                         Commands.SaveAll,
                         Commands.SaveSelected,
-                        // TODO: Implement print/email on Mac/Linux
-                        // new SeparatorMenuItem(),
-                        // Commands.EmailAll,
-                        // Commands.EmailSelected,
-                        // Commands.Print,
+                        new SeparatorMenuItem(),
+                        Commands.EmailAll,
+                        Commands.EmailSelected,
+                        Commands.Print,
                         new SeparatorMenuItem(),
                         Commands.PdfSettings,
                         Commands.ImageSettings,
-                        // Commands.EmailSettings,
+                        Commands.EmailSettings,
                         new SeparatorMenuItem(),
                         Commands.ClearAll
                     }
                 },
                 new SubMenuItem
                 {
-                    Text = "Edit"
-                },
-                new SubMenuItem
-                {
-                    Text = "Scan",
+                    // The space makes sure this doesn't match the default "Edit" menu
+                    Text = UiStrings.Edit + " ",
                     Items =
                     {
-                        Commands.Scan,
-                        Commands.NewProfile
+                        Commands.SelectAll,
+                        Commands.Copy,
+                        Commands.Paste,
+                        new SeparatorMenuItem(),
+                        Commands.Undo,
+                        Commands.Redo,
+                        new SeparatorMenuItem(),
+                        Commands.Delete
                     }
                 },
+                CreateSubMenu(Commands.Scan, new MenuProvider()
+                    .Dynamic(_scanMenuCommands)
+                    .Separator()
+                    .Append(Commands.NewProfile)
+                    .Append(Commands.BatchScan)),
+                CreateSubMenu(Commands.ImageMenu, new MenuProvider()
+                    .Append(Commands.ViewImage)
+                    .Append(Commands.ZoomIn)
+                    .Append(Commands.ZoomOut)
+                    .Separator()
+                    .Append(Commands.Crop)
+                    .Append(Commands.BrightCont)
+                    .Append(Commands.HueSat)
+                    .Append(Commands.BlackWhite)
+                    .Append(Commands.Sharpen)
+                    .Append(Commands.DocumentCorrection)
+                    .Append(Commands.Compress)
+                    .Separator()
+                    .Append(Commands.Split)
+                    .Append(Commands.Combine)
+                    .Separator()
+                    .Append(Commands.RotateLeft)
+                    .Append(Commands.RotateRight)
+                    .Append(Commands.Flip)
+                    .Append(Commands.Deskew)
+                    .Append(Commands.CustomRotate)
+                    .Separator()
+                    .Dynamic(_editWithCommands)
+                    .Append(Commands.EditWithPick)
+                    .Separator()
+                    .Append(Commands.ResetImage)),
+                CreateSubMenu(Commands.ReorderMenu, new MenuProvider()
+                    .Append(Commands.MoveUp)
+                    .Append(Commands.MoveDown)
+                    .Separator()
+                    .Append(Commands.ManualDuplex)
+                    .Dynamic(_manualDuplexPreviewCommands)
+                    .Separator()
+                    .Append(Commands.Interleave)
+                    .Append(Commands.Deinterleave)
+                    .Append(Commands.AltInterleave)
+                    .Append(Commands.AltDeinterleave)
+                    .Separator()
+                    .Append(Commands.ReverseAll)
+                    .Append(Commands.ReverseSelected)),
                 new SubMenuItem
                 {
-                    Text = "Image",
+                    Text = UiStrings.Tools,
                     Items =
                     {
-                        Commands.ViewImage,
-                        new SeparatorMenuItem(),
-                        Commands.Crop,
-                        Commands.BrightCont,
-                        Commands.HueSat,
-                        Commands.BlackWhite,
-                        Commands.Sharpen,
-                        Commands.DocumentCorrection,
-                        new SeparatorMenuItem(),
-                        Commands.ResetImage
-                    }
-                },
-                new SubMenuItem
-                {
-                    Text = "Tools",
-                    Items =
-                    {
+                        Commands.Profiles,
                         Commands.BatchScan,
+                        Commands.ScannerSharing,
                         Commands.Ocr
                     }
                 }
             }
         };
 
+        // TODO: If we ever make significant changes to the toolbar layout, maybe add ".v2" so it resets saved config
         var toolbar = new NSToolbar("naps2.desktop.toolbar");
         toolbar.Delegate = new MacToolbarDelegate(CreateMacToolbarItems());
         toolbar.AllowsUserCustomization = true;
-        // toolbar.AutosavesConfiguration = true;
+        toolbar.AutosavesConfiguration = true;
 
         var window = this.ToNative();
         if (OperatingSystem.IsMacOSVersionAtLeast(11))
@@ -155,8 +182,19 @@ public class MacDesktopForm : DesktopForm
 
     private List<NSToolbarItem?> CreateMacToolbarItems()
     {
-        return new List<NSToolbarItem?>
+        _zoomSlider = new NSSlider
         {
+            MinValue = 0,
+            MaxValue = 1,
+            DoubleValue = ThumbnailSizes.SizeToCurve(_thumbnailController.VisibleSize),
+            ToolTip = UiStrings.Zoom
+        };
+        _zoomSlider.WithAction(() =>
+            _thumbnailController.VisibleSize = ThumbnailSizes.CurveToSize(_zoomSlider.DoubleValue));
+        _thumbnailController.ThumbnailSizeChanged += ThumbnailController_ThumbnailSizeChanged;
+
+        return
+        [
             MacToolbarItems.Create("scan", Commands.Scan),
             MacToolbarItems.Create("profiles", Commands.Profiles),
             MacToolbarItems.CreateSpace(),
@@ -167,29 +205,30 @@ public class MacDesktopForm : DesktopForm
             MacToolbarItems.CreateMenu("rotate", Commands.RotateMenu, GetRotateMenuProvider()),
             MacToolbarItems.Create("moveUp", Commands.MoveUp, tooltip: UiStrings.MoveUp),
             MacToolbarItems.Create("moveDown", Commands.MoveDown, tooltip: UiStrings.MoveDown),
+            MacToolbarItems.Create("sidebar", Commands.ToggleSidebar, tooltip: UiStrings.ToggleSidebar, nav: true),
             new NSToolbarItem("zoom")
             {
-                View = new NSSlider
-                {
-                    MinValue = 0,
-                    MaxValue = 1,
-                    DoubleValue = ThumbnailSizes.SizeToCurve(_thumbnailController.VisibleSize),
-                    ToolTip = UiStrings.Zoom
-                }.WithAction(ZoomUpdated),
+                View = _zoomSlider,
                 // MaxSize still works even though it's deprecated
 #pragma warning disable CA1416
 #pragma warning disable CA1422
-                MaxSize = new CGSize(64, 999)
+                MaxSize = new CGSize(64, 24)
 #pragma warning restore CA1422
 #pragma warning restore CA1416
             }
-        };
+        ];
     }
 
-    protected override LayoutElement GetZoomButtons() => C.Spacer();
-
-    private void ZoomUpdated(NSSlider sender)
+    protected override void OnClosed(EventArgs e)
     {
-        _thumbnailController.VisibleSize = ThumbnailSizes.CurveToSize(sender.DoubleValue);
+        base.OnClosed(e);
+        _thumbnailController.ThumbnailSizeChanged -= ThumbnailController_ThumbnailSizeChanged;
     }
+
+    private void ThumbnailController_ThumbnailSizeChanged(object? o, EventArgs eventArgs)
+    {
+        _zoomSlider!.DoubleValue = ThumbnailSizes.SizeToCurve(_thumbnailController.VisibleSize);
+    }
+
+    protected override LayoutElement GetControlButtons() => C.Spacer();
 }

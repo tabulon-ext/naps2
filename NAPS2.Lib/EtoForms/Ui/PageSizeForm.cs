@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using Eto.Forms;
 using NAPS2.EtoForms.Layout;
+using NAPS2.EtoForms.Widgets;
 using NAPS2.Scan;
 
 namespace NAPS2.EtoForms.Ui;
@@ -9,29 +10,29 @@ namespace NAPS2.EtoForms.Ui;
 public class PageSizeForm : EtoDialogBase
 {
     private readonly ComboBox _name = new();
-    private readonly NumericMaskedTextBox<decimal> _width = new();
-    private readonly NumericMaskedTextBox<decimal> _height = new();
-    private readonly DropDown _unit = C.EnumDropDown<LocalizedPageSizeUnit>();
+    private readonly UndoableNumericMaskedTextBox<decimal> _width = new();
+    private readonly UndoableNumericMaskedTextBox<decimal> _height = new();
+    private readonly EnumDropDownWidget<LocalizedPageSizeUnit> _unit = new();
 
     private PageDimensions? _initialDimens;
 
-    public PageSizeForm(Naps2Config config)
+    public PageSizeForm(Naps2Config config, IIconProvider iconProvider)
         : base(config)
     {
         DeletePageSizeCommand = new ActionCommand(DeletePageSize)
         {
-            Image = Icons.cross_small.ToEtoImage()
+            Image = iconProvider.GetIcon("cross_small")
         };
         _name.SelectedValueChanged += Name_SelectionChange;
         _name.TextChanged += Name_TextChanged;
     }
 
-    public Command DeletePageSizeCommand { get; set; }
+    public ActionCommand DeletePageSizeCommand { get; set; }
 
     private void DeletePageSize()
     {
         if (MessageBox.Show(string.Format(MiscResources.ConfirmDelete, _name.Text), MiscResources.Delete,
-                MessageBoxButtons.OKCancel, MessageBoxType.Question) == DialogResult.Ok)
+                MessageBoxButtons.OKCancel, MessageBoxType.Question, MessageBoxDefaultButton.OK) == DialogResult.Ok)
         {
             var presets = Config.Get(c => c.CustomPageSizePresets);
             presets = presets.RemoveAll(x => x.Name == _name.Text);
@@ -68,7 +69,7 @@ public class PageSizeForm : EtoDialogBase
             C.Label(UiStrings.NameOptional),
             L.Row(
                 _name.Scale().NaturalWidth(250).AlignCenter(),
-                C.Button(DeletePageSizeCommand, ButtonImagePosition.Overlay).AlignCenter()
+                C.Button(DeletePageSizeCommand, ButtonImagePosition.Overlay).AlignCenter().Width(30)
             ),
             C.Spacer(),
             C.Label(UiStrings.Dimensions),
@@ -76,7 +77,7 @@ public class PageSizeForm : EtoDialogBase
                 _width.Scale().AlignCenter(),
                 C.Label("X").AlignCenter(),
                 _height.Scale().AlignCenter(),
-                _unit.Scale().AlignCenter()
+                _unit.AsControl().Scale().AlignCenter()
             ),
             L.Row(
                 C.Filler(),
@@ -100,7 +101,7 @@ public class PageSizeForm : EtoDialogBase
     {
         _width.Text = dimens.Width.ToString(CultureInfo.CurrentCulture);
         _height.Text = dimens.Height.ToString(CultureInfo.CurrentCulture);
-        _unit.SelectedIndex = (int) dimens.Unit;
+        _unit.SelectedItem = dimens.Unit;
     }
 
     private void Name_SelectionChange(object? sender, EventArgs e)
@@ -137,7 +138,7 @@ public class PageSizeForm : EtoDialogBase
         {
             Width = width,
             Height = height,
-            Unit = (LocalizedPageSizeUnit) _unit.SelectedIndex
+            Unit = _unit.SelectedItem
         };
         if (!string.IsNullOrWhiteSpace(_name.Text))
         {

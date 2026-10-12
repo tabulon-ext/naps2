@@ -2,16 +2,15 @@
 
 namespace NAPS2.Scan.Internal.Sane.Native;
 
-public class SaneOption
+internal class SaneOption
 {
     private static IEnumerable<string> ParseStringArray(IntPtr arrayPtr)
     {
-        for (int i = 0; ; i++)
+        for (int i = 0;; i++)
         {
             var ptr = Marshal.ReadIntPtr(arrayPtr + IntPtr.Size * i);
             var str = Marshal.PtrToStringAnsi(ptr);
             if (str == null) break;
-            Console.WriteLine($"Reading constraint value {str}");
             yield return str;
         }
     }
@@ -30,8 +29,32 @@ public class SaneOption
         int count = Marshal.ReadInt32(arrayPtr);
         for (int i = 0; i < count; i++)
         {
-            yield return SaneFixedPoint.ToFixed(Marshal.ReadInt32(arrayPtr + (i + 1) * 4));
+            yield return SaneFixedPoint.ToDouble(Marshal.ReadInt32(arrayPtr + (i + 1) * 4));
         }
+    }
+
+    internal static SaneOption CreateStringListForTesting(int index, string name, string[] stringList)
+    {
+        return new SaneOption(index, name, "", "", SaneValueType.String, SaneUnit.None, 0, SaneCapabilities.SoftSelect,
+            SaneConstraintType.StringList, stringList.ToList(), null, null);
+    }
+
+    internal static SaneOption CreateWordListForTesting(int index, string name, double[] wordList)
+    {
+        return new SaneOption(index, name, "", "", SaneValueType.Int, SaneUnit.None, 0, SaneCapabilities.SoftSelect,
+            SaneConstraintType.WordList, null, wordList.ToList(), null);
+    }
+
+    internal static SaneOption CreateBooleanForTesting(int index, string name)
+    {
+        return new SaneOption(index, name, "", "", SaneValueType.Bool, SaneUnit.None, 0, SaneCapabilities.SoftSelect,
+            SaneConstraintType.None, null, null, null);
+    }
+
+    internal static SaneOption CreateFixedForTesting(int index, string name, SaneRange range)
+    {
+        return new SaneOption(index, name, "", "", SaneValueType.Fixed, SaneUnit.Mm, 0, SaneCapabilities.SoftSelect,
+            SaneConstraintType.Range, null, null, range);
     }
 
     internal SaneOption(SaneOptionDescriptor descriptor, int index)
@@ -45,7 +68,6 @@ public class SaneOption
         Size = descriptor.Size;
         Capabilities = descriptor.Capabilities;
         ConstraintType = descriptor.ConstraintType;
-        Console.WriteLine($"Creating option {Index} {Name} {Title} {Desc} {Type} {Unit} {Size} {Capabilities} {ConstraintType} {descriptor.Constraint}");
         if (descriptor.ConstraintType == SaneConstraintType.StringList)
         {
             StringList = ParseStringArray(descriptor.Constraint).ToList();
@@ -77,6 +99,24 @@ public class SaneOption
         }
     }
 
+    private SaneOption(int index, string name, string title, string desc, SaneValueType type, SaneUnit unit, int size,
+        SaneCapabilities caps, SaneConstraintType constraintType, List<string>? stringList, List<double>? wordList,
+        SaneRange? range)
+    {
+        Index = index;
+        Name = name;
+        Title = title;
+        Desc = desc;
+        Type = type;
+        Unit = unit;
+        Size = size;
+        Capabilities = caps;
+        ConstraintType = constraintType;
+        StringList = stringList;
+        WordList = wordList;
+        Range = range;
+    }
+
     public int Index { get; }
 
     public string? Name { get; }
@@ -104,4 +144,13 @@ public class SaneOption
     public bool IsActive => !Capabilities.HasFlag(SaneCapabilities.Inactive);
 
     public bool IsSettable => Capabilities.HasFlag(SaneCapabilities.SoftSelect);
+
+    public override string ToString()
+    {
+        var constraint = StringList != null ? string.Join(",", StringList)
+            : WordList != null ? string.Join(",", WordList)
+            : Range != null ? $"{Range.Min}-{Range.Max}/{Range.Quant}"
+            : "";
+        return $"{Index} {Name} {Title} {Desc} {Type} {Unit} {Size} {Capabilities} {ConstraintType} {constraint}";
+    }
 }

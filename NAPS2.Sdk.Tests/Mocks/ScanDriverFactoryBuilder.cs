@@ -1,20 +1,20 @@
 using System.Threading;
-using Moq;
 using NAPS2.Scan;
 using NAPS2.Scan.Internal;
+using NSubstitute;
 
 namespace NAPS2.Sdk.Tests.Mocks;
 
 public class ScanDriverFactoryBuilder
 {
     private readonly StubScanDriver _scanDriver;
-    private readonly Mock<IScanDriverFactory> _scanDriverFactory;
+    private readonly IScanDriverFactory _scanDriverFactory;
 
     public ScanDriverFactoryBuilder()
     {
         _scanDriver = new StubScanDriver();
-        _scanDriverFactory = new Mock<IScanDriverFactory>();
-        _scanDriverFactory.Setup(x => x.Create(It.IsAny<ScanOptions>())).Returns(_scanDriver);
+        _scanDriverFactory = Substitute.For<IScanDriverFactory>();
+        _scanDriverFactory.Create(Arg.Any<ScanOptions>()).Returns(_scanDriver);
     }
 
     public ScanDriverFactoryBuilder WithDeviceList(params ScanDevice[] devices)
@@ -31,12 +31,12 @@ public class ScanDriverFactoryBuilder
 
     internal IScanDriverFactory Build()
     {
-        return _scanDriverFactory.Object;
+        return _scanDriverFactory;
     }
 
     private class StubScanDriver : IScanDriver
     {
-        private readonly Queue<List<IMemoryImage>> _scans = new Queue<List<IMemoryImage>>();
+        private readonly Queue<List<IMemoryImage>> _scans = new();
             
         public List<ScanDevice> DeviceList { get; set; }
 
@@ -45,9 +45,18 @@ public class ScanDriverFactoryBuilder
             _scans.Enqueue(images);
         }
             
-        public Task<List<ScanDevice>> GetDeviceList(ScanOptions options)
+        public Task GetDevices(ScanOptions options, CancellationToken cancelToken, Action<ScanDevice> callback)
         {
-            return Task.FromResult(DeviceList ?? throw new NotSupportedException());
+            foreach (var device in DeviceList)
+            {
+                callback(device);
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task<ScanCaps> GetCaps(ScanOptions options, CancellationToken cancelToken)
+        {
+            return Task.FromResult<ScanCaps>(null);
         }
 
         public Task Scan(ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents, Action<IMemoryImage> callback)

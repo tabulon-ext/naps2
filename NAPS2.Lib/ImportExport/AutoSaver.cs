@@ -1,6 +1,7 @@
 using NAPS2.EtoForms;
+using NAPS2.EtoForms.Notifications;
 using NAPS2.ImportExport.Images;
-using NAPS2.ImportExport.Pdf;
+using NAPS2.Pdf;
 using NAPS2.Scan;
 
 namespace NAPS2.ImportExport;
@@ -11,14 +12,15 @@ public class AutoSaver
     private readonly DialogHelper _dialogHelper;
     private readonly OperationProgress _operationProgress;
     private readonly ISaveNotify _notify;
-    private readonly IPdfExporter _pdfExporter;
+    private readonly PdfExporter _pdfExporter;
     private readonly IOverwritePrompt _overwritePrompt;
     private readonly Naps2Config _config;
     private readonly ImageContext _imageContext;
+    private readonly UiImageList _imageList;
 
     public AutoSaver(ErrorOutput errorOutput, DialogHelper dialogHelper,
-        OperationProgress operationProgress, ISaveNotify notify, IPdfExporter pdfExporter,
-        IOverwritePrompt overwritePrompt, Naps2Config config, ImageContext imageContext)
+        OperationProgress operationProgress, ISaveNotify notify, PdfExporter pdfExporter,
+        IOverwritePrompt overwritePrompt, Naps2Config config, ImageContext imageContext, UiImageList imageList)
     {
         _errorOutput = errorOutput;
         _dialogHelper = dialogHelper;
@@ -28,6 +30,7 @@ public class AutoSaver
         _overwritePrompt = overwritePrompt;
         _config = config;
         _imageContext = imageContext;
+        _imageList = imageList;
     }
 
     public IAsyncEnumerable<ProcessedImage> Save(AutoSaveSettings settings, IAsyncEnumerable<ProcessedImage> images)
@@ -39,12 +42,10 @@ public class AutoSaver
             {
                 await foreach (var img in images)
                 {
-                    // TODO: We should assume the returned sink may dispose what we give it, therefore we should make
-                    // a clone before sending it out, and then dispose the clone when we're done with it
                     imageList.Add(img);
                     if (!settings.ClearImagesAfterSaving)
                     {
-                        produceImage(img);
+                        produceImage(img.Clone());
                     }
                 }
             }
@@ -56,6 +57,13 @@ public class AutoSaver
                     foreach (var img in imageList)
                     {
                         produceImage(img);
+                    }
+                }
+                else
+                {
+                    foreach (var img in imageList)
+                    {
+                        img.Dispose();
                     }
                 }
             }
@@ -71,17 +79,22 @@ public class AutoSaver
             int i = 0;
             string? firstFileSaved = null;
             var scans = SaveSeparatorHelper.SeparateScans(new[] { images }, settings.Separator).ToList();
-            foreach (var imageList in scans)
+            foreach (var imagesToSave in scans)
             {
                 (bool success, string? filePath) =
-                    await SaveOneFile(settings, placeholders, i++, imageList, scans.Count == 1);
-                if (!success)
+                    await SaveOneFile(settings, placeholders, i++, imagesToSave, scans.Count == 1);
+                if (success)
+                {
+                    // Normally we're supposed to take the CurrentState before the save operation starts, but that
+                    // doesn't really work here since populating the UiImageList happens asynchronously so the images
+                    // we're saving might not be present yet. In practice waiting until after saving will ensure the
+                    // list is populated so that this logic works correctly.
+                    _imageList.MarkSaved(_imageList.CurrentState, imagesToSave);
+                    firstFileSaved ??= filePath;
+                }
+                else
                 {
                     ok = false;
-                }
-                if (success && firstFileSaved == null)
-                {
-                    firstFileSaved = filePath;
                 }
             }
             // TODO: Shouldn't this give duplicate notifications?
@@ -111,9 +124,14 @@ public class AutoSaver
         string subPath = placeholders.Substitute(settings.FilePath, true, i);
         if (settings.PromptForFilePath)
         {
-            if (_dialogHelper.PromptToSavePdfOrImage(subPath, out string? newPath))
+            string? newPath = null!;
+            if (Invoker.Current.InvokeGet(() => _dialogHelper.PromptToSavePdfOrImage(subPath, out newPath)))
             {
                 subPath = placeholders.Substitute(newPath!, true, i);
+            }
+            else
+            {
+                return (false, null);
             }
         }
         // TODO: This placeholder handling is complex and wrong in some cases (e.g. FilePerScan with ext = "jpg")

@@ -1,7 +1,7 @@
 namespace NAPS2.Images.Bitwise;
 
 // TODO: Need to double check callers set resolution when needed
-public class CopyBitwiseImageOp : BinaryBitwiseImageOp
+internal class CopyBitwiseImageOp : BinaryBitwiseImageOp
 {
     // TODO: Consider requiring an explicit DiscardAlpha parameter
 
@@ -48,10 +48,10 @@ public class CopyBitwiseImageOp : BinaryBitwiseImageOp
             throw new ArgumentException(
                 "DestChannel is only supported when the source is grayscale/color and the destination is color.");
         }
-        if ((src.invertColorSpace || dst.invertColorSpace) && (src.bitsPerPixel != 1 || dst.bitsPerPixel != 1))
+        if (src.invertColorSpace & dst.invertColorSpace && (src.hasAlpha || dst.hasAlpha))
         {
             throw new ArgumentException(
-                "SubPixelType.InvertedBit is only supported when both source and destination are 1 bit per pixel");
+                "SubPixelType.InvertedBit is not supported with alpha channels.");
         }
     }
 
@@ -59,8 +59,14 @@ public class CopyBitwiseImageOp : BinaryBitwiseImageOp
     protected override void PerformCore(BitwiseImageData src, BitwiseImageData dst, int partStart, int partEnd)
     {
         if (src.BitLayout == dst.BitLayout &&
-            (src.bytesPerPixel > 0 || (SourceXOffset % 8 == 0 && DestXOffset % 8 == 0)) &&
-            DestChannel == ColorChannel.All)
+            DestChannel == ColorChannel.All &&
+            (src.bytesPerPixel > 0 ||
+             // For Black & White images, to use the fast copy path, we must have that:
+             // 1. The offsets are to whole bytes
+             // 2a. Either we copy whole bytes, or
+             // 2b. We end at the far-right side of the destination (so any excess bits copied will be ignored)
+             (SourceXOffset % 8 == 0 && DestXOffset % 8 == 0 &&
+              (src.w % 8 == 0 || src.w + DestXOffset == dst.w))))
         {
             FastCopy(src, dst, partStart, partEnd);
         }
@@ -254,6 +260,7 @@ public class CopyBitwiseImageOp : BinaryBitwiseImageOp
                 var dstPixelIndex = j + DestXOffset;
                 var dstPtr = dstRow + dstPixelIndex / 8;
                 var dstByte = *dstPtr;
+                dstByte &= (byte) ~(1 << (7 - dstPixelIndex % 8));
                 dstByte |= (byte) (bit << (7 - dstPixelIndex % 8));
                 *dstPtr = dstByte;
             }

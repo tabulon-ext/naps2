@@ -12,7 +12,7 @@ namespace NAPS2.Ocr;
 /// For example, we start with 0/1, then 0/2 when a new page is queued, then 2/2 once completed, then 0/1 if another
 /// page is then queued.
 /// </summary>
-public class OcrOperationManager
+internal class OcrOperationManager
 {
     // TODO: Consider implementing/using a MultiDict
     private readonly Dictionary<OcrController, HashSet<Task>> _ongoingTasks = new();
@@ -48,7 +48,7 @@ public class OcrOperationManager
             }
             op = _currentOp;
             op.Status.MaxProgress += 1;
-            _ongoingTasks.GetOrSet((OcrController) sender!, () => new HashSet<Task>()).Add(e.ResultTask);
+            _ongoingTasks.GetOrSet((OcrController) sender!, () => []).Add(e.ResultTask);
         }
         op.InvokeStatusChanged();
         if (newOp)

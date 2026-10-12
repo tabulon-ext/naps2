@@ -3,7 +3,7 @@ using NAPS2.Scan;
 
 namespace NAPS2.Serialization;
 
-public static class ImageSerializer
+internal static class ImageSerializer
 {
     public static SerializedImage Serialize(ProcessedImage image, SerializeImageOptions options)
     {
@@ -31,17 +31,19 @@ public static class ImageSerializer
             thumbStream = thumb.SaveToMemoryStream(ImageFileFormat.Png);
         }
 
+        var metadata = new SerializedImageMetadata
+        {
+            TransformListXml = image.TransformState.Transforms.ToXml(),
+            Lossless = image.Metadata.Lossless,
+            PageSize = image.Metadata.PageSize?.ToString() ?? "",
+            Quality = image.Metadata.Quality
+        };
         var result = new SerializedImage
         {
             TransferOwnership = options.TransferOwnership || options.ReturnOwnership,
-            Metadata = new SerializedImageMetadata
-            {
-                TransformListXml = image.TransformState.Transforms.ToXml(),
-                BitDepth = (SerializedImageMetadata.Types.BitDepth) image.Metadata.BitDepth,
-                Lossless = image.Metadata.Lossless
-            },
+            Metadata = metadata,
             Thumbnail = thumbStream != null ? ByteString.FromStream(thumbStream) : ByteString.Empty,
-            BarcodeDetectionXml = image.PostProcessingData.BarcodeDetection?.ToXml(),
+            BarcodeDetectionXml = image.PostProcessingData.Barcode?.ToXml(),
             RenderedFilePath = options.RenderedFilePath ?? ""
         };
 
@@ -65,7 +67,7 @@ public static class ImageSerializer
                 result.TypeHint = memoryStorage.TypeHint;
                 break;
             case IMemoryImage imageStorage:
-                var fileFormat = imageStorage.OriginalFileFormat == ImageFileFormat.Unspecified
+                var fileFormat = imageStorage.OriginalFileFormat == ImageFileFormat.Unknown
                     ? ImageFileFormat.Jpeg
                     : imageStorage.OriginalFileFormat;
                 result.FileContent = ByteString.FromStream(imageStorage.SaveToMemoryStream(fileFormat));
@@ -141,9 +143,9 @@ public static class ImageSerializer
 
         var processedImage = scanningContext.CreateProcessedImage(
             storage,
-            (BitDepth) serializedImage.Metadata.BitDepth,
             serializedImage.Metadata.Lossless,
-            -1,
+            serializedImage.Metadata.Quality > 0 ? serializedImage.Metadata.Quality : -1,
+            PageSize.Parse(serializedImage.Metadata.PageSize),
             serializedImage.Metadata.TransformListXml.FromXml<List<Transform>>());
 
         var thumbnail = serializedImage.Thumbnail.ToByteArray();
@@ -159,7 +161,7 @@ public static class ImageSerializer
         {
             processedImage = processedImage.WithPostProcessingData(processedImage.PostProcessingData with
             {
-                BarcodeDetection = serializedImage.BarcodeDetectionXml.FromXml<BarcodeDetection>()
+                Barcode = serializedImage.BarcodeDetectionXml.FromXml<Barcode>()
             }, true);
         }
         return processedImage;

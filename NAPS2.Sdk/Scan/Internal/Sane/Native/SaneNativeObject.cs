@@ -3,28 +3,18 @@ using NAPS2.Scan.Exceptions;
 
 namespace NAPS2.Scan.Internal.Sane.Native;
 
-public abstract class SaneNativeObject : IDisposable
+internal abstract class SaneNativeObject : IDisposable
 {
     private bool _disposed;
     private IntPtr _handle;
 
-    protected SaneNativeObject(IntPtr handle)
+    protected SaneNativeObject(SaneNativeLibrary native, IntPtr handle)
     {
+        Native = native;
         Handle = handle;
     }
 
-    protected static SaneNativeLibrary Native
-    {
-        get
-        {
-            var value = SaneNativeLibrary.Instance;
-            if (!Monitor.IsEntered(value))
-            {
-                throw new InvalidOperationException("Sane operations must be locked");
-            }
-            return value;
-        }
-    }
+    protected SaneNativeLibrary Native { get; }
 
     protected internal IntPtr Handle
     {

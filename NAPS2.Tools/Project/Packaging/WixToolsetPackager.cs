@@ -6,51 +6,73 @@ namespace NAPS2.Tools.Project.Packaging;
 
 public static class WixToolsetPackager
 {
-    public static void PackageMsi(PackageInfo pkgInfo)
+    public static void PackageMsi(Func<PackageInfo> pkgInfoFunc, bool noSign)
     {
+        Output.Verbose("Building binaries");
+        Cli.Run("dotnet", "clean NAPS2.App.Worker -c Release");
+        Cli.Run("dotnet", "clean NAPS2.App.WinForms -r win-x64 -c Release");
+        Cli.Run("dotnet", "clean NAPS2.App.Console -r win-x64 -c Release");
+        Cli.Run("dotnet", "publish NAPS2.App.Worker -c Release /p:DebugType=None /p:DebugSymbols=false /p:DefineConstants=MSI");
+        Cli.Run("dotnet", "publish NAPS2.App.WinForms -r win-x64 -c Release /p:DebugType=None /p:DebugSymbols=false /p:DefineConstants=MSI");
+        Cli.Run("dotnet", "publish NAPS2.App.Console -r win-x64 -c Release /p:DebugType=None /p:DebugSymbols=false /p:DefineConstants=MSI");
+
+        var pkgInfo = pkgInfoFunc();
+        if (!noSign)
+        {
+            Output.Verbose("Signing contents");
+            WindowsSigning.SignContents(pkgInfo);
+        }
+
         var msiPath = pkgInfo.GetPath("msi");
         Output.Info($"Packaging msi installer: {msiPath}");
+
         var wxsPath = GenerateWxs(pkgInfo);
 
-        var candle = Environment.ExpandEnvironmentVariables("%PROGRAMFILES(X86)%/WiX Toolset v3.11/bin/candle.exe");
+        var candle = Environment.ExpandEnvironmentVariables("%PROGRAMFILES(X86)%/WiX Toolset v3.14/bin/candle.exe");
         var arch = pkgInfo.Platform == Platform.Win64 ? "x64" : "x86";
         Cli.Run(candle, $"\"{wxsPath}\" -o \"{Paths.SetupObj}/\" -arch {arch}");
 
         var wixobjPath = wxsPath.Replace(".wxs", ".wixobj");
 
-        var light = Environment.ExpandEnvironmentVariables("%PROGRAMFILES(X86)%/WiX Toolset v3.11/bin/light.exe");
+        var light = Environment.ExpandEnvironmentVariables("%PROGRAMFILES(X86)%/WiX Toolset v3.14/bin/light.exe");
         Cli.Run(light, $"\"{wixobjPath}\" -spdb -ext WixUIExtension -o \"{msiPath}\"");
+
+        if (!noSign)
+        {
+            Output.Verbose("Signing installer");
+            WindowsSigning.SignFile(msiPath);
+        }
+
         Output.OperationEnd($"Packaged msi installer: {msiPath}");
     }
 
     private static string GenerateWxs(PackageInfo packageInfo)
     {
-        // TODO: Delete Setup.Msi project
         var template = File.ReadAllText(Path.Combine(Paths.SetupWindows, "setup.template.wxs"));
 
-        template = template.Replace("{{ !version }}", packageInfo.Version);
-        
+        template = template.Replace("{{ !version }}", packageInfo.VersionNumber);
+
         var rootLines = new StringBuilder();
         foreach (var rootFile in packageInfo.Files.Where(x => x.DestDir == ""))
         {
             DeclareFile(rootLines, rootFile);
         }
         template = template.Replace("<!-- !root -->", rootLines.ToString());
-        
+
         var libLines = new StringBuilder();
         foreach (var libFile in packageInfo.Files.Where(x => x.DestDir == "lib"))
         {
             DeclareFile(libLines, libFile);
         }
         template = template.Replace("<!-- !lib -->", libLines.ToString());
-        
+
         var win32Lines = new StringBuilder();
         foreach (var win32File in packageInfo.Files.Where(x => x.DestDir == Path.Combine("lib", "_win32")))
         {
             DeclareFile(win32Lines, win32File);
         }
         template = template.Replace("<!-- !win32 -->", win32Lines.ToString());
-        
+
         var win64Lines = new StringBuilder();
         foreach (var win64File in packageInfo.Files.Where(x => x.DestDir == Path.Combine("lib", "_win64")))
         {
@@ -76,12 +98,6 @@ public static class WixToolsetPackager
         }
         template = template.Replace("<!-- !langrefs -->", langRefsLines.ToString());
         template = template.Replace("<!-- !langfiles -->", langFilesLines.ToString());
-
-        var replacementFor64 = packageInfo.Platform == Platform.Win32 ? "" : "$3";
-        template = Regex.Replace(template, "(<!--|{{) !64 (-->|}})(.*?)(<!--|{{) !~64 (-->|}})", replacementFor64, RegexOptions.Singleline);
-
-        var replacementForUniv = packageInfo.Platform == Platform.Win ? "$3" : "";
-        template = Regex.Replace(template, "(<!--|{{) !univ (-->|}})(.*?)(<!--|{{) !~univ (-->|}})", replacementForUniv, RegexOptions.Singleline);
 
         var wxsPath = Path.Combine(Paths.SetupObj, "setup.wxs");
         File.WriteAllText(wxsPath, template);

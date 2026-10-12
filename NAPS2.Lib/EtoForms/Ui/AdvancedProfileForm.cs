@@ -1,6 +1,8 @@
 using Eto.Drawing;
 using Eto.Forms;
 using NAPS2.EtoForms.Layout;
+using NAPS2.EtoForms.Widgets;
+using NAPS2.Lang;
 using NAPS2.Scan;
 
 namespace NAPS2.EtoForms.Ui;
@@ -8,44 +10,58 @@ namespace NAPS2.EtoForms.Ui;
 public class AdvancedProfileForm : EtoDialogBase
 {
     private readonly CheckBox _maximumQuality = new() { Text = UiStrings.MaximumQuality };
-    private readonly SliderWithTextBox _quality = new() { MinValue = 0, MaxValue = 100, TickFrequency = 25 };
+    private readonly SliderWithTextBox _quality = new(new SliderWithTextBox.IntConstraints(0, 100, 25));
     private readonly CheckBox _excludeBlank = new() { Text = UiStrings.ExcludeBlankPages };
-    private readonly SliderWithTextBox _whiteThreshold = new() { MinValue = 0, MaxValue = 100, TickFrequency = 10 };
-    private readonly SliderWithTextBox _coverageThreshold = new() { MinValue = 0, MaxValue = 100, TickFrequency = 10 };
+    private readonly SliderWithTextBox _whiteThreshold = new(new SliderWithTextBox.IntConstraints(0, 100, 10));
+    private readonly SliderWithTextBox _coverageThreshold = new(new SliderWithTextBox.IntConstraints(0, 100, 10));
     private readonly CheckBox _deskew = new() { Text = UiStrings.DeskewScannedPages };
+    private readonly CheckBox _autoCrop = new() { Text = UiStrings.AutoCropScannedPages };
+    private readonly CheckBox _documentCorrection = new() { Text = UiStrings.FixWhiteBalanceAndRemoveNoise };
     private readonly CheckBox _brightContAfterScan = new() { Text = UiStrings.BrightnessContrastAfterScan };
     private readonly CheckBox _offsetWidth = new() { Text = UiStrings.OffsetWidth };
     private readonly CheckBox _stretchToPageSize = new() { Text = UiStrings.StretchToPageSize };
     private readonly CheckBox _cropToPageSize = new() { Text = UiStrings.CropToPageSize };
-    private readonly CheckBox _flipDuplexed = new() { Text = UiStrings.FlipDuplexedPages };
-    private readonly DropDown _wiaVersion = C.EnumDropDown<WiaApiVersion>(value => value switch
+    private readonly CheckBox _flipDuplexed = new()
     {
-        WiaApiVersion.Default => SettingsResources.WiaVersion_Default,
-        WiaApiVersion.Wia10 => SettingsResources.WiaVersion_Wia10,
-        WiaApiVersion.Wia20 => SettingsResources.WiaVersion_Wia20,
-        _ => value.ToString()
-    });
-    private readonly DropDown _twainImpl = C.EnumDropDown<TwainImpl>();
+        Text = TranslationMigrator.PickTranslated(
+            UiStrings.ResourceManager,
+            "FlipDuplexedPages",
+            "FlipBackSidesOfDuplexPages")
+    };
+
+    private readonly EnumDropDownWidget<WiaApiVersion> _wiaVersion = new();
+
+    private readonly EnumDropDownWidget<TwainImpl> _twainImpl = new();
+    private readonly CheckBox _twainProgress = new() { Text = UiStrings.ShowNativeTwainProgress };
     private readonly Button _restoreDefaults = new() { Text = UiStrings.RestoreDefaults };
 
-    public AdvancedProfileForm(Naps2Config config) : base(config)
+    public AdvancedProfileForm(Naps2Config config, IIconProvider iconProvider) : base(config)
     {
+        Title = UiStrings.AdvancedProfileFormTitle;
+        IconName = "blueprints_small";
+
         _restoreDefaults.Click += RestoreDefaults_Click;
         _maximumQuality.CheckedChanged += MaximumQuality_CheckedChanged;
         _excludeBlank.CheckedChanged += ExcludeBlank_CheckedChanged;
+        _wiaVersion.Format = value => value switch
+        {
+            WiaApiVersion.Default => SettingsResources.WiaVersion_Default,
+            WiaApiVersion.Wia10 => SettingsResources.WiaVersion_Wia10,
+            WiaApiVersion.Wia20 => SettingsResources.WiaVersion_Wia20,
+            _ => value.ToString()
+        };
         if (!Environment.Is64BitProcess)
         {
-            _twainImpl.Items.RemoveAt((int) TwainImpl.X64);
+            _twainImpl.Items = EnumDropDownWidget<TwainImpl>.DefaultItems.Where(x => x != TwainImpl.X64);
         }
+        // Remove obsolete options
+        _twainImpl.Items = _twainImpl.Items.Except([TwainImpl.Legacy]);
     }
 
     protected override void BuildLayout()
     {
         UpdateValues(ScanProfile!);
         UpdateEnabled();
-
-        Title = UiStrings.AdvancedProfileFormTitle;
-        Icon = new Icon(1f, Icons.blueprints_small.ToEtoImage());
 
         FormStateController.DefaultExtraLayoutSize = new Size(60, 0);
         FormStateController.FixedHeightLayout = true;
@@ -70,20 +86,27 @@ public class AdvancedProfileForm : EtoDialogBase
             ),
             L.GroupBox(
                 UiStrings.PostProcessing,
-                _deskew
+                L.Column(
+                    _deskew,
+                    _autoCrop,
+                    _documentCorrection
+                )
             ),
             L.GroupBox(
                 UiStrings.Compatibility,
                 L.Column(
-                    _brightContAfterScan,
-                    _offsetWidth,
+                    PlatformCompat.System.IsWiaDriverSupported || PlatformCompat.System.IsTwainDriverSupported
+                        ? _brightContAfterScan
+                        : C.None(),
+                    PlatformCompat.System.IsWiaDriverSupported ? _offsetWidth : C.None(),
                     _stretchToPageSize,
                     _cropToPageSize,
                     _flipDuplexed,
-                    C.Label(UiStrings.WiaVersionLabel),
-                    _wiaVersion,
-                    C.Label(UiStrings.TwainImplLabel),
-                    _twainImpl
+                    PlatformCompat.System.IsWiaDriverSupported ? C.Label(UiStrings.WiaVersionLabel) : C.None(),
+                    PlatformCompat.System.IsWiaDriverSupported ? _wiaVersion : C.None(),
+                    PlatformCompat.System.IsTwainDriverSupported ? C.Label(UiStrings.TwainImplLabel) : C.None(),
+                    PlatformCompat.System.IsTwainDriverSupported ? _twainImpl : C.None(),
+                    PlatformCompat.System.IsTwainDriverSupported ? _twainProgress : C.None()
                 )
             ),
             L.Row(
@@ -99,27 +122,27 @@ public class AdvancedProfileForm : EtoDialogBase
     private void UpdateValues(ScanProfile scanProfile)
     {
         _maximumQuality.Checked = scanProfile.MaxQuality;
-        _quality.Value = scanProfile.Quality;
+        _quality.IntValue = scanProfile.Quality;
         _brightContAfterScan.Checked = scanProfile.BrightnessContrastAfterScan;
         _deskew.Checked = scanProfile.AutoDeskew;
+        _autoCrop.Checked = scanProfile.AutoCrop;
+        _documentCorrection.Checked = scanProfile.DocumentCorrection;
         _offsetWidth.Checked = scanProfile.WiaOffsetWidth;
-        _wiaVersion.SelectedIndex = (int)scanProfile.WiaVersion;
+        _wiaVersion.SelectedItem = scanProfile.WiaVersion;
         _stretchToPageSize.Checked = scanProfile.ForcePageSize;
         _cropToPageSize.Checked = scanProfile.ForcePageSizeCrop;
         _flipDuplexed.Checked = scanProfile.FlipDuplexedPages;
-        _twainImpl.SelectedIndex = (int)scanProfile.TwainImpl;
+        _twainImpl.SelectedItem = scanProfile.TwainImpl == TwainImpl.Legacy ? TwainImpl.OldDsm : scanProfile.TwainImpl;
+        _twainProgress.Checked = scanProfile.TwainProgress;
         _excludeBlank.Checked = scanProfile.ExcludeBlankPages;
-        _whiteThreshold.Value = scanProfile.BlankPageWhiteThreshold;
-        _coverageThreshold.Value = scanProfile.BlankPageCoverageThreshold;
+        _whiteThreshold.IntValue = scanProfile.BlankPageWhiteThreshold;
+        _coverageThreshold.IntValue = scanProfile.BlankPageCoverageThreshold;
     }
 
     private void UpdateEnabled()
     {
-        _twainImpl.Enabled = ScanProfile!.DriverName == DriverNames.TWAIN;
-        _offsetWidth.Enabled = ScanProfile.DriverName == DriverNames.WIA;
-        _wiaVersion.Enabled = ScanProfile.DriverName == DriverNames.WIA;
         _quality.Enabled = !_maximumQuality.IsChecked();
-        _whiteThreshold.Enabled = _excludeBlank.IsChecked() && ScanProfile.BitDepth != ScanBitDepth.BlackWhite;
+        _whiteThreshold.Enabled = _excludeBlank.IsChecked() && ScanProfile!.BitDepth != ScanBitDepth.BlackWhite;
         _coverageThreshold.Enabled = _excludeBlank.IsChecked();
     }
 
@@ -127,25 +150,22 @@ public class AdvancedProfileForm : EtoDialogBase
 
     private void SaveSettings()
     {
-        ScanProfile!.Quality = _quality.Value;
+        ScanProfile!.Quality = _quality.IntValue;
         ScanProfile.MaxQuality = _maximumQuality.IsChecked();
         ScanProfile.BrightnessContrastAfterScan = _brightContAfterScan.IsChecked();
         ScanProfile.AutoDeskew = _deskew.IsChecked();
+        ScanProfile.AutoCrop = _autoCrop.IsChecked();
+        ScanProfile.DocumentCorrection = _documentCorrection.IsChecked();
         ScanProfile.WiaOffsetWidth = _offsetWidth.IsChecked();
-        if (_wiaVersion.SelectedIndex != -1)
-        {
-            ScanProfile.WiaVersion = (WiaApiVersion) _wiaVersion.SelectedIndex;
-        }
+        ScanProfile.WiaVersion = _wiaVersion.SelectedItem;
         ScanProfile.ForcePageSize = _stretchToPageSize.IsChecked();
         ScanProfile.ForcePageSizeCrop = _cropToPageSize.IsChecked();
         ScanProfile.FlipDuplexedPages = _flipDuplexed.IsChecked();
-        if (_twainImpl.SelectedIndex != -1)
-        {
-            ScanProfile.TwainImpl = (TwainImpl)_twainImpl.SelectedIndex;
-        }
+        ScanProfile.TwainImpl = _twainImpl.SelectedItem;
+        ScanProfile.TwainProgress = _twainProgress.IsChecked();
         ScanProfile.ExcludeBlankPages = _excludeBlank.IsChecked();
-        ScanProfile.BlankPageWhiteThreshold = _whiteThreshold.Value;
-        ScanProfile.BlankPageCoverageThreshold = _coverageThreshold.Value;
+        ScanProfile.BlankPageWhiteThreshold = _whiteThreshold.IntValue;
+        ScanProfile.BlankPageCoverageThreshold = _coverageThreshold.IntValue;
     }
 
     private void MaximumQuality_CheckedChanged(object? sender, EventArgs e)

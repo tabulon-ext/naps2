@@ -1,35 +1,35 @@
 using Eto.Drawing;
 using Eto.Forms;
+using NAPS2.EtoForms.Widgets;
 
 namespace NAPS2.EtoForms.Ui;
 
-public class RotateForm : ImageFormBase
+public class RotateForm : UnaryImageFormBase
 {
     private const int MIN_LINE_DISTANCE = 50;
 
-    private readonly SliderWithTextBox _angleSlider = new() { MinValue = -1800, MaxValue = 1800, TickFrequency = 450 };
+    private readonly SliderWithTextBox _angleSlider = new(new SliderWithTextBox.DecimalConstraints(-180, 180, 45, 1));
 
     private bool _guideExists;
     private PointF _guideStart, _guideEnd;
 
-    public RotateForm(Naps2Config config, ThumbnailController thumbnailController, IIconProvider iconProvider) :
-        base(config, thumbnailController)
+    public RotateForm(Naps2Config config, UiImageList imageList, ThumbnailController thumbnailController,
+        IIconProvider iconProvider) :
+        base(config, imageList, thumbnailController)
     {
-        Icon = new Icon(1f, Icons.arrow_rotate_anticlockwise_small.ToEtoImage());
         Title = UiStrings.Rotate;
+        IconName = "arrow_rotate_anticlockwise_small";
+        HelpText = UiStrings.CustomRotationHelp;
 
-        _angleSlider.Icon = iconProvider.GetIcon("arrow_rotate_anticlockwise_small");
-        Sliders = new[] { _angleSlider };
+        EtoPlatform.Current.AttachDpiDependency(this,
+            scale => _angleSlider.Icon = iconProvider.GetIcon("arrow_rotate_anticlockwise_small", scale));
+        Sliders = [_angleSlider];
         Overlay.MouseDown += Overlay_MouseDown;
         Overlay.MouseMove += Overlay_MouseMove;
         Overlay.MouseUp += Overlay_MouseUp;
     }
 
-    protected override IEnumerable<Transform> Transforms =>
-        new Transform[]
-        {
-            new RotationTransform(_angleSlider.Value / 10.0)
-        };
+    protected override List<Transform> Transforms => [new RotationTransform((double) _angleSlider.DecimalValue)];
 
     private void Overlay_MouseDown(object? sender, MouseEventArgs e)
     {
@@ -55,7 +55,7 @@ public class RotateForm : ImageFormBase
             {
                 angle += 90.0;
             }
-            var oldAngle = _angleSlider.Value / 10.0;
+            var oldAngle = (double) _angleSlider.DecimalValue;
             var newAngle = angle + oldAngle;
             while (newAngle > 180.0)
             {
@@ -65,7 +65,7 @@ public class RotateForm : ImageFormBase
             {
                 newAngle += 360.0;
             }
-            _angleSlider.Value = (int)Math.Round(newAngle * 10);
+            _angleSlider.DecimalValue = (decimal) newAngle;
         }
         Overlay.Invalidate();
     }
@@ -84,7 +84,7 @@ public class RotateForm : ImageFormBase
         if (_guideExists)
         {
             e.Graphics.AntiAlias = true;
-            e.Graphics.DrawLine(new Pen(new Color(0, 0,0 )), _guideStart, _guideEnd);
+            e.Graphics.DrawLine(new Pen(new Color(0, 0, 0)), _guideStart, _guideEnd);
         }
     }
 }

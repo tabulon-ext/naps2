@@ -18,6 +18,9 @@
   <data name="DeviceOffline" xml:space="preserve">
     <value>Seçilen tarayıcı çevrim dışı.</value>
   </data>
+  <data name="DeviceCommunicationFailure" xml:space="preserve">
+    <value>Tarayıcıyla iletişim kesildi.</value>
+  </data>
   <data name="NAPS2" xml:space="preserve">
     <value>NAPS2</value>
   </data>
@@ -64,9 +67,24 @@
     <value>SANE sürücüsü kullanılamıyor. Gerekli paketlerin kuruluduğundan emin olun:</value>
   </data>
   <data name="TesseractNotAvailable" xml:space="preserve">
-    <value>OCR motoru kullanılamıyor. Gerekli paketin kurulduğundan emin olun:</value>
+    <value>OKT motoru kullanılamıyor. Gerekli paketin kurulduğundan emin olun:</value>
   </data>
   <data name="DriverNotSupported" xml:space="preserve">
     <value>Seçilen sürücü bu sistemde desteklenmiyor.</value>
+  </data>
+  <data name="OcrError" xml:space="preserve">
+    <value>OKT çalıştırılırken hata oluştu.</value>
+  </data>
+  <data name="OcrTimeout" xml:space="preserve">
+    <value>OKT işlemi zaman aşımına uğradı.</value>
+  </data>
+  <data name="WorkerCrash" xml:space="preserve">
+    <value>Çalışma işlemi çöktü.</value>
+  </data>
+  <data name="WorkerCrashWindows" xml:space="preserve">
+    <value>Çalışma işlemi çöktü. Windows olay görüntüleyicisini denetleyin.</value>
+  </data>
+  <data name="UnknownScanner" xml:space="preserve">
+    <value>Bilinmeyen Tarayıcı</value>
   </data>
 </root>

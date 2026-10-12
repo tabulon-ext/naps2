@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using Eto.WinForms;
+using NAPS2.EtoForms.Widgets;
 
 namespace NAPS2.EtoForms.WinForms;
 
@@ -17,7 +18,7 @@ public abstract class WinFormsImageList<T> where T : notnull
 
     private Image ItemToImage(T item)
     {
-        return _behavior.GetImage(item, _listView.ImageSize).ToSD();
+        return _behavior.GetImage(_listView, item).ToSD();
     }
 
     public abstract void Clear();
@@ -30,7 +31,7 @@ public abstract class WinFormsImageList<T> where T : notnull
 
     public class Custom : WinFormsImageList<T>
     {
-        private readonly List<Image> _images = new();
+        private readonly List<Image> _images = [];
 
         public Custom(WinFormsListView<T> listView, ListViewBehavior<T> behavior) : base(listView, behavior)
         {
@@ -84,7 +85,7 @@ public abstract class WinFormsImageList<T> where T : notnull
 
         public Native(WinFormsListView<T> listView, ListViewBehavior<T> behavior) : base(listView, behavior)
         {
-            _images = _listView.NativeControl.LargeImageList.Images;
+            _images = _listView.NativeControl.LargeImageList!.Images;
         }
 
         public override void Clear()
@@ -94,7 +95,7 @@ public abstract class WinFormsImageList<T> where T : notnull
 
         public override void Append(T item, ListViewItem listViewItem)
         {
-            _images.Add(_behavior.GetImage(item, _listView.ImageSize).ToSD());
+            _images.Add(_behavior.GetImage(_listView, item).ToSD());
             listViewItem.ImageIndex = _images.Count - 1;
         }
 

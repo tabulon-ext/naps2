@@ -1,27 +1,34 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace NAPS2.Scan;
 
 /// <summary>
-/// The representation of a scanning device identified by a driver.
+/// The representation of a scanning device and its corresponding driver.
 /// </summary>
-public class ScanDevice
+public sealed record ScanDevice(
+    Driver Driver,
+    string ID,
+    string Name,
+    string? IconUri = null,
+    string? ConnectionUri = null)
 {
-    // Need an empty constructor for XML compatibility
-    public ScanDevice()
+    private ScanDevice() : this(Driver.Default, "", "")
     {
     }
 
-    [SetsRequiredMembers]
-    public ScanDevice(string id, string name)
+    public bool Equals(ScanDevice? other)
     {
-        ID = id;
-        Name = name;
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Driver == other.Driver && ID == other.ID && Name == other.Name;
     }
 
-
-    // Keeping old naming scheme for XML compatibility
-    // ReSharper disable once InconsistentNaming
-    public required string ID { get; init; }
-    public required string Name { get; init; }
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hashCode = (int) Driver;
+            hashCode = (hashCode * 397) ^ ID.GetHashCode();
+            hashCode = (hashCode * 397) ^ Name.GetHashCode();
+            return hashCode;
+        }
+    }
 }

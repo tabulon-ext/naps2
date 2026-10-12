@@ -1,10 +1,14 @@
 ﻿#if !MAC
+using System.Collections.Immutable;
 using System.Threading;
+using Microsoft.Extensions.Logging;
+using NAPS2.Remoting.Worker;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Wia;
 
 namespace NAPS2.Scan.Internal.Wia;
 
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 internal class WiaScanDriver : IScanDriver
 {
     private readonly ScanningContext _scanningContext;
@@ -14,19 +18,116 @@ internal class WiaScanDriver : IScanDriver
         _scanningContext = scanningContext;
     }
 
-    public Task<List<ScanDevice>> GetDeviceList(ScanOptions options)
+    public Task GetDevices(ScanOptions options, CancellationToken cancelToken, Action<ScanDevice> callback)
     {
         return Task.Run(() =>
         {
-            using var deviceManager = new WiaDeviceManager((WiaVersion) options.WiaOptions.WiaApiVersion);
-            return deviceManager.GetDeviceInfos().Select(deviceInfo =>
+            using var deviceManager = new WiaDeviceManager((WiaVersion)options.WiaOptions.WiaApiVersion);
+            foreach (var deviceInfo in deviceManager.GetDeviceInfos())
             {
                 using (deviceInfo)
                 {
-                    return new ScanDevice(deviceInfo.Id(), deviceInfo.Name());
+                    string id = deviceInfo.Id();
+                    string name = deviceInfo.Name();
+                    if (name.Equals(@"No friendly name", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        // Some Windows/driver issues can result in the scanner name appearing as "No friendly name".
+                        // Better to replace with a generic "Unknown Scanner" string.
+                        name = SdkResources.UnknownScanner;
+                    }
+                    callback(new ScanDevice(Driver.Wia, id, name));
                 }
-            }).ToList();
+            }
         });
+    }
+
+    public Task<ScanCaps> GetCaps(ScanOptions options, CancellationToken cancelToken)
+    {
+        return Task.Run(() =>
+        {
+            try
+            {
+                using var deviceManager = new WiaDeviceManager((WiaVersion)options.WiaOptions.WiaApiVersion);
+                using var device = deviceManager.FindDevice(options.Device!.ID);
+                using var items = device.GetSubItems().ToDisposableList();
+                var flatbed = items.FirstOrDefault(x => x.Name() == "Flatbed");
+                var feeder = items.FirstOrDefault(x => x.Name() == "Feeder");
+                var flatbedCaps = flatbed != null ? GetItemCaps(device, flatbed, true) : null;
+                var feederCaps = feeder != null ? GetItemCaps(device, feeder, false) : null;
+                return GetWiaScanCaps(
+                    device.Properties.GetOrNull(WiaPropertyId.DIP_VEND_DESC)?.Value as string,
+                    device.Properties.GetOrNull(WiaPropertyId.DIP_DEV_DESC)?.Value as string,
+                    device.Version,
+                    device.SupportsFlatbed(), device.SupportsFeeder(), device.SupportsDuplex(),
+                    flatbedCaps, feederCaps);
+            }
+            catch (WiaException e)
+            {
+                WiaScanErrors.ThrowDeviceError(e);
+                throw;
+            }
+        });
+    }
+
+    internal ScanCaps GetWiaScanCaps(string? manufacturer, string? model, WiaVersion wiaVersion,
+        bool supportsFlatbed, bool supportsFeeder, bool supportsDuplex,
+        PerSourceCaps? flatbedCaps, PerSourceCaps? feederCaps)
+    {
+        return new ScanCaps
+        {
+            MetadataCaps = new MetadataCaps
+            {
+                Manufacturer = manufacturer,
+                Model = model,
+                ProtocolVersion = wiaVersion switch
+                {
+                    WiaVersion.Wia10 => "1.0",
+                    WiaVersion.Wia20 => "2.0",
+                    _ => null
+                }
+            },
+            PaperSourceCaps = new PaperSourceCaps
+            {
+                SupportsFlatbed = supportsFlatbed,
+                SupportsFeeder = supportsFeeder,
+                SupportsDuplex = supportsDuplex,
+                CanCheckIfFeederHasPaper = true
+            },
+            FlatbedCaps = supportsFlatbed ? flatbedCaps : null,
+            FeederCaps = supportsFeeder ? feederCaps : null,
+            DuplexCaps = supportsDuplex ? feederCaps : null
+        };
+    }
+
+    private PerSourceCaps GetItemCaps(WiaDevice device, WiaItem item, bool flatbed)
+    {
+        var xRes = item.Properties.GetOrNull(WiaPropertyId.IPS_XRES);
+        var dpiCaps = xRes != null
+            ? xRes.Attributes.Flags.HasFlag(WiaPropertyFlags.Range)
+                ? DpiCaps.ForRange(xRes.Attributes.Min, xRes.Attributes.Max, xRes.Attributes.Step)
+                : new DpiCaps
+                {
+                    Values = xRes.Attributes.Values?.Cast<int>().ToImmutableList(),
+                }
+            : null;
+        var dataType = item.Properties.GetOrNull(WiaPropertyId.IPA_DATATYPE);
+        var validDataTypes = dataType?.Attributes.Values;
+        var bitDepthCaps = validDataTypes != null
+            ? new BitDepthCaps
+            {
+                SupportsColor = validDataTypes.Contains(3),
+                SupportsGrayscale = validDataTypes.Contains(2),
+                SupportsBlackAndWhite = validDataTypes.Contains(0)
+            }
+            : null;
+        var (horizontalSize, verticalSize) = GetScanArea(device, item, flatbed);
+        var scanArea = new PageSize(horizontalSize / 1000m, verticalSize / 1000m, PageSizeUnit.Inch);
+        return new PerSourceCaps
+        {
+            DpiCaps = dpiCaps,
+            BitDepthCaps = bitDepthCaps,
+            PageSizeCaps = new PageSizeCaps { ScanArea = scanArea }
+        };
     }
 
     public Task Scan(ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents,
@@ -37,7 +138,7 @@ internal class WiaScanDriver : IScanDriver
             var context = new WiaScanContext(_scanningContext, options, cancelToken, scanEvents, callback);
             try
             {
-                var version = (WiaVersion) options.WiaOptions.WiaApiVersion;
+                var version = (WiaVersion)options.WiaOptions.WiaApiVersion;
                 try
                 {
                     await context.Scan(version);
@@ -48,7 +149,7 @@ internal class WiaScanDriver : IScanDriver
                      NativeWiaObject.DefaultWiaVersion == WiaVersion.Wia20
                      && !options.UseNativeUI)
                 {
-                    Debug.WriteLine("Falling back to WIA 1.0 due to E_INVALIDARG");
+                    _scanningContext.Logger.LogDebug("Falling back to WIA 1.0 due to E_INVALIDARG");
                     await context.Scan(WiaVersion.Wia10);
                 }
             }
@@ -62,14 +163,17 @@ internal class WiaScanDriver : IScanDriver
     private class WiaScanContext
     {
         private readonly ScanningContext _scanningContext;
+        private readonly ILogger _logger;
         private readonly ScanOptions _options;
         private readonly CancellationToken _cancelToken;
         private readonly IScanEvents _scanEvents;
         private readonly Action<IMemoryImage> _callback;
 
-        public WiaScanContext(ScanningContext scanningContext, ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents, Action<IMemoryImage> callback)
+        public WiaScanContext(ScanningContext scanningContext, ScanOptions options, CancellationToken cancelToken,
+            IScanEvents scanEvents, Action<IMemoryImage> callback)
         {
             _scanningContext = scanningContext;
+            _logger = scanningContext.Logger;
             _options = options;
             _cancelToken = cancelToken;
             _scanEvents = scanEvents;
@@ -79,11 +183,19 @@ internal class WiaScanDriver : IScanDriver
         public async Task Scan(WiaVersion wiaVersion)
         {
             using var deviceManager = new WiaDeviceManager(wiaVersion);
-            using var device = deviceManager.FindDevice(_options.Device!.ID!);
+            using var device = deviceManager.FindDevice(_options.Device!.ID);
             if (device.Version == WiaVersion.Wia20 && _options.UseNativeUI)
             {
                 await DoWia20NativeTransfer(deviceManager, device);
                 return;
+            }
+
+            if (_options.PaperSource == PaperSource.Auto)
+            {
+                // Default to flatbed if supported (or if both support checks fail)
+                _options.PaperSource = device.SupportsFlatbed() || !device.SupportsFeeder()
+                    ? PaperSource.Flatbed
+                    : PaperSource.Feeder;
             }
 
             using var item = GetItem(device);
@@ -111,11 +223,10 @@ internal class WiaScanDriver : IScanDriver
             {
                 foreach (var path in paths)
                 {
-                    await foreach(var image in _scanningContext.ImageContext.LoadFrames(path))
+                    await foreach (var image in _scanningContext.ImageContext.LoadFrames(path))
                     {
                         using (image)
                         {
-                            // TODO: Might still need to do some work on ownership for in-memory ScannedImage storage
                             _callback(image);
                         }
                     }
@@ -131,7 +242,7 @@ internal class WiaScanDriver : IScanDriver
                     }
                     catch (Exception e)
                     {
-                        Log.ErrorException("Error deleting WIA 2.0 native transferred file", e);
+                        _logger.LogError(e, "Error deleting WIA 2.0 native transferred file");
                     }
                 }
             }
@@ -152,14 +263,37 @@ internal class WiaScanDriver : IScanDriver
 
             using var transfer = item.StartTransfer();
             Exception? scanException = null;
+            bool hasAtLeastOneImage = false;
             transfer.PageScanned += (sender, args) =>
             {
                 try
                 {
-                    using (args.Stream)
-                    using (var image = _scanningContext.ImageContext.Load(args.Stream))
+                    using var stream = args.Stream;
+                    if (stream.Length == 0)
+                    {
+                        _logger.LogError("Ignoring empty stream from WIA");
+                        return;
+                    }
+                    hasAtLeastOneImage = true;
+                    IMemoryImage image;
+                    try
+                    {
+                        image = _scanningContext.ImageContext.Load(stream);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error loading stream from WIA");
+                        // Assume the problem is an incomplete stream due to some kind of communication failure
+                        throw new DeviceCommunicationException();
+                    }
+                    using (image)
                     {
                         _callback(image);
+                    }
+                    if (_options.PaperSource != PaperSource.Flatbed)
+                    {
+                        // Feeder scans may have more pages, so signal the start of the next one
+                        _scanEvents.PageStart();
                     }
                 }
                 catch (Exception e)
@@ -172,7 +306,14 @@ internal class WiaScanDriver : IScanDriver
             using (_cancelToken.Register(transfer.Cancel))
             {
                 _scanEvents.PageStart();
-                transfer.Download();
+                try
+                {
+                    transfer.Download();
+                }
+                catch (WiaException e) when (e.ErrorCode == 0x210001)
+                {
+                    // This error code is undocumented but seems to mean "no more pages" which can be ignored
+                }
 
                 if (device.Version == WiaVersion.Wia10 && _options.PaperSource != PaperSource.Flatbed)
                 {
@@ -181,7 +322,6 @@ internal class WiaScanDriver : IScanDriver
                     {
                         while (!_cancelToken.IsCancellationRequested && scanException == null)
                         {
-                            _scanEvents.PageStart();
                             transfer.Download();
                         }
                     }
@@ -194,22 +334,28 @@ internal class WiaScanDriver : IScanDriver
             {
                 throw scanException;
             }
+            if (!hasAtLeastOneImage && !_cancelToken.IsCancellationRequested &&
+                _options.PaperSource != PaperSource.Flatbed)
+            {
+                throw new DeviceFeederEmptyException();
+            }
         }
 
         private WiaItem? GetItem(WiaDevice device)
         {
             if (_options.UseNativeUI)
             {
-                bool useWorker = Environment.Is64BitProcess && device.Version == WiaVersion.Wia10;
+                bool useWorker = PlatformCompat.System.SupportsWinX86Worker &&
+                                 device.Version == WiaVersion.Wia10;
                 if (useWorker)
                 {
                     if (_scanningContext.WorkerFactory == null)
                     {
                         throw new InvalidOperationException(
-                            "ScanningContext.WorkerFactory must be set to use WIA 1.0 Native UI from a 64-bit process");
+                            "ScanningContext.SetUpWin32Worker() must be called to use WIA 1.0 Native UI from a 64-bit process");
                     }
                     WiaConfiguration? config;
-                    using (var worker = _scanningContext.WorkerFactory.Create())
+                    using (var worker = _scanningContext.CreateWorker(WorkerType.WinX86)!)
                     {
                         config = worker.Service.Wia10NativeUI(device.Id(), _options.DialogParent);
                     }
@@ -218,6 +364,11 @@ internal class WiaScanDriver : IScanDriver
                         return null;
                     }
                     var item = device.FindSubItem(config.ItemName);
+                    if (item == null)
+                    {
+                        _logger.LogError("Could not find WIA item {Item}", config.ItemName);
+                        return null;
+                    }
                     device.Properties.DeserializeEditable(device.Properties.Delta(config.DeviceProps));
                     item.Properties.DeserializeEditable(item.Properties.Delta(config.ItemProps));
                     return item;
@@ -256,11 +407,11 @@ internal class WiaScanDriver : IScanDriver
             {
                 if (device.Version == WiaVersion.Wia10)
                 {
-                    device.SafeSetProperty(WiaPropertyId.DPS_PAGES, 1);
+                    SafeSetProperty(device, WiaPropertyId.DPS_PAGES, 1);
                 }
                 else
                 {
-                    item.SafeSetProperty(WiaPropertyId.IPS_PAGES, 0);
+                    SafeSetProperty(item, WiaPropertyId.IPS_PAGES, 0);
                 }
             }
 
@@ -269,13 +420,13 @@ internal class WiaScanDriver : IScanDriver
                 switch (_options.PaperSource)
                 {
                     case PaperSource.Flatbed:
-                        device.SafeSetProperty(WiaPropertyId.DPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.FLATBED);
+                        SafeSetProperty(device, WiaPropertyId.DPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.FLATBED);
                         break;
                     case PaperSource.Feeder:
-                        device.SafeSetProperty(WiaPropertyId.DPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.FEEDER);
+                        SafeSetProperty(device, WiaPropertyId.DPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.FEEDER);
                         break;
                     case PaperSource.Duplex:
-                        device.SafeSetProperty(WiaPropertyId.DPS_DOCUMENT_HANDLING_SELECT,
+                        SafeSetProperty(device, WiaPropertyId.DPS_DOCUMENT_HANDLING_SELECT,
                             WiaPropertyValue.FEEDER | WiaPropertyValue.DUPLEX);
                         break;
                 }
@@ -285,10 +436,10 @@ internal class WiaScanDriver : IScanDriver
                 switch (_options.PaperSource)
                 {
                     case PaperSource.Feeder:
-                        item.SafeSetProperty(WiaPropertyId.IPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.FRONT_ONLY);
+                        SafeSetProperty(item, WiaPropertyId.IPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.FRONT_ONLY);
                         break;
                     case PaperSource.Duplex:
-                        item.SafeSetProperty(WiaPropertyId.IPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.DUPLEX);
+                        SafeSetProperty(item, WiaPropertyId.IPS_DOCUMENT_HANDLING_SELECT, WiaPropertyValue.DUPLEX);
                         break;
                 }
             }
@@ -296,41 +447,29 @@ internal class WiaScanDriver : IScanDriver
             switch (_options.BitDepth)
             {
                 case BitDepth.Grayscale:
-                    item.SafeSetProperty(WiaPropertyId.IPA_DATATYPE, 2);
+                    SafeSetProperty(item, WiaPropertyId.IPA_DATATYPE, 2);
                     break;
                 case BitDepth.Color:
-                    item.SafeSetProperty(WiaPropertyId.IPA_DATATYPE, 3);
+                    SafeSetProperty(item, WiaPropertyId.IPA_DATATYPE, 3);
                     break;
                 case BitDepth.BlackAndWhite:
-                    item.SafeSetProperty(WiaPropertyId.IPA_DATATYPE, 0);
+                    SafeSetProperty(item, WiaPropertyId.IPA_DATATYPE, 0);
                     break;
             }
 
             int xRes = _options.Dpi;
             int yRes = _options.Dpi;
-            item.SafeSetPropertyClosest(WiaPropertyId.IPS_XRES, ref xRes);
-            item.SafeSetPropertyClosest(WiaPropertyId.IPS_YRES, ref yRes);
+            SafeSetPropertyClosest(item, WiaPropertyId.IPS_XRES, ref xRes);
+            SafeSetPropertyClosest(item, WiaPropertyId.IPS_YRES, ref yRes);
+            if (xRes != _options.Dpi || yRes != _options.Dpi)
+            {
+                _logger.LogDebug($"Correcting DPI from {_options.Dpi}x{_options.Dpi} to {xRes}x{yRes}");
+            }
 
             int pageWidth = _options.PageSize!.WidthInThousandthsOfAnInch * xRes / 1000;
             int pageHeight = _options.PageSize.HeightInThousandthsOfAnInch * yRes / 1000;
 
-            int horizontalSize, verticalSize;
-            if (device.Version == WiaVersion.Wia10)
-            {
-                horizontalSize =
-                    (int) device.Properties[_options.PaperSource == PaperSource.Flatbed
-                        ? WiaPropertyId.DPS_HORIZONTAL_BED_SIZE
-                        : WiaPropertyId.DPS_HORIZONTAL_SHEET_FEED_SIZE].Value;
-                verticalSize =
-                    (int) device.Properties[_options.PaperSource == PaperSource.Flatbed
-                        ? WiaPropertyId.DPS_VERTICAL_BED_SIZE
-                        : WiaPropertyId.DPS_VERTICAL_SHEET_FEED_SIZE].Value;
-            }
-            else
-            {
-                horizontalSize = (int) item.Properties[WiaPropertyId.IPS_MAX_HORIZONTAL_SIZE].Value;
-                verticalSize = (int) item.Properties[WiaPropertyId.IPS_MAX_VERTICAL_SIZE].Value;
-            }
+            var (horizontalSize, verticalSize) = GetScanArea(device, item, _options.PaperSource == PaperSource.Flatbed);
 
             int pagemaxwidth = horizontalSize * xRes / 1000;
             int pagemaxheight = verticalSize * yRes / 1000;
@@ -346,22 +485,80 @@ internal class WiaScanDriver : IScanDriver
 
             if (_options.WiaOptions.OffsetWidth)
             {
-                item.SafeSetProperty(WiaPropertyId.IPS_XEXTENT, pageWidth + horizontalPos);
-                item.SafeSetProperty(WiaPropertyId.IPS_XPOS, horizontalPos);
+                SafeSetProperty(item, WiaPropertyId.IPS_XEXTENT, pageWidth + horizontalPos);
+                SafeSetProperty(item, WiaPropertyId.IPS_XPOS, horizontalPos);
             }
             else
             {
-                item.SafeSetProperty(WiaPropertyId.IPS_XEXTENT, pageWidth);
-                item.SafeSetProperty(WiaPropertyId.IPS_XPOS, horizontalPos);
+                SafeSetProperty(item, WiaPropertyId.IPS_XEXTENT, pageWidth);
+                SafeSetProperty(item, WiaPropertyId.IPS_XPOS, horizontalPos);
             }
-            item.SafeSetProperty(WiaPropertyId.IPS_YEXTENT, pageHeight);
+            SafeSetProperty(item, WiaPropertyId.IPS_YEXTENT, pageHeight);
 
             if (!_options.BrightnessContrastAfterScan)
             {
-                item.SafeSetPropertyRange(WiaPropertyId.IPS_CONTRAST, _options.Contrast, -1000, 1000);
-                item.SafeSetPropertyRange(WiaPropertyId.IPS_BRIGHTNESS, _options.Brightness, -1000, 1000);
+                SafeSetPropertyRange(item, WiaPropertyId.IPS_CONTRAST, _options.Contrast, -1000, 1000);
+                SafeSetPropertyRange(item, WiaPropertyId.IPS_BRIGHTNESS, _options.Brightness, -1000, 1000);
             }
         }
+
+        private void SafeSetProperty(WiaItemBase item, int propId, int value)
+        {
+            try
+            {
+                item.SetProperty(propId, value);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error setting property {PropId}", propId);
+            }
+        }
+
+        private void SafeSetPropertyClosest(WiaItemBase item, int propId, ref int value)
+        {
+            try
+            {
+                item.SetPropertyClosest(propId, ref value);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error setting property {PropId}", propId);
+            }
+        }
+
+        private void SafeSetPropertyRange(WiaItemBase item, int propId, int value, int expectedMin, int expectedMax)
+        {
+            try
+            {
+                item.SetPropertyRange(propId, value, expectedMin, expectedMax);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error setting property {PropId}", propId);
+            }
+        }
+    }
+
+    private static (int, int) GetScanArea(WiaDevice device, WiaItem item, bool flatbed)
+    {
+        int horizontalSize, verticalSize;
+        if (device.Version == WiaVersion.Wia10)
+        {
+            horizontalSize =
+                (int)device.Properties[flatbed
+                    ? WiaPropertyId.DPS_HORIZONTAL_BED_SIZE
+                    : WiaPropertyId.DPS_HORIZONTAL_SHEET_FEED_SIZE].Value;
+            verticalSize =
+                (int)device.Properties[flatbed
+                    ? WiaPropertyId.DPS_VERTICAL_BED_SIZE
+                    : WiaPropertyId.DPS_VERTICAL_SHEET_FEED_SIZE].Value;
+        }
+        else
+        {
+            horizontalSize = (int)item.Properties[WiaPropertyId.IPS_MAX_HORIZONTAL_SIZE].Value;
+            verticalSize = (int)item.Properties[WiaPropertyId.IPS_MAX_VERTICAL_SIZE].Value;
+        }
+        return (horizontalSize, verticalSize);
     }
 }
 #endif

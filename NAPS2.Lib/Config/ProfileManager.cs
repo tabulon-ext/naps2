@@ -4,7 +4,6 @@ using NAPS2.Scan;
 
 namespace NAPS2.Config;
 
-// TODO: Fix cross-instance contention
 public class ProfileManager : IProfileManager
 {
     private readonly ProfileSerializer _serializer = new();
@@ -106,7 +105,7 @@ public class ProfileManager : IProfileManager
         {
             _userScope.Set(c => c, ImmutableList.CreateRange(_profiles!));
         }
-        ProfilesUpdated?.Invoke(this, EventArgs.Empty);
+        Invoker.Current.InvokeDispatch(() => ProfilesUpdated?.Invoke(this, EventArgs.Empty));
     }
 
     private List<ScanProfile> GetProfiles()
@@ -152,7 +151,7 @@ public class ProfileManager : IProfileManager
         }
 
         var systemProfileNames = new HashSet<string>(systemProfiles.Select(x => x.DisplayName));
-        foreach (var profile in userProfiles)
+        foreach (var profile in userProfiles.ToList())
         {
             if (systemProfileNames.Contains(profile.DisplayName))
             {

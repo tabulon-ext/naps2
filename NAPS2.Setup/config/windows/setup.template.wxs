@@ -5,7 +5,7 @@
       Name="NAPS2"
       Language="1033"
       Version="{{ !version }}"
-      Manufacturer="Ben Olden-Cooligan"
+      Manufacturer="NAPS2 Software"
       UpgradeCode="FEB82971-B3E6-4F19-9684-1D543E644D73">
     <!-- TODO: Files aren't updated if the version isn't bumped. How to fix? I guess it doesn't matter for verification if we delete the folder preemptively... -->
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
@@ -24,18 +24,28 @@
       <ComponentRef Id="Exec" />
       <ComponentRef Id="Deps" />
       <ComponentRef Id="DepsWin32" />
-      <!-- !64 --><ComponentRef Id="DepsWin64" /><!-- !~64 -->
+      <ComponentRef Id="DepsWin64" />
       <ComponentRef Id="ApplicationShortcut" />
       <ComponentRef Id="RegistryEntries" />
       <ComponentGroupRef Id="LangComponents" />
     </Feature>
 
+    <Property Id="INNOINSTALLATION" Value="NOTEXIST">
+      <DirectorySearch Id="CheckFileDir" Path="[ProgramFiles64Folder]NAPS2" Depth="0">
+        <FileSearch Id="CheckFile" Name="unins000.exe" />
+      </DirectorySearch>
+    </Property>
+
+    <Condition Message="NAPS2 has already been installed using the EXE installer and can't be upgraded using the MSI installer. Either use the EXE installer to upgrade, or uninstall NAPS2 then re-install with the MSI.">
+        <![CDATA[INNOINSTALLATION="NOTEXIST"]]>
+    </Condition>
+
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFiles{{ !64 }}64{{ !~64 }}Folder">
+      <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="NAPS2">
           <Directory Id="LIBFOLDER" Name="lib">
             <Directory Id="LIBWIN32FOLDER" Name="_win32" />
-            <!-- !64 --><Directory Id="LIBWIN64FOLDER" Name="_win64" /><!-- !~64 -->
+            <Directory Id="LIBWIN64FOLDER" Name="_win64" />
           </Directory>
         </Directory>
       </Directory>
@@ -62,6 +72,36 @@
           <RegistryValue Type="string" Name="Icon" Value="[INSTALLFOLDER]NAPS2.exe,0" />
           <RegistryValue Type="string" Name="Name" Value="NAPS2" />
         </RegistryKey>
+        <RegistryKey Root="HKCR" Key=".pdf\OpenWithProgids">
+          <RegistryValue Type="string" Name="NAPS2" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key=".jpg\OpenWithProgids">
+          <RegistryValue Type="string" Name="NAPS2" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key=".jpeg\OpenWithProgids">
+          <RegistryValue Type="string" Name="NAPS2" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key=".png\OpenWithProgids">
+          <RegistryValue Type="string" Name="NAPS2" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key=".tiff\OpenWithProgids">
+          <RegistryValue Type="string" Name="NAPS2" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key=".tif\OpenWithProgids">
+          <RegistryValue Type="string" Name="NAPS2" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key=".bmp\OpenWithProgids">
+          <RegistryValue Type="string" Name="NAPS2" Value="" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="NAPS2">
+          <RegistryValue Type="string" Value="NAPS2" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="NAPS2\DefaultIcon">
+          <RegistryValue Type="string" Value="[INSTALLFOLDER]NAPS2.exe,0" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="NAPS2\shell\open\command">
+          <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]NAPS2.exe&quot; &quot;%1&quot;" />
+        </RegistryKey>
       </Component>
     </Directory>
 
@@ -70,7 +110,7 @@
         <!-- !root -->
       </Component>
     </DirectoryRef>
-    
+
     <DirectoryRef Id="LIBFOLDER">
       <Component Id="Deps" Guid="04AC2B17-BDFA-4AA0-B8CA-0AE208D9193A">
         <!-- !lib -->
@@ -83,11 +123,11 @@
         <!-- !win32 -->
       </Component>
     </DirectoryRef>
-    <!-- !64 --><DirectoryRef Id="LIBWIN64FOLDER">
+    <DirectoryRef Id="LIBWIN64FOLDER">
       <Component Id="DepsWin64" Guid="9F734E22-7835-43B9-8B58-E10EF6484DD7">
         <!-- !win64 -->
       </Component>
-    </DirectoryRef><!-- !~64 -->
+    </DirectoryRef>
 
     <DirectoryRef Id="ProgramMenuDir">
       <Component Id="ApplicationShortcut" Guid="F5122C0C-7DCA-4D0A-AF70-C87C972267AB">

@@ -1,9 +1,11 @@
 ﻿using System.Collections.Immutable;
+using System.Linq.Expressions;
 using System.Text;
 using System.Xml;
 using NAPS2.Config.Model;
 using NAPS2.Config.ObsoleteTypes;
-using NAPS2.ImportExport.Pdf;
+using NAPS2.Escl;
+using NAPS2.Pdf;
 using NAPS2.Serialization;
 
 namespace NAPS2.Config;
@@ -37,15 +39,18 @@ public class ConfigSerializer : VersionedSerializer<ConfigStorage<CommonConfig>>
             if (_mode == ConfigReadMode.DefaultOnly)
             {
                 var oldAppConfig = new XmlSerializer<AppConfigV0>().Deserialize(stream);
-                return AppConfigV0ToCommonConfigDefault(oldAppConfig ?? throw new InvalidOperationException("Couldn't parse app config"));
+                return AppConfigV0ToCommonConfigDefault(
+                    oldAppConfig ?? throw new InvalidOperationException("Couldn't parse app config"));
             }
             if (_mode == ConfigReadMode.LockedOnly)
             {
                 var oldAppConfig = new XmlSerializer<AppConfigV0>().Deserialize(stream);
-                return AppConfigV0ToCommonConfigLocked(oldAppConfig ?? throw new InvalidOperationException("Couldn't parse app config"));
+                return AppConfigV0ToCommonConfigLocked(
+                    oldAppConfig ?? throw new InvalidOperationException("Couldn't parse app config"), doc);
             }
             var oldUserConfig = new XmlSerializer<UserConfigV0>().Deserialize(stream);
-            return UserConfigV0ToCommonConfig(oldUserConfig ?? throw new InvalidOperationException("Couldn't parse user config"));
+            return UserConfigV0ToCommonConfig(oldUserConfig ??
+                                              throw new InvalidOperationException("Couldn't parse user config"));
         }
         if (_mode == ConfigReadMode.DefaultOnly)
         {
@@ -63,7 +68,9 @@ public class ConfigSerializer : VersionedSerializer<ConfigStorage<CommonConfig>>
     private ConfigStorage<CommonConfig> DeserializeXDoc(XDocument doc)
     {
         var filteredStream = new MemoryStream();
-        doc.WriteTo(new XmlTextWriter(filteredStream, Encoding.UTF8));
+        var xmlWriter = new XmlTextWriter(filteredStream, Encoding.UTF8);
+        doc.WriteTo(xmlWriter);
+        xmlWriter.Flush();
         filteredStream.Seek(0, SeekOrigin.Begin);
         return _storageSerializer.Deserialize(filteredStream);
     }
@@ -77,60 +84,99 @@ public class ConfigSerializer : VersionedSerializer<ConfigStorage<CommonConfig>>
             {
                 FilterProperties(child, target, childMode);
             }
-            else if(childMode != target)
+            else if (childMode != target)
             {
                 child.Remove();
             }
         }
     }
 
-    private ConfigStorage<CommonConfig> AppConfigV0ToCommonConfigDefault(AppConfigV0 c) =>
-        new(new CommonConfig
-        {
-            // TODO: This initializes all properties, we need to specify exactly what's set
-            // Could maybe move the app-only properties to Locked scope, but it really shouldn't matter
-            Version = CommonConfig.CURRENT_VERSION,
-            Culture = c.DefaultCulture,
-            StartupMessageTitle = c.StartupMessageTitle,
-            StartupMessageText = c.StartupMessageText,
-            StartupMessageIcon = c.StartupMessageIcon,
-            DefaultProfileSettings = c.DefaultProfileSettings,
-            SaveButtonDefaultAction = c.SaveButtonDefaultAction,
-            HiddenButtons = GetHiddenButtonFlags(c),
-            DisableAutoSave = c.DisableAutoSave,
-            LockSystemProfiles = c.LockSystemProfiles,
-            LockUnspecifiedDevices = c.LockUnspecifiedDevices,
-            NoUserProfiles = c.NoUserProfiles,
-            AlwaysRememberDevice = c.AlwaysRememberDevice,
-            DisableGenericPdfImport = c.DisableGenericPdfImport,
-            NoUpdatePrompt = c.NoUpdatePrompt,
-            DeleteAfterSaving = c.DeleteAfterSaving,
-            DisableSaveNotifications = c.DisableSaveNotifications,
-            SingleInstance = c.SingleInstance,
-            ComponentsPath = c.ComponentsPath,
-            OcrTimeoutInSeconds = c.OcrTimeoutInSeconds,
-            OcrLanguageCode = c.OcrDefaultLanguage,
-            OcrMode = c.OcrDefaultMode,
-            OcrAfterScanning = c.OcrDefaultAfterScanning,
-            EventLogging = c.EventLogging,
-            KeyboardShortcuts = c.KeyboardShortcuts ?? new KeyboardShortcuts()
-        });
+    private ConfigStorage<CommonConfig> AppConfigV0ToCommonConfigDefault(AppConfigV0 c)
+    {
+        var storage = new ConfigStorage<CommonConfig>();
+        storage.Set(x => x.Version, CommonConfig.CURRENT_VERSION);
+        storage.Set(x => x.Culture, c.DefaultCulture);
+        storage.Set(x => x.StartupMessageTitle, c.StartupMessageTitle);
+        storage.Set(x => x.StartupMessageText, c.StartupMessageText);
+        storage.Set(x => x.StartupMessageIcon, c.StartupMessageIcon);
+        storage.Set(x => x.DefaultProfileSettings, c.DefaultProfileSettings);
+        storage.Set(x => x.Theme, c.Theme);
+        storage.Set(x => x.ShowPageNumbers, c.ShowPageNumbers);
+        storage.Set(x => x.ShowProfilesToolbar, c.ShowProfilesToolbar);
+        storage.Set(x => x.ScanChangesDefaultProfile, c.ScanChangesDefaultProfile);
+        storage.Set(x => x.ScanButtonDefaultAction, c.ScanButtonDefaultAction);
+        storage.Set(x => x.SaveButtonDefaultAction, c.SaveButtonDefaultAction);
+        storage.Set(x => x.DeleteAfterSaving, c.DeleteAfterSaving);
+        storage.Set(x => x.KeepSession, c.KeepSession);
+        storage.Set(x => x.SingleInstance, c.SingleInstance);
+        storage.Set(x => x.HiddenButtons, GetHiddenButtonFlags(c));
+        storage.Set(x => x.DisableAutoSave, c.DisableAutoSave);
+        storage.Set(x => x.LockSystemProfiles, c.LockSystemProfiles);
+        storage.Set(x => x.LockUnspecifiedDevices, c.LockUnspecifiedDevices);
+        storage.Set(x => x.NoUserProfiles, c.NoUserProfiles);
+        storage.Set(x => x.AlwaysRememberDevice, c.AlwaysRememberDevice);
+        storage.Set(x => x.NoUpdatePrompt, c.NoUpdatePrompt);
+        storage.Set(x => x.DisableSaveNotifications, c.DisableSaveNotifications);
+        storage.Set(x => x.ComponentsPath, c.ComponentsPath);
+        storage.Set(x => x.OcrTimeoutInSeconds, c.OcrTimeoutInSeconds);
+        storage.Set(x => x.OcrLanguageCode, c.OcrDefaultLanguage);
+        storage.Set(x => x.OcrMode, c.OcrDefaultMode);
+        storage.Set(x => x.OcrAfterScanning, c.OcrDefaultAfterScanning);
+        storage.Set(x => x.EsclSecurityPolicy, c.EsclSecurityPolicy);
+        storage.Set(x => x.EsclServerCertificatePath, c.EsclServerCertificatePath);
+        storage.Set(x => x.EventLogging, c.EventLogging);
+        storage.Set(x => x.KeyboardShortcuts, MapKeyboardShortcuts(c.KeyboardShortcuts ?? new KeyboardShortcuts()));
+        return storage;
+    }
 
-    private ConfigStorage<CommonConfig> AppConfigV0ToCommonConfigLocked(AppConfigV0 c)
+    private ConfigStorage<CommonConfig> AppConfigV0ToCommonConfigLocked(AppConfigV0 c, XDocument doc)
     {
         var storage = new ConfigStorage<CommonConfig>();
         if (c.OcrState == OcrState.Enabled)
         {
-            storage.Set(c => c.EnableOcr, true);            
+            storage.Set(x => x.EnableOcr, true);
         }
         if (c.OcrState == OcrState.Disabled)
         {
-            storage.Set(c => c.EnableOcr, false);            
+            storage.Set(x => x.EnableOcr, false);
         }
         if (c.ForcePdfCompat != PdfCompat.Default)
         {
-            storage.Set(c => c.PdfSettings.Compat, c.ForcePdfCompat);            
+            storage.Set(x => x.PdfSettings.Compat, c.ForcePdfCompat);
         }
+        if (c.NoDebugLogging)
+        {
+            storage.Set(x => x.EnableDebugLogging, false);
+        }
+        if (c.NoScannerSharing)
+        {
+            storage.Set(x => x.DisableScannerSharing, true);
+        }
+        if (c.EsclSecurityPolicy != EsclSecurityPolicy.None)
+        {
+            storage.Set(x => x.EsclSecurityPolicy, c.EsclSecurityPolicy);
+        }
+
+        void SetIfLocked<T>(Expression<Func<CommonConfig, T>> accessor, T value, string name)
+        {
+            var element = doc.Root!.Element(name);
+            bool isLocked = element?.Attribute("mode")?.Value == "lock";
+            if (isLocked)
+            {
+                storage.Set(accessor, value);
+            }
+        }
+        SetIfLocked(x => x.Theme, c.Theme, nameof(c.Theme));
+        SetIfLocked(x => x.ShowPageNumbers, c.ShowPageNumbers, nameof(c.ShowPageNumbers));
+        SetIfLocked(x => x.ShowProfilesToolbar, c.ShowProfilesToolbar, nameof(c.ShowProfilesToolbar));
+        SetIfLocked(x => x.ScanChangesDefaultProfile, c.ScanChangesDefaultProfile, nameof(c.ScanChangesDefaultProfile));
+        SetIfLocked(x => x.ScanButtonDefaultAction, c.ScanButtonDefaultAction, nameof(c.ScanButtonDefaultAction));
+        SetIfLocked(x => x.SaveButtonDefaultAction, c.SaveButtonDefaultAction, nameof(c.SaveButtonDefaultAction));
+        SetIfLocked(x => x.DeleteAfterSaving, c.DeleteAfterSaving, nameof(c.DeleteAfterSaving));
+        SetIfLocked(x => x.KeepSession, c.KeepSession, nameof(c.KeepSession));
+        SetIfLocked(x => x.SingleInstance, c.SingleInstance, nameof(c.SingleInstance));
+        SetIfLocked(x => x.KeyboardShortcuts, MapKeyboardShortcuts(c.KeyboardShortcuts ?? new KeyboardShortcuts()), nameof(c.KeyboardShortcuts));
+
         return storage;
     }
 
@@ -143,36 +189,64 @@ public class ConfigSerializer : VersionedSerializer<ConfigStorage<CommonConfig>>
         if (c.HideSaveImagesButton) flags |= ToolbarButtons.SaveImages;
         if (c.HideEmailButton) flags |= ToolbarButtons.EmailPdf;
         if (c.HidePrintButton) flags |= ToolbarButtons.Print;
+        if (c.HideSettingsButton) flags |= ToolbarButtons.Settings;
         if (c.HideDonateButton) flags |= ToolbarButtons.Donate;
+        if (c.HideSidebar) flags |= ToolbarButtons.Sidebar;
+        if (c.HideManualDuplex) flags |= ToolbarButtons.ManualDuplex;
+        if (c.HideInterleave)  flags |= ToolbarButtons.Interleave;
         return flags;
     }
 
-    private static ConfigStorage<CommonConfig> UserConfigV0ToCommonConfig(UserConfigV0 c) =>
-        new(new CommonConfig // TODO: We don't want new config fields to be considered specified 
+    private KeyboardShortcuts MapKeyboardShortcuts(KeyboardShortcuts keyboardShortcuts)
+    {
+        // To be platform-independent, replace "Ctrl+" with "Mod+", which means "Ctrl" on Window/Linux and "Cmd" on Mac
+        var serializer = new XmlSerializer<KeyboardShortcuts>();
+        var doc = serializer.SerializeToXDocument(keyboardShortcuts);
+        foreach (var node in doc.Root!.Elements())
         {
-            Version = CommonConfig.CURRENT_VERSION,
-            Culture = c.Culture,
-            // The new form states have different values (client size instead of form size), so best to go with defaults
-            FormStates = ImmutableList<FormState>.Empty, // ImmutableList.CreateRange(c.FormStates),
-            BackgroundOperations = ImmutableHashSet.CreateRange(c.BackgroundOperations),
-            CheckForUpdates = c.CheckForUpdates,
-            LastUpdateCheckDate = c.LastUpdateCheckDate,
-            FirstRunDate = c.FirstRunDate,
-            LastDonatePromptDate = c.LastDonatePromptDate,
-            EnableOcr = c.EnableOcr,
-            OcrLanguageCode = c.OcrLanguageCode,
-            OcrMode = c.OcrMode,
-            OcrAfterScanning = c.OcrAfterScanning,
-            LastImageExt = c.LastImageExt,
-            PdfSettings = c.PdfSettings,
-            ImageSettings = c.ImageSettings,
-            EmailSettings = c.EmailSettings,
-            EmailSetup = c.EmailSetup,
-            ThumbnailSize = c.ThumbnailSize,
-            BatchSettings = c.LastBatchSettings ?? new(), // TODO: This is broken
-            DesktopToolStripDock = c.DesktopToolStripDock,
-            KeyboardShortcuts = c.KeyboardShortcuts,
-            CustomPageSizePresets = ImmutableList.CreateRange(c.CustomPageSizePresets),
-            SavedProxies = ImmutableList.CreateRange(c.SavedProxies)
-        });
+            node.Value = node.Value.Replace("Ctrl+", "Mod+");
+        }
+        return serializer.DeserializeFromXDocument(doc)!;
+    }
+
+    private static ConfigStorage<CommonConfig> UserConfigV0ToCommonConfig(UserConfigV0 c)
+    {
+        var storage = new ConfigStorage<CommonConfig>();
+        storage.Set(x => x.Version, CommonConfig.CURRENT_VERSION);
+        storage.Set(x => x.Culture, c.Culture);
+        // The new form states have different values (client size instead of form size), so best to go with defaults
+        storage.Set(x => x.FormStates, ImmutableList<FormState>.Empty);
+        if (c.BackgroundOperations != null)
+        {
+            storage.Set(x => x.BackgroundOperations, ImmutableHashSet.CreateRange(c.BackgroundOperations));
+        }
+        storage.Set(x => x.CheckForUpdates, c.CheckForUpdates);
+        storage.Set(x => x.LastUpdateCheckDate, c.LastUpdateCheckDate);
+        storage.Set(x => x.FirstRunDate, c.FirstRunDate);
+        storage.Set(x => x.LastDonatePromptDate, c.LastDonatePromptDate);
+        storage.Set(x => x.EnableOcr, c.EnableOcr);
+        storage.Set(x => x.OcrLanguageCode, c.OcrLanguageCode);
+        storage.Set(x => x.OcrMode, c.OcrMode);
+        storage.Set(x => x.OcrAfterScanning, c.OcrAfterScanning);
+        storage.Set(x => x.LastImageExt, c.LastImageExt);
+        storage.Set(x => x.PdfSettings, c.PdfSettings);
+        storage.Set(x => x.ImageSettings, c.ImageSettings);
+        storage.Set(x => x.EmailSettings, c.EmailSettings);
+        storage.Set(x => x.EmailSetup, c.EmailSetup);
+        storage.Set(x => x.ThumbnailSize, c.ThumbnailSize);
+        if (c.LastBatchSettings != null)
+        {
+            storage.Set(x => x.BatchSettings, c.LastBatchSettings);
+        }
+        storage.Set(x => x.DesktopToolStripDock, c.DesktopToolStripDock);
+        if (c.KeyboardShortcuts != null)
+        {
+            storage.Set(x => x.KeyboardShortcuts, c.KeyboardShortcuts);
+        }
+        if (c.CustomPageSizePresets != null)
+        {
+            storage.Set(x => x.CustomPageSizePresets, ImmutableList.CreateRange(c.CustomPageSizePresets));
+        }
+        return storage;
+    }
 }

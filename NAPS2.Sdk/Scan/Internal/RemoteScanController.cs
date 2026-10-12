@@ -18,14 +18,22 @@ internal class RemoteScanController : IRemoteScanController
         _remotePostProcessor = remotePostProcessor;
     }
 
-    public async Task<List<ScanDevice>> GetDeviceList(ScanOptions options)
+    public async Task GetDevices(ScanOptions options, CancellationToken cancelToken, Action<ScanDevice> callback)
     {
-        var deviceList = await _scanDriverFactory.Create(options).GetDeviceList(options);
-        if (options.Driver == Driver.Twain && !options.TwainOptions.IncludeWiaDevices)
+        await _scanDriverFactory.Create(options).GetDevices(options, cancelToken, device =>
         {
-            deviceList = deviceList.Where(x => !x.ID.StartsWith("WIA-", StringComparison.InvariantCulture)).ToList();
-        }
-        return deviceList;
+            var skipWiaDevices = options.Driver == Driver.Twain && !options.TwainOptions.IncludeWiaDevices;
+            if (skipWiaDevices && device.ID.StartsWith("WIA-", StringComparison.InvariantCulture))
+            {
+                return;
+            }
+            callback(device);
+        });
+    }
+
+    public async Task<ScanCaps> GetCaps(ScanOptions options, CancellationToken cancelToken)
+    {
+        return await _scanDriverFactory.Create(options).GetCaps(options, cancelToken);
     }
 
     public async Task Scan(ScanOptions options, CancellationToken cancelToken, IScanEvents scanEvents,
@@ -33,7 +41,11 @@ internal class RemoteScanController : IRemoteScanController
     {
         var driver = _scanDriverFactory.Create(options);
         var progressThrottle = new EventThrottle<double>(scanEvents.PageProgress);
-        var driverScanEvents = new ScanEvents(scanEvents.PageStart, progressThrottle.OnlyIfChanged);
+        var driverScanEvents = new ScanEvents(() =>
+        {
+            scanEvents.PageStart();
+            progressThrottle.Reset();
+        }, progressThrottle.OnlyIfChanged, scanEvents.DeviceUriChanged);
         int pageNumber = 0;
         await driver.Scan(options, cancelToken, driverScanEvents, image =>
         {

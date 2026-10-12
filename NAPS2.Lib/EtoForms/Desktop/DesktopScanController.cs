@@ -64,18 +64,26 @@ public class DesktopScanController : IDesktopScanController
 
             // No profile for the device we're scanning with, so prompt to create one
             var editSettingsForm = _formFactory.Create<EditProfileForm>();
+            editSettingsForm.NewProfile = true;
             editSettingsForm.ScanProfile = _config.DefaultProfileSettings();
 #if !MAC
-            try
+#if NET6_0_OR_GREATER
+            if (OperatingSystem.IsWindows())
             {
-                // Populate the device field automatically (because we can do that!)
-                using var deviceManager = new WiaDeviceManager();
-                using var device = deviceManager.FindDevice(deviceID);
-                editSettingsForm.CurrentDevice = new ScanDevice(deviceID, device.Name());
+#endif
+                try
+                {
+                    // Populate the device field automatically (because we can do that!)
+                    using var deviceManager = new WiaDeviceManager();
+                    using var device = deviceManager.FindDevice(deviceID);
+                    editSettingsForm.SetDevice(new ScanDevice(Driver.Wia, deviceID, device.Name()));
+                }
+                catch (WiaException)
+                {
+                }
+#if NET6_0_OR_GREATER
             }
-            catch (WiaException)
-            {
-            }
+#endif
 #endif
             editSettingsForm.ShowModal();
             if (!editSettingsForm.Result)
@@ -85,7 +93,7 @@ public class DesktopScanController : IDesktopScanController
             profile = editSettingsForm.ScanProfile;
             _profileManager.Mutate(new ListMutation<ScanProfile>.Append(profile),
                 ListSelection.Empty<ScanProfile>());
-            _profileManager.DefaultProfile = profile;
+            MaybeSetDefaultProfile(profile);
         }
 
         // We got a profile, yay, so we can actually do the scan now
@@ -94,7 +102,13 @@ public class DesktopScanController : IDesktopScanController
 
     public async Task ScanDefault()
     {
-        if (_profileManager.DefaultProfile != null)
+        var action = _config.Get(c => c.ScanButtonDefaultAction);
+
+        if (action == ScanButtonDefaultAction.AlwaysPrompt)
+        {
+            _desktopFormProvider.DesktopForm.ShowToolbarMenu(DesktopToolbarMenuType.Scan);
+        }
+        else if (_profileManager.DefaultProfile != null)
         {
             await DoScan(_profileManager.DefaultProfile);
         }
@@ -111,6 +125,7 @@ public class DesktopScanController : IDesktopScanController
     public async Task ScanWithNewProfile()
     {
         var editSettingsForm = _formFactory.Create<EditProfileForm>();
+        editSettingsForm.NewProfile = true;
         editSettingsForm.ScanProfile = _config.DefaultProfileSettings();
         editSettingsForm.ShowModal();
         if (!editSettingsForm.Result)
@@ -119,15 +134,23 @@ public class DesktopScanController : IDesktopScanController
         }
         _profileManager.Mutate(new ListMutation<ScanProfile>.Append(editSettingsForm.ScanProfile),
             ListSelection.Empty<ScanProfile>());
-        _profileManager.DefaultProfile = editSettingsForm.ScanProfile;
+        MaybeSetDefaultProfile(editSettingsForm.ScanProfile);
 
         await DoScan(editSettingsForm.ScanProfile);
     }
 
     public async Task ScanWithProfile(ScanProfile profile)
     {
-        _profileManager.DefaultProfile = profile;
+        MaybeSetDefaultProfile(profile);
         await DoScan(profile);
+    }
+
+    private void MaybeSetDefaultProfile(ScanProfile profile)
+    {
+        if (_config.Get(c => c.ScanChangesDefaultProfile) || _profileManager.DefaultProfile == null)
+        {
+            _profileManager.DefaultProfile = profile;
+        }
     }
 
     private async Task DoScan(ScanProfile profile)

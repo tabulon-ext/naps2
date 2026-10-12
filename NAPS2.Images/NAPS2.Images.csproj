@@ -1,22 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net6;net462;netstandard2.0</TargetFrameworks>
+        <TargetFrameworks>net8;net10.0;net462;netstandard2.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <RootNamespace>NAPS2.Images</RootNamespace>
         <Optimize>true</Optimize>
+        <NoWarn>PolyfillTargetsForNuget</NoWarn>
 
         <Title>NAPS2.Images</Title>
-        <Copyright>Copyright 2022 Ben Olden-Cooligan</Copyright>
+        <Product>NAPS2.Images</Product>
+        <Description>Base image abstraction for NAPS2.Sdk. Don't reference this project directly.</Description>
+        <PackageTags>naps2</PackageTags>
     </PropertyGroup>
 
+    <Import Project="..\NAPS2.Setup\targets\SdkPackageTargets.targets" />
+
     <ItemGroup>
-      <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
-      <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
-        <PackageReference Include="System.ValueTuple" Version="4.3.1" />
-        <PackageReference Include="ZXing.Net" Version="0.16.4" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.10" />
+         <PackageReference Include="Polyfill" Version="11.0.1" PrivateAssets="all" />
+        <PackageReference Include="System.Collections.Immutable" Version="10.0.10" />
+        <PackageReference Include="ZXing.Net" Version="0.16.11" />
+
+        <ProjectReference Include="..\NAPS2.Internals\NAPS2.Internals.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -27,7 +34,25 @@
             <_Parameter1>NAPS2.Sdk.Tests</_Parameter1>
         </AssemblyAttribute>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>NAPS2.Lib.Tests</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>NAPS2.Lib</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>NAPS2.Images.Gdi</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>NAPS2.Images.Wpf</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>NAPS2.Images.Gtk</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>NAPS2.Images.Mac</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>NAPS2.Images.ImageSharp</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>
 

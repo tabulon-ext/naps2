@@ -23,9 +23,21 @@ public class DesktopImagesController
             lock (lockObj)
             {
                 var uiImage = new UiImage(scannedImage);
+                var shouldSelect = !_imageList.Selection.Any();
                 _imageList.Mutate(new ImageListMutation.InsertAfter(uiImage, last), isPassiveInteraction: true);
+                if (shouldSelect)
+                {
+                    _imageList.UpdateSelection(ListSelection.Of(uiImage));
+                }
                 last = uiImage;
             }
         };
+    }
+
+    public void AppendImageBatch(IEnumerable<ProcessedImage> images)
+    {
+        _imageList.Mutate(
+            new ImageListMutation.Append(images.Select(image => new UiImage(image))),
+            isPassiveInteraction: true);
     }
 }

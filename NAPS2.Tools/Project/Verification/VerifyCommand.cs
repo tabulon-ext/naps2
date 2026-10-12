@@ -6,26 +6,31 @@ public class VerifyCommand : ICommand<VerifyOptions>
 {
     public int Run(VerifyOptions opts)
     {
-        var version = ProjectHelper.GetDefaultProjectVersion();
+        if (!OperatingSystem.IsWindows())
+        {
+            Output.Info("Verification tests are currently only supported on Windows.");
+            return 0;
+        }
+
+        var version = ProjectHelper.GetCurrentVersionName();
         
         using var appDriverRunner = AppDriverRunner.Start();
 
-        var constraints = new TargetConstraints
+        foreach (var target in TargetsHelper.EnumeratePackageTargets(opts.PackageType, opts.Platform, true))
         {
-            AllowMultiplePlatforms = true
-        };
-        foreach (var target in TargetsHelper.Enumerate(opts.BuildType, opts.Platform, constraints))
-        {
-            switch (target.BuildType)
+            switch (target.Type)
             {
-                case BuildType.Exe:
+                case PackageType.Exe:
                     ExeSetupVerifier.Verify(target.Platform, version);
                     break;
-                case BuildType.Msi:
+                case PackageType.Msi:
                     MsiSetupVerifier.Verify(target.Platform, version);
                     break;
-                case BuildType.Zip:
+                case PackageType.Zip:
                     ZipArchiveVerifier.Verify(target.Platform, version, opts.NoCleanup);
+                    break;
+                default:
+                    Output.Info($"Unsupported package type for verification: {target.Type}");
                     break;
             }
         }

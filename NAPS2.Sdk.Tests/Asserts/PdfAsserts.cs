@@ -1,9 +1,12 @@
-﻿using Codeuctivity;
-using NAPS2.ImportExport.Pdf;
-using NAPS2.ImportExport.Pdf.Pdfium;
+﻿using System.Text.RegularExpressions;
+using Codeuctivity;
+using NAPS2.Ocr;
+using NAPS2.Pdf;
+using NAPS2.Pdf.Pdfium;
 using PdfSharpCore.Pdf.IO;
 using PdfSharpCore.Pdf.Security;
 using Xunit;
+using Xunit.Sdk;
 
 namespace NAPS2.Sdk.Tests.Asserts;
 
@@ -18,8 +21,20 @@ public static class PdfAsserts
         Assert.Equal(count, doc.PageCount);
     }
 
+    public static void AssertPageSize(PageSize pageSize, int precision, string filePath)
+    {
+        Assert.True(File.Exists(filePath));
+        var doc = PdfReader.Open(filePath, PdfDocumentOpenMode.InformationOnly);
+        Assert.Equal((double) pageSize.WidthInInches, doc.Pages[0].Width.Inch, precision);
+        Assert.Equal((double) pageSize.HeightInInches, doc.Pages[0].Height.Inch, precision);
+    }
+
     public static async Task AssertCompliant(string profile, string filePath)
     {
+        if (string.IsNullOrEmpty(profile))
+        {
+            return;
+        }
         Assert.True(File.Exists(filePath));
         var report = await LazyPdfAValidator.Value.ValidateWithDetailedReportAsync(filePath);
         Assert.True(report.Jobs.Job.ValidationReport.IsCompliant);
@@ -28,12 +43,20 @@ public static class PdfAsserts
 
     public static void AssertContainsTextOnce(string text, string filePath)
     {
-        Assert.Equal(1, CountText(text, filePath));
+        var value = CountText(text, filePath);
+        if (value != 1)
+        {
+            throw new XunitException($"Unexpected count for \"{text}\": expected {1}, got {value}");
+        }
     }
 
     public static void AssertDoesNotContainText(string text, string filePath)
     {
-        Assert.Equal(0, CountText(text, filePath));
+        var value = CountText(text, filePath);
+        if (value != 0)
+        {
+            throw new XunitException($"Unexpected count for \"{text}\": expected {0}, got {value}");
+        }
     }
 
     private static int CountText(string text, string filePath)
@@ -44,13 +67,45 @@ public static class PdfAsserts
         {
             int startIndex = 0;
             int index;
-            while ((index = pageText.IndexOf(text, startIndex, StringComparison.InvariantCulture)) != -1)
+            var normalized = Regex.Replace(pageText, "\\s+", " ");
+            while ((index = normalized.IndexOf(text, startIndex, StringComparison.Ordinal)) != -1)
             {
                 count++;
                 startIndex = index + 1;
             }
         }
         return count;
+    }
+
+    public static void AssertOcrText(OcrResult ocrResult, string filePath)
+    {
+        Assert.True(File.Exists(filePath));
+        var expectedChars = ocrResult.Words
+            .SelectMany(word => word.Text.Where(c => !char.IsWhiteSpace(c)).Select(c => (c, word.Bounds)))
+            .ToList();
+        lock (PdfiumNativeLibrary.Instance)
+        {
+            using var doc = PdfDocument.Load(filePath);
+            using var page = doc.GetPage(0);
+            using var text = page.GetText();
+            int j = 0;
+            for (int i = 0; i < text.CharCount; i++)
+            {
+                var c = (char) text.ReadUtf32(i);
+                if (char.IsWhiteSpace(c) || char.IsControl(c)) continue;
+                Assert.True(j < expectedChars.Count, $"Unexpected extra char '{c}'");
+                var (expectedChar, bounds) = expectedChars[j++];
+                Assert.Equal(expectedChar, c);
+                // The center of the char box (scaled to the OCR page bounds, with the origin at the top-left) should be
+                // within the word bounds. This assumes the page isn't cropped or rotated.
+                var box = text.GetCharBox(i);
+                var x = (box.Left + box.Right) / 2 * (ocrResult.PageBounds.w / page.Width);
+                var y = (page.Height - (box.Top + box.Bottom) / 2) * (ocrResult.PageBounds.h / page.Height);
+                Assert.InRange(x, bounds.x, bounds.x + bounds.w);
+                Assert.InRange(y, bounds.y, bounds.y + bounds.h);
+            }
+            Assert.Equal(expectedChars.Count, j);
+        }
     }
 
     public static void AssertMetadata(PdfMetadata expected, string filePath, string password = null)
@@ -81,7 +136,7 @@ public static class PdfAsserts
     public static void AssertImages(string filePath, string password, params byte[][] expectedImages)
     {
         Assert.True(File.Exists(filePath));
-        var renderer = new PdfiumPdfRenderer();
+        var renderer = new PdfiumPdfRenderer { NoExtraction = true };
         using var expectedImagesRendered =
             expectedImages.Select(data => TestImageContextFactory.Get().Load(data)).ToDisposableList();
         var renderSizes = PdfRenderSize.FromIndividualPageSizes(
@@ -103,10 +158,19 @@ public static class PdfAsserts
             using var doc = PdfDocument.Load(filePath);
             Assert.InRange(pageIndex, 0, doc.PageCount - 1);
             using var page = doc.GetPage(pageIndex);
-            using var obj = PdfiumImageExtractor.GetSingleImageObject(page);
+            using var obj = PdfiumImageExtractor.GetSingleImageObject(page, true);
             Assert.NotNull(obj);
             Assert.True(obj.HasImageFilters(filters),
                 $"Expected filters: {string.Join(",", filters)}, actual: {string.Join(",", obj.GetImageFilters())}");
+        }
+    }
+
+    public static void AssertVersion(int version, string filePath)
+    {
+        lock (PdfiumNativeLibrary.Instance)
+        {
+            using var doc = PdfDocument.Load(filePath);
+            Assert.Equal(version, doc.Version);
         }
     }
 }

@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: naps2\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2016-04-19 21:51+0000\n"
-"PO-Revision-Date: 2022-11-28 04:41\n"
+"PO-Revision-Date: 2026-10-11 22:01\n"
 "Last-Translator: \n"
 "Language-Team: Albanian\n"
 "Language: sq\n"
@@ -19,53 +19,37 @@ msgstr ""
 "X-Crowdin-File: templates.pot\n"
 "X-Crowdin-File-ID: 75\n"
 
-#: SettingsResources.resx$Dpi_100$Message
-msgid "100 dpi"
-msgstr ""
+#: UiStrings.resx$SaveButtonDefaultAction$Message
+msgid "\"Save\" button default action:"
+msgstr "Veprimi i paracaktuar i butonit \"Ruaj\":"
 
-#: SettingsResources.resx$Dpi_1200$Message
-msgid "1200 dpi"
-msgstr ""
+#: UiStrings.resx$ScanButtonDefaultAction$Message
+msgid "\"Scan\" button default action:"
+msgstr "Veprimi i paracaktuar i butonit \"Skano\":"
 
-#: SettingsResources.resx$Dpi_150$Message
-msgid "150 dpi"
-msgstr ""
+#: UiStrings.resx$ScanChangesDefaultProfile$Message
+msgid "\"Scan\" menu changes default profile"
+msgstr "Меню \"Скан\" меняет профиль по умолчанию"
 
-#: SettingsResources.resx$Dpi_200$Message
-msgid "200 dpi"
-msgstr ""
+#: UiStrings.resx$DeviceFoundSingular$Message
+msgid "1 device found."
+msgstr "U gjet 1 pajisje."
 
 #: SettingsResources.resx$BitDepth_24Color$Message
 msgid "24-bit Color"
 msgstr "Ngjyra me 24 bit"
 
-#: SettingsResources.resx$Dpi_300$Message
-msgid "300 dpi"
-msgstr ""
-
-#: SettingsResources.resx$Dpi_400$Message
-msgid "400 dpi"
-msgstr ""
-
-#: SettingsResources.resx$Dpi_600$Message
-msgid "600 dpi"
-msgstr ""
-
-#: SettingsResources.resx$Dpi_800$Message
-msgid "800 dpi"
-msgstr ""
-
 #: SettingsResources.resx$PageSize_A3$Message
 msgid "A3 (297x420 mm)"
-msgstr "A3 (297 x 420 mm)"
+msgstr "A3 (297x420 mm)"
 
 #: SettingsResources.resx$PageSize_A4$Message
 msgid "A4 (210x297 mm)"
-msgstr "A4 (210 x 297 mm)"
+msgstr "A4 (210x297 mm)"
 
 #: SettingsResources.resx$PageSize_A5$Message
 msgid "A5 (148x210 mm)"
-msgstr "A5 (148 x 210 mm)"
+msgstr "A5 (148x210 mm)"
 
 #: UiStrings.resx$About$Message
 #: UiStrings.resx$AboutFormTitle$Message
@@ -76,12 +60,15 @@ msgstr "Rreth"
 msgid "Acquiring data..."
 msgstr "Po merr të dhënat..."
 
-#: FEditProfile.resx$btnAdvanced.Text$Message
+#: UiStrings.resx$Action$Message
+msgid "Action"
+msgstr "Veprim"
+
 #: UiStrings.resx$Advanced$Message
 msgid "Advanced"
 msgstr "I avancuar"
 
-#: FAdvancedScanSettings.resx$$this.Text$Message
+#: UiStrings.resx$AdvancedProfileFormTitle$Message
 msgid "Advanced Profile Settings"
 msgstr "Cilësimet e avancuara të profilit"
 
@@ -93,37 +80,41 @@ msgstr "Të gjitha ({0})"
 msgid "All Files"
 msgstr "Të gjithë skedarët"
 
-#: FPdfSettings.resx$clbPerms.Items6$Message
+#: UiStrings.resx$AllowAnnotations$Message
 msgid "Allow Annotations"
 msgstr "Lejo Shënimet"
 
-#: FPdfSettings.resx$clbPerms.Items4$Message
+#: UiStrings.resx$AllowContentCopying$Message
 msgid "Allow Content Copying"
 msgstr "Lejo kopjimin e përmbajtjes"
 
-#: FPdfSettings.resx$clbPerms.Items5$Message
+#: UiStrings.resx$AllowContentCopyingForAccessibility$Message
 msgid "Allow Content Copying for Accessibility"
 msgstr "Lejo kopjimin e përmbajtjes për mundësi hyrjeje"
 
-#: FPdfSettings.resx$clbPerms.Items3$Message
+#: UiStrings.resx$AllowDocumentAssembly$Message
 msgid "Allow Document Assembly"
 msgstr "Lejo montimin e dokumentit"
 
-#: FPdfSettings.resx$clbPerms.Items2$Message
+#: UiStrings.resx$AllowDocumentModification$Message
 msgid "Allow Document Modification"
 msgstr "Lejo modifikimin e dokumentit"
 
-#: FPdfSettings.resx$clbPerms.Items7$Message
+#: UiStrings.resx$AllowFormFilling$Message
 msgid "Allow Form Filling"
 msgstr "Lejo plotësimin e formularit"
 
-#: FPdfSettings.resx$clbPerms.Items1$Message
+#: UiStrings.resx$AllowFullQualityPrinting$Message
 msgid "Allow Full Quality Printing"
 msgstr "Lejo printimin me cilësi të plotë"
 
-#: FPdfSettings.resx$clbPerms.Items$Message
+#: UiStrings.resx$AllowPrinting$Message
 msgid "Allow Printing"
 msgstr "Lejo printimin"
+
+#: UiStrings.resx$AltKey$Message
+msgid "Alt"
+msgstr ""
 
 #: UiStrings.resx$AltDeinterleave$Message
 msgid "Alternate Deinterleave"
@@ -133,17 +124,26 @@ msgstr "Heqja e shtresave alternative"
 msgid "Alternate Interleave"
 msgstr "Krijimi i shtresave alternative"
 
-#: SettingsResources.resx$TwainImpl_MemXfer$Message
-msgid "Alternative Transfer"
-msgstr "Transfertë alternative"
+#: UiStrings.resx$AlwaysAsk$Message
+msgid "Always Ask"
+msgstr "Pyet gjithmonë"
+
+#: SettingsResources.resx$SaveButtonDefaultAction_AlwaysPrompt$Message
+#: SettingsResources.resx$ScanButtonDefaultAction_AlwaysPrompt$Message
+msgid "Always Prompt"
+msgstr "Всегда спрашивать"
+
+#: UiStrings.resx$AlwaysShowPreview$Message
+msgid "Always show preview"
+msgstr ""
 
 #: MiscResources.resx$PdfImportComponentNeeded$Message
 msgid "An additional component is needed to import this PDF file. Would you like to download it now?"
 msgstr "Nevojitet një komponent shtesë për të importuar këtë skedar PDF. A dëshiron ta shkarkosh tani?"
 
-#: MiscResources.resx$UpdateError$Message
-msgid "An error occured when trying to install the update."
-msgstr "Ndodhi një gabim gjatë instalimit të përditësimit."
+#: SdkResources.resx$OcrError$Message
+msgid "An error occurred running OCR."
+msgstr "Ndodhi një gabim gjatë ekzekutimit të OCR."
 
 #: MiscResources.resx$AuthError$Message
 msgid "An error occurred when trying to authorize."
@@ -152,6 +152,10 @@ msgstr "Ndodhi një gabim gjatë provës për të autorizuar."
 #: MiscResources.resx$AutoSaveError$Message
 msgid "An error occurred when trying to auto save."
 msgstr "Ndodhi një gabim gjatë provës për ruajtjen automatike."
+
+#: MiscResources.resx$UpdateError$Message
+msgid "An error occurred when trying to install the update."
+msgstr "Ndodhi një gabim gjatë instalimit të përditësimit."
 
 #: MiscResources.resx$ErrorSaving$Message
 msgid "An error occurred when trying to save the file."
@@ -175,8 +179,8 @@ msgid "An operation is in progress. Are you sure you want to exit and cancel the
 msgstr "Një operacion është në progres. Je i sigurt se dëshiron të dalësh dhe të anulosh operacionin?"
 
 #: MiscResources.resx$BatchError$Message
-msgid "An unknown error ocurred during the batch scan."
-msgstr "Ndodhi një gabim i panjohur gjatë skanimit në grup."
+msgid "An unknown error occurred during the batch scan."
+msgstr "Ndodhi një gabim i panjohur gjatë ekzekutimit të skanimit në grup."
 
 #: MiscResources.resx$UpdateAvailable$Message
 msgid "An update is available."
@@ -188,9 +192,17 @@ msgstr "Një përditësim i OCR është i disponueshëm."
 
 #: UiStrings.resx$AppleDriver$Message
 msgid "Apple Driver"
-msgstr ""
+msgstr "Drejtuesi i Apple"
 
-#: FAdvancedScanSettings.resx$cbBrightnessContrastAfterScan.Text$Message
+#: SettingsResources.resx$EmailProviderType_AppleMail$Message
+msgid "Apple Mail"
+msgstr "Apple Mail"
+
+#: UiStrings.resx$Application$Message
+msgid "Application"
+msgstr "Приложение"
+
+#: UiStrings.resx$BrightnessContrastAfterScan$Message
 msgid "Apply brightness/contrast after scan"
 msgstr "Zbato shkëlqimin/kontrastin pas skanimit"
 
@@ -222,19 +234,27 @@ msgstr "A je i sigurt se dëshiron të fshish {0} element(e)?"
 msgid "Are you sure you want to delete {0} profiles?"
 msgstr "A je i sigurt se dëshiron të fshish {0} profile?"
 
+#: UiStrings.resx$ConfirmDeleteSharedDevice$Message
+msgid "Are you sure you want to stop sharing {0}?"
+msgstr "Je i sigurt se dëshiron të ndalosh disponueshmërinë e {0}?"
+
 #: MiscResources.resx$ConfirmResetImages$Message
 msgid "Are you sure you want undo your changes to {0} image(s)?"
 msgstr "A je i sigurt se dëshiron të zhbësh ndryshimet e tua te {0} imazh(e)?"
 
-#: FEmailSettings.resx$label1.Text$Message
+#: UiStrings.resx$Assign$Message
+msgid "Assign"
+msgstr "Cakto"
+
+#: UiStrings.resx$AttachmentNameLabel$Message
 msgid "Attachment Name:"
 msgstr "Emri i bashkëlidhjes:"
 
-#: FPdfSettings.resx$label3.Text$Message
+#: UiStrings.resx$AuthorLabel$Message
 msgid "Author:"
 msgstr "Autori:"
 
-#: FAuthorize.resx$$this.Text$Message
+#: UiStrings.resx$AuthorizeFormTitle$Message
 msgid "Authorize"
 msgstr "Autorizo"
 
@@ -242,43 +262,49 @@ msgstr "Autorizo"
 msgid "Auto"
 msgstr "Automatike"
 
-#: FAutoSaveSettings.resx$$this.Text$Message
-#: FEditProfile.resx$linkAutoSaveSettings.Text$Message
 #: UiStrings.resx$AutoSaveSettings$Message
+#: UiStrings.resx$AutoSaveSettingsFormTitle$Message
 msgid "Auto Save Settings"
 msgstr "Cilësimet e ruajtjes automatike"
 
-#: FPlaceholders.resx$label13.Text$Message
-msgid "Auto-incrementing number (1 digit)"
-msgstr "Po rrit automatikisht numrin (1 shifër)"
+#: UiStrings.resx$AutoCrop$Message
+msgid "Auto-Crop"
+msgstr ""
 
-#: FPlaceholders.resx$label12.Text$Message
+#: UiStrings.resx$AutoCropScannedPages$Message
+msgid "Auto-crop scanned pages"
+msgstr ""
+
+#: UiStrings.resx$AutoIncrementing1Digit$Message
+msgid "Auto-incrementing number (1 digits)"
+msgstr "Duke rritur automatikisht numrin (1 shifër)"
+
+#: UiStrings.resx$AutoIncrementing2Digit$Message
 msgid "Auto-incrementing number (2 digits)"
 msgstr "Po rrit automatikisht numrin (2 shifra)"
 
-#: FPlaceholders.resx$label11.Text$Message
+#: UiStrings.resx$AutoIncrementing3Digit$Message
 msgid "Auto-incrementing number (3 digits)"
 msgstr "Po rrit automatikisht numrin (3 shifra)"
 
-#: FPlaceholders.resx$label10.Text$Message
+#: UiStrings.resx$AutoIncrementing4Digit$Message
 msgid "Auto-incrementing number (4 digits)"
 msgstr "Po rrit automatikisht numrin (4 shifra)"
 
-#: FOcrSetup.resx$checkBoxRunInBG.Text$Message
 #: UiStrings.resx$RunOcrAfterScanning$Message
 msgid "Automatically run OCR after scanning"
 msgstr "Ekzekuto OCR automatikisht pas skanimit"
 
 #: SettingsResources.resx$PageSize_B4$Message
 msgid "B4 (250x353 mm)"
-msgstr ""
+msgstr "B4 (250x353 mm)"
 
 #: SettingsResources.resx$PageSize_B5$Message
 msgid "B5 (176x250 mm)"
-msgstr ""
+msgstr "B5 (176x250 mm)"
 
-#: FBatchScan.resx$$this.Text$Message
 #: UiStrings.resx$BatchScan$Message
+#: UiStrings.resx$BatchScanFormTitle$Message
 msgid "Batch Scan"
 msgstr "Skanim në grup"
 
@@ -296,9 +322,8 @@ msgstr "Skanimi në grup ndaloi për shkak gabimi."
 
 #: SettingsResources.resx$OcrMode_Best$Message
 msgid "Best"
-msgstr ""
+msgstr "Më e mira"
 
-#: FEditProfile.resx$label3.Text$Message
 #: UiStrings.resx$BitDepthLabel$Message
 msgid "Bit depth:"
 msgstr "Thellësia e bitit:"
@@ -309,10 +334,10 @@ msgstr "Skedarët Bitmap (*.bmp)"
 
 #: SettingsResources.resx$BitDepth_1BlackAndWhite$Message
 #: UiStrings.resx$BlackAndWhite$Message
-msgid "Black & White"
+msgid "Black and White"
 msgstr "Bardhë e zi"
 
-#: FAdvancedScanSettings.resx$groupBox3.Text$Message
+#: UiStrings.resx$BlankPages$Message
 msgid "Blank Pages"
 msgstr "Faqet bosh"
 
@@ -320,33 +345,19 @@ msgstr "Faqet bosh"
 msgid "Brightness / Contrast"
 msgstr "Ndriçimi/Kontrasti"
 
-#: FEditProfile.resx$label6.Text$Message
 #: UiStrings.resx$BrightnessLabel$Message
 msgid "Brightness:"
 msgstr "Shkëlqimi:"
 
 #: SettingsResources.resx$TiffComp_Ccitt4$Message
 msgid "CCITT4"
-msgstr ""
+msgstr "CCITT4"
 
-#: FAdvancedScanSettings.resx$btnCancel.Text$Message
-#: FAuthorize.resx$btnCancel.Text$Message
-#: FAutoSaveSettings.resx$btnCancel.Text$Message
-#: FBatchScan.resx$btnCancel.Text$Message
-#: FDownloadProgress.resx$btnCancel.Text$Message
-#: FEditProfile.resx$btnCancel.Text$Message
-#: FEmailSettings.resx$btnCancel.Text$Message
-#: FImageSettings.resx$btnCancel.Text$Message
-#: FOcrLanguageDownload.resx$btnCancel.Text$Message
-#: FOcrSetup.resx$btnCancel.Text$Message
-#: FPageSize.resx$btnCancel.Text$Message
-#: FPdfPassword.resx$btnCancel.Text$Message
-#: FPdfSettings.resx$btnCancel.Text$Message
-#: FPlaceholders.resx$btnCancel.Text$Message
-#: FProgress.resx$btnCancel.Text$Message
-#: FSelectDevice.resx$btnCancel.Text$Message
+#: UiStrings.resx$CantFindScannerFlatpak$Message
+msgid "Can't find your scanner? Read about limitations of the NAPS2 Flatpak."
+msgstr "Nuk mund të gjeni skanerin? Lexoni rreth kufizimeve të NAPS2 Flatpak."
+
 #: MiscResources.resx$Cancel$Message
-#: OperationProgressNotifyWidget.resx$cancelToolStripMenuItem.Text$Message
 #: UiStrings.resx$Cancel$Message
 msgid "Cancel"
 msgstr "Anulo"
@@ -363,7 +374,7 @@ msgstr "Po anulon...."
 msgid "Center"
 msgstr "Në qendër"
 
-#: FEmailSettings.resx$btnChangeProvider.Text$Message
+#: UiStrings.resx$Change$Message
 msgid "Change"
 msgstr "Ndrysho"
 
@@ -375,7 +386,7 @@ msgstr "Kontrollo për përditësime"
 msgid "Checking..."
 msgstr "Po kontrollon..."
 
-#: FEmailProvider.resx$$this.Text$Message
+#: UiStrings.resx$EmailProviderFormTitle$Message
 msgid "Choose Email Provider"
 msgstr "Zgjidh siguriuesin e shërbimit të emailit"
 
@@ -383,7 +394,6 @@ msgstr "Zgjidh siguriuesin e shërbimit të emailit"
 msgid "Choose Profile"
 msgstr "Zgjidh Profilin"
 
-#: FEditProfile.resx$btnChooseDevice.Text$Message
 #: UiStrings.resx$ChooseDevice$Message
 msgid "Choose device"
 msgstr "Zgjidh pajisjen"
@@ -395,26 +405,48 @@ msgstr "Pastro"
 
 #: UiStrings.resx$ClearAll$Message
 msgid "Clear All"
-msgstr ""
+msgstr "Pastro të gjitha"
 
-#: FAutoSaveSettings.resx$cbClearAfterSave.Text$Message
+#: UiStrings.resx$ClearAfterSaving$Message
 msgid "Clear images after saving"
 msgstr "Pastro imazhet pas ruajtjes"
+
+#: UiStrings.resx$SplitHelp$Message
+msgid "Click the buttons or use the arrow keys to change the split orientation."
+msgstr ""
 
 #: MiscResources.resx$Close$Message
 msgid "Close"
 msgstr "Mbyll"
 
-#: FAdvancedScanSettings.resx$groupBox2.Text$Message
-#: FPdfSettings.resx$groupCompat.Text$Message
+#: UiStrings.resx$Combine$Message
+msgid "Combine"
+msgstr "Kombinoje"
+
+#: SdkResources.resx$DeviceCommunicationFailure$Message
+msgid "Communication with the scanning device was interrupted."
+msgstr "Komunikimi me pajisjen e skanimit u ndërpre."
+
+#: UiStrings.resx$Compatibility$Message
 msgid "Compatibility"
 msgstr "Pajtueshmëria"
 
-#: FImageSettings.resx$label3.Text$Message
+#: UiStrings.resx$Compress$Message
+msgid "Compress"
+msgstr ""
+
+#: UiStrings.resx$CompressionLabel$Message
 msgid "Compression:"
 msgstr "Ngjeshja:"
 
-#: FEditProfile.resx$label7.Text$Message
+#: UiStrings.resx$Connect$Message
+msgid "Connect"
+msgstr "Lidhu"
+
+#: UiStrings.resx$ConnectionError$Message
+msgid "Connection error."
+msgstr "Gabim në lidhje."
+
 #: UiStrings.resx$ContrastLabel$Message
 msgid "Contrast:"
 msgstr "Kontrasti:"
@@ -433,9 +465,9 @@ msgstr "Po kopjon..."
 
 #: UiStrings.resx$CopyrightFormat$Message
 msgid "Copyright {0} NAPS2 Contributors"
-msgstr ""
+msgstr "Të drejtat e autorit {0} Kontribuesit e NAPS2"
 
-#: FAdvancedScanSettings.resx$label3.Text$Message
+#: UiStrings.resx$CoverageThreshold$Message
 msgid "Coverage Threshold"
 msgstr "Limiti i mbulimit"
 
@@ -443,17 +475,25 @@ msgstr "Limiti i mbulimit"
 msgid "Crop"
 msgstr "Preje"
 
-#: FAdvancedScanSettings.resx$cbForcePageSizeCrop.Text$Message
+#: UiStrings.resx$CropToPageSize$Message
 msgid "Crop to page size"
 msgstr "Prit te madhësia e faqes"
+
+#: UiStrings.resx$ControlKey$Message
+msgid "Ctrl"
+msgstr ""
 
 #: MiscResources.resx$CustomPageSizeFormat$Message
 msgid "Custom ({0}x{1} {2})"
 msgstr "E personalizuar ({0}x{1} {2})"
 
-#: FPageSize.resx$$this.Text$Message
+#: UiStrings.resx$PageSizeFormTitle$Message
 msgid "Custom Page Size"
 msgstr "Madhësi e personalizuar e faqes"
+
+#: UiStrings.resx$ResolutionFormTitle$Message
+msgid "Custom Resolution"
+msgstr "Rezolucion i personalizuar"
 
 #: UiStrings.resx$CustomRotation$Message
 msgid "Custom Rotation"
@@ -464,22 +504,27 @@ msgid "Custom SMTP"
 msgstr "SMTP e personalizuar"
 
 #: SettingsResources.resx$PageSize_Custom$Message
+#: SettingsResources.resx$Resolution_Custom$Message
 msgid "Custom..."
 msgstr "E personalizuar..."
 
-#: FPlaceholders.resx$label6.Text$Message
+#: SettingsResources.resx$Theme_Dark$Message
+msgid "Dark"
+msgstr "E errët"
+
+#: UiStrings.resx$Day2Digit$Message
 msgid "Day (01-31)"
 msgstr "Dita (01-31)"
 
 #: SettingsResources.resx$PdfCompat_Default$Message
+#: SettingsResources.resx$Theme_Default$Message
 #: SettingsResources.resx$TwainImpl_Default$Message
 #: SettingsResources.resx$WiaVersion_Default$Message
 #: UiStrings.resx$Default$Message
 msgid "Default"
 msgstr "E paracaktuar"
 
-#: FImageSettings.resx$label1.Text$Message
-#: FPdfSettings.resx$label1.Text$Message
+#: UiStrings.resx$DefaultFilePathLabel$Message
 msgid "Default File Path:"
 msgstr "Shtegu i paracaktuar i skedarit:"
 
@@ -487,7 +532,6 @@ msgstr "Shtegu i paracaktuar i skedarit:"
 msgid "Deinterleave"
 msgstr "Heq përzierjen"
 
-#: FRecover.resx$btnDelete.Text$Message
 #: MiscResources.resx$Delete$Message
 #: UiStrings.resx$Delete$Message
 msgid "Delete"
@@ -501,7 +545,7 @@ msgstr "Drejto"
 msgid "Deskew Progress"
 msgstr "Progresi i drejtimit"
 
-#: FAdvancedScanSettings.resx$cbAutoDeskew.Text$Message
+#: UiStrings.resx$DeskewScannedPages$Message
 msgid "Deskew scanned pages"
 msgstr "Drejto faqet e skanuara"
 
@@ -509,35 +553,35 @@ msgstr "Drejto faqet e skanuara"
 msgid "Deskewing..."
 msgstr "Po drejton..."
 
-#: FEditProfile.resx$label1.Text$Message
 #: UiStrings.resx$DeviceLabel$Message
 msgid "Device:"
 msgstr "Pajisja:"
 
-#: FPageSize.resx$label2.Text$Message
+#: UiStrings.resx$Dimensions$Message
 msgid "Dimensions"
 msgstr "Dimensionet"
 
-#: FEditProfile.resx$label8.Text$Message
+#: UiStrings.resx$DimensionsLabel$Message
+msgid "Dimensions:"
+msgstr ""
+
 #: UiStrings.resx$DisplayNameLabel$Message
 msgid "Display name:"
 msgstr "Emri i afishimit:"
 
 #: UiStrings.resx$DocumentCorrection$Message
 msgid "Document Correction"
-msgstr ""
+msgstr "Korrigjimi i dokumentit"
 
 #: MiscResources.resx$Donate$Message
 #: UiStrings.resx$Donate$Message
 msgid "Donate"
 msgstr "Dhuro"
 
-#: FBatchPrompt.resx$btnDone.Text$Message
 #: UiStrings.resx$Done$Message
 msgid "Done"
 msgstr "U krye"
 
-#: FOcrLanguageDownload.resx$btnDownload.Text$Message
 #: UiStrings.resx$Download$Message
 msgid "Download"
 msgstr "Shkarko"
@@ -550,22 +594,50 @@ msgstr "Gabim gjatë shkarkimit"
 msgid "Download Needed"
 msgstr "Nevojitet shkarkim"
 
-#: FDownloadProgress.resx$$this.Text$Message
 #: UiStrings.resx$DownloadProgressFormTitle$Message
 msgid "Download Progress"
 msgstr "Progresi i shkarkimit"
+
+#: UiStrings.resx$Dpi$Message
+msgid "Dpi"
+msgstr "Dpi"
 
 #: SettingsResources.resx$Source_Duplex$Message
 msgid "Duplex"
 msgstr "Dupleks"
 
+#: UiStrings.resx$EsclDriver$Message
+msgid "ESCL Driver"
+msgstr "Drejtuesi ESCL"
+
+#: UiStrings.resx$EsclNetworkDriver$Message
+msgid "ESCL Network Driver"
+msgstr "Drejtuesi i rrjetit të ESCL"
+
+#: UiStrings.resx$EsclUsbDriver$Message
+msgid "ESCL USB Driver"
+msgstr "Drejtuesi USB i ESCL"
+
 #: UiStrings.resx$Edit$Message
 msgid "Edit"
 msgstr "Modifiko"
 
+#: UiStrings.resx$EditWithAppName$Message
+msgid "Edit with {0}"
+msgstr "Redakto me {0}"
+
+#: UiStrings.resx$EditWith$Message
+#: UiStrings.resx$EditWithFormTitle$Message
+msgid "Edit with..."
+msgstr "Redakto me..."
+
+#: UiStrings.resx$EmailAll$Message
+msgid "Email All"
+msgstr "Dërgoje të gjithë me e-mail"
+
 #: UiStrings.resx$EmailAllAsPdf$Message
 msgid "Email All as PDF"
-msgstr ""
+msgstr "Dërgoje të gjithë me e-mail si PDF"
 
 #: MiscResources.resx$EmailPdf$Message
 #: UiStrings.resx$EmailPdf$Message
@@ -576,25 +648,32 @@ msgstr "Dërgo PDF me email"
 msgid "Email PDF Progress"
 msgstr "Progresi i email të PDF"
 
+#: UiStrings.resx$EmailSelected$Message
+msgid "Email Selected"
+msgstr "Dërgo me e-mail pjesën e zgjedhur"
+
 #: UiStrings.resx$EmailSelectedAsPdf$Message
 msgid "Email Selected as PDF"
-msgstr ""
+msgstr "Dërgo me e-mail pjesë e zgjedhur si PDF"
 
-#: FEmailSettings.resx$$this.Text$Message
 #: UiStrings.resx$EmailSettings$Message
+#: UiStrings.resx$EmailSettingsFormTitle$Message
 msgid "Email Settings"
 msgstr "Cilësimet e emailit"
 
-#: FEditProfile.resx$cbAutoSave.Text$Message
 #: UiStrings.resx$EnableAutoSave$Message
 msgid "Enable Auto Save"
 msgstr "Aktivizo ruajtjen automatike"
 
-#: FPdfSettings.resx$cbEncryptPdf.Text$Message
+#: UiStrings.resx$EnableDebugLogging$Message
+msgid "Enable debug logging"
+msgstr "Aktivizo ruajtjen e logeve të debug"
+
+#: UiStrings.resx$EncryptPdf$Message
 msgid "Encrypt PDF"
 msgstr "Shifro PDF"
 
-#: FPdfSettings.resx$groupProtection.Text$Message
+#: UiStrings.resx$Encryption$Message
 msgid "Encryption"
 msgstr "Shifrimi"
 
@@ -602,12 +681,15 @@ msgstr "Shifrimi"
 msgid "Enhanced Windows MetaFile (*.emf)"
 msgstr "Metaskedar i përmirësuar i Windows (*.emf)"
 
-#: FError.resx$$this.Text$Message
 #: MiscResources.resx$Error$Message
+#: UiStrings.resx$ErrorFormTitle$Message
 msgid "Error"
 msgstr "Gabim"
 
-#: FOcrLanguageDownload.resx$labelSizeEstimate.Text$Message
+#: UiStrings.resx$ErrorStartingApplication$Message
+msgid "Error starting application {0}"
+msgstr "Gabim në hapjen e aplikacionit {0}"
+
 #: MiscResources.resx$EstimatedDownloadSize$Message
 #: UiStrings.resx$EstimatedDownloadSize$Message
 msgid "Estimated download size: {0} MB"
@@ -617,36 +699,43 @@ msgstr "Madhësia e vlerësuar e shkarkimit: {0} MB"
 msgid "Exchangeable Image File (*.exif)"
 msgstr "Skedar imazhi i shkëmbyeshëm (*.exif)"
 
-#: FAdvancedScanSettings.resx$cbExcludeBlankPages.Text$Message
+#: UiStrings.resx$ExcludeBlankPages$Message
 msgid "Exclude blank pages"
 msgstr "Përjashto faqet bosh"
 
 #: SettingsResources.resx$OcrMode_Fast$Message
 msgid "Fast"
-msgstr ""
+msgstr "I shpejtë"
 
 #: SettingsResources.resx$Source_Feeder$Message
 msgid "Feeder"
 msgstr "Furnizuesi"
 
-#: FPlaceholders.resx$label1.Text$Message
-msgid "File Name"
+#: UiStrings.resx$FileNameLabel$Message
+msgid "File Name:"
 msgstr "Emri i skedarit"
 
-#: FAutoSaveSettings.resx$lblFilePath.Text$Message
-#: FBatchScan.resx$lblFilePath.Text$Message
-msgid "File path:"
+#: UiStrings.resx$FilePathLabel$Message
+msgid "File Path:"
 msgstr "Shtegu i skedarit:"
+
+#: UiStrings.resx$FixWhiteBalanceAndRemoveNoise$Message
+msgid "Fix white balance and remove noise"
+msgstr "Rregullo balancimin e ngjyrës së bardhë dhe hiq zhurmën"
 
 #: UiStrings.resx$Flip$Message
 msgid "Flip"
 msgstr "Përmbys"
 
-#: FAdvancedScanSettings.resx$cbFlipDuplex.Text$Message
+#: UiStrings.resx$FlipBackSidesOfDuplexPages$Message
+msgid "Flip back sides of duplex pages"
+msgstr "Kalo mbrapa anët e faqeve duplekse"
+
+#: UiStrings.resx$FlipDuplexedPages$Message
 msgid "Flip duplexed pages"
 msgstr "Kthe përmbys faqet duplekse"
 
-#: FImageSettings.resx$lblWarning.Text$Message
+#: UiStrings.resx$JpegQualityHelp$Message
 msgid "For high JPEG qualities (80+), also increase Image Quality in your profile for best results."
 msgstr "Për cilësi të larta të JPEG (80+), gjithashtu rrisni Cilësinë e imazhit te profili juaj për rezultatet më të mira."
 
@@ -654,7 +743,6 @@ msgstr "Për cilësi të larta të JPEG (80+), gjithashtu rrisni Cilësinë e im
 msgid "GIF File (*.gif)"
 msgstr "Skedar GIF (*.gif)"
 
-#: FOcrSetup.resx$linkGetLanguages.Text$Message
 #: UiStrings.resx$GetMoreLanguages$Message
 msgid "Get more languages"
 msgstr "Merr më shumë gjuhë"
@@ -665,24 +753,27 @@ msgstr "Xham"
 
 #: SettingsResources.resx$EmailProviderType_Gmail$Message
 msgid "Gmail"
-msgstr ""
+msgstr "Gmail"
 
 #: SettingsResources.resx$BitDepth_8Grayscale$Message
 msgid "Grayscale"
 msgstr "E hirtë"
 
-#: FEditProfile.resx$label9.Text$Message
 #: UiStrings.resx$HorizontalAlignLabel$Message
 msgid "Horizontal align:"
 msgstr "Drejto horizontalisht:"
 
-#: FPlaceholders.resx$label7.Text$Message
+#: UiStrings.resx$Hour2Digit$Message
 msgid "Hour (0-23)"
 msgstr "Ora (0-23)"
 
 #: UiStrings.resx$HueSaturation$Message
 msgid "Hue / Saturation"
 msgstr "Ngjyrimi/Ngopja"
+
+#: UiStrings.resx$IpHost$Message
+msgid "IP/Host"
+msgstr "IP/Makina"
 
 #: UiStrings.resx$IconsFrom$Message
 msgid "Icons from:"
@@ -696,12 +787,12 @@ msgstr "Imazhi"
 msgid "Image Files"
 msgstr "Skedarët e imazhit"
 
-#: FAdvancedScanSettings.resx$groupBox1.Text$Message
+#: UiStrings.resx$ImageQuality$Message
 msgid "Image Quality"
 msgstr "Cilësia e imazhit"
 
-#: FImageSettings.resx$$this.Text$Message
 #: UiStrings.resx$ImageSettings$Message
+#: UiStrings.resx$ImageSettingsFormTitle$Message
 msgid "Image Settings"
 msgstr "Cilësimet e imazhit"
 
@@ -745,6 +836,10 @@ msgstr "Instalimi përfundoi. A dëshiron ta rihapësh NAPS2 tani?"
 msgid "Installation failed."
 msgstr "Instalimi dështoi."
 
+#: UiStrings.resx$Interface$Message
+msgid "Interface"
+msgstr "Ndërfaqja"
+
 #: UiStrings.resx$Interleave$Message
 msgid "Interleave"
 msgstr "Përziej"
@@ -753,25 +848,42 @@ msgstr "Përziej"
 msgid "JPEG File (*.jpg, *.jpeg)"
 msgstr "Skedar JPEG (*.jpg, *.jpeg)"
 
-#: MiscResources.resx$FileTypeJp2$Message
-msgid "JPEG2000 File (*.jp2, *.jpx)"
+#: UiStrings.resx$JpegQualityLabel$Message
+msgid "JPEG quality:"
 msgstr ""
 
-#: FImageSettings.resx$groupJpeg.Text$Message
+#: MiscResources.resx$FileTypeJp2$Message
+msgid "JPEG2000 File (*.jp2, *.jpx)"
+msgstr "Skedar JPEG2000 (*.jp2, *.jpx)"
+
+#: UiStrings.resx$JpegQuality$Message
 msgid "Jpeg Quality"
 msgstr "Cilësi Jpeg"
 
-#: FPdfSettings.resx$label6.Text$Message
+#: UiStrings.resx$KeepSession$Message
+msgid "Keep images across sessions"
+msgstr "Mbaji imazhet ndërmjet sesioneve"
+
+#: UiStrings.resx$KeyboardShortcuts$Message
+#: UiStrings.resx$KeyboardShortcutsFormTitle$Message
+msgid "Keyboard Shortcuts"
+msgstr "Shkurtimet nga tastiera"
+
+#: UiStrings.resx$KeywordsLabel$Message
 msgid "Keywords:"
 msgstr "Fjalët kyçe:"
 
 #: SettingsResources.resx$TiffComp_Lzw$Message
 msgid "LZW"
-msgstr ""
+msgstr "LZW"
 
 #: UiStrings.resx$Language$Message
 msgid "Language"
 msgstr "Gjuha"
+
+#: MiscResources.resx$LeaveAReview$Message
+msgid "Leave a Review"
+msgstr "Lër një vlerësim"
 
 #: SettingsResources.resx$HorizontalAlign_Left$Message
 msgid "Left"
@@ -781,35 +893,78 @@ msgstr "Majtas"
 msgid "Legacy (native UI only)"
 msgstr "E vjetër (vetëm ndërfaqja e përdoruesit origjinale)"
 
-#: FBatchScan.resx$rdLoadIntoNaps2.Text$Message
+#: SettingsResources.resx$Theme_Light$Message
+msgid "Light"
+msgstr "E zbardhur"
+
+#: MiscResources.resx$ReviewPrompt$Message
+msgid "Like NAPS2?"
+msgstr "A të pëlqen NAPS2?"
+
+#: UiStrings.resx$LoadIn$Message
 msgid "Load images into NAPS2"
 msgstr "Ngarko imazhet në NAPS2"
 
-#: FOcrSetup.resx$checkBoxEnableOcr.Text$Message
 #: UiStrings.resx$MakePdfsSearchable$Message
 msgid "Make PDFs searchable using OCR"
 msgstr "Bëji PDF-të të kërkueshme duke përdorur OCR"
 
-#: FAdvancedScanSettings.resx$cbHighQuality.Text$Message
+#: UiStrings.resx$ManualDuplex$Message
+#: UiStrings.resx$ManualDuplexFormTitle$Message
+msgid "Manual Duplex"
+msgstr ""
+
+#: UiStrings.resx$ManualDuplexPreview$Message
+msgid "Manual Duplex (preview)"
+msgstr ""
+
+#: UiStrings.resx$ManualIp$Message
+#: UiStrings.resx$ManualIpFormTitle$Message
+msgid "Manual IP"
+msgstr "IP statike"
+
+#: UiStrings.resx$MaximumQuality$Message
 msgid "Maximum quality (large files)"
 msgstr "Cilësi maksimale (skedarë të mëdhenj)"
 
-#: FPdfSettings.resx$groupMetadata.Text$Message
+#: SettingsResources.resx$TwainImpl_MemXfer$Message
+msgid "Memory Transfer"
+msgstr "Transferim në kujtesë"
+
+#: UiStrings.resx$Metadata$Message
 msgid "Metadata"
 msgstr "Të dhëna mbi të dhënat"
 
-#: FPlaceholders.resx$label8.Text$Message
+#: UiStrings.resx$Minute2Digit$Message
 msgid "Minute (00-59)"
 msgstr "Minuta (00-59)"
 
-#: FPlaceholders.resx$label5.Text$Message
+#: UiStrings.resx$Month2Digit$Message
 msgid "Month (01-12)"
 msgstr "Muaji (01-12)"
 
-#: FAutoSaveSettings.resx$linkPatchCodeInfo.Text$Message
-#: FBatchScan.resx$linkPatchCodeInfo.Text$Message
+#: UiStrings.resx$MoreInfo$Message
 msgid "More info"
 msgstr "Më shumë informacion"
+
+#: UiStrings.resx$CropHelp$Message
+msgid "Mouse:\n"
+"Click and drag to move the crop handles.\n"
+"Or click and drag to draw the full area.\n\n"
+"Keyboard:\n"
+"Arrow keys move the bottom-right crop handle.\n"
+"Hold \"{0}\" to move the top-left handle instead.\n"
+"Hold \"{1}\" to move the whole selection at once.\n"
+"Hold \"{2}\" to move faster."
+msgstr ""
+
+#: UiStrings.resx$CombineHelp$Message
+msgid "Mouse:\n"
+"Click the buttons to change the combine orientation and alignment.\n\n"
+"Keyboard:\n"
+"Arrow keys change the combine orientation.\n"
+"Hold \"Shift\" to change the alignment instead (if the images aren't the same size)."
+msgstr ""
 
 #: UiStrings.resx$MoveDown$Message
 msgid "Move Down"
@@ -819,11 +974,19 @@ msgstr "Lëviz poshtë"
 msgid "Move Up"
 msgstr "Lëviz lart"
 
-#: FBatchScan.resx$rdMultipleScansDelay.Text$Message
+#: UiStrings.resx$OcrMultiLangFormTitle$Message
+msgid "Multiple Languages"
+msgstr "Shumë gjuhë"
+
+#: UiStrings.resx$MultipleLanguages$Message
+msgid "Multiple Languages..."
+msgstr "Shumë gjuhë..."
+
+#: UiStrings.resx$MultipleScansDelay$Message
 msgid "Multiple scans (fixed delay between scans)"
 msgstr "Shumë skanime (vonesë fikse ndërmjet skanimeve)"
 
-#: FBatchScan.resx$rdMultipleScansPrompt.Text$Message
+#: UiStrings.resx$MultipleScansPrompt$Message
 msgid "Multiple scans (prompt between scans)"
 msgstr "Shumë skanime (pyet ndërmjet skanimeve)"
 
@@ -831,23 +994,27 @@ msgstr "Shumë skanime (pyet ndërmjet skanimeve)"
 #: SdkResources.resx$NAPS2$Message
 #: UiStrings.resx$Naps2$Message
 msgid "NAPS2"
-msgstr ""
+msgstr "NAPS2"
 
 #: UiStrings.resx$Naps2TitleFormat$Message
 msgid "NAPS2 - {0}"
-msgstr ""
+msgstr "NAPS2 - {0}"
 
 #: MiscResources.resx$DonatePrompt$Message
 msgid "NAPS2 is completely free. Consider making a donation."
 msgstr "NAPS2 is tërësisht falas. Mendoni të dhuroni."
 
-#: FPageSize.resx$label1.Text$Message
+#: UiStrings.resx$NameOptional$Message
 msgid "Name (optional)"
 msgstr "Emri (jo i detyrueshëm)"
 
 #: MiscResources.resx$NameMissing$Message
 msgid "Name missing."
 msgstr "Emri mungon."
+
+#: SettingsResources.resx$TwainImpl_NativeXfer$Message
+msgid "Native Transfer"
+msgstr "Transferim nativ"
 
 #: UiStrings.resx$New$Message
 msgid "New"
@@ -861,7 +1028,7 @@ msgstr "Profil i ri"
 msgid "Next"
 msgstr "Pasardhëse"
 
-#: FBatchPrompt.resx$$this.Text$Message
+#: UiStrings.resx$BatchPromptFormTitle$Message
 msgid "Next Scan"
 msgstr "Skanimi tjetër"
 
@@ -870,12 +1037,15 @@ msgstr "Skanimi tjetër"
 msgid "No device selected."
 msgstr "Nuk është zgjedhur asnjë pajisje."
 
+#: UiStrings.resx$NoDevicesFound$Message
+msgid "No devices found."
+msgstr "Nuk u gjet asnjë pajisje."
+
 #: MiscResources.resx$NoPagesInFeeder$Message
 #: SdkResources.resx$NoPagesInFeeder$Message
 msgid "No pages are in the feeder."
 msgstr "Nuk ka faqe te furnizuesi."
 
-#: FEmailSettings.resx$lblProvider.Text$Message
 #: SettingsResources.resx$EmailProvider_NotSelected$Message
 msgid "No provider selected."
 msgstr "Nuk u zgjodh asnjë ofrues."
@@ -895,21 +1065,20 @@ msgstr "Asnjë"
 
 #: UiStrings.resx$Naps2FullName$Message
 msgid "Not Another PDF Scanner"
-msgstr ""
+msgstr "Not Another PDF Scanner"
 
-#: FRecover.resx$btnCancel.Text$Message
+#: UiStrings.resx$NotNow$Message
 msgid "Not Now"
 msgstr "Jo tani"
 
-#: FBatchScan.resx$lblNumberOfScans.Text$Message
+#: UiStrings.resx$NumberOfScansLabel$Message
 msgid "Number of scans:"
 msgstr "Numri i skanimeve:"
 
 #: UiStrings.resx$Ocr$Message
 msgid "OCR"
-msgstr ""
+msgstr "OCR"
 
-#: FOcrLanguageDownload.resx$$this.Text$Message
 #: UiStrings.resx$OcrDownloadFormTitle$Message
 msgid "OCR Download"
 msgstr "Shkarkim i OCR"
@@ -918,37 +1087,23 @@ msgstr "Shkarkim i OCR"
 msgid "OCR Progress"
 msgstr "Progresi i OCR"
 
-#: FOcrSetup.resx$$this.Text$Message
 #: UiStrings.resx$OcrSetupFormTitle$Message
 msgid "OCR Setup"
 msgstr "Konfigurimi i OCR"
 
-#: FOcrSetup.resx$label1.Text$Message
 #: UiStrings.resx$OcrLanguageLabel$Message
 msgid "OCR language:"
 msgstr "Gjuha e OCR:"
 
-#: FOcrSetup.resx$labelOcrMode.Text$Message
 #: UiStrings.resx$OcrModeLabel$Message
 msgid "OCR mode:"
 msgstr "Regjimi OCR:"
 
-#: FAdvancedScanSettings.resx$btnOK.Text$Message
-#: FAutoSaveSettings.resx$btnOK.Text$Message
-#: FEditProfile.resx$btnOK.Text$Message
-#: FEmailSettings.resx$btnOK.Text$Message
-#: FError.resx$btnOK.Text$Message
-#: FImageSettings.resx$btnOK.Text$Message
-#: FOcrSetup.resx$btnOK.Text$Message
-#: FPageSize.resx$btnOK.Text$Message
-#: FPdfPassword.resx$btnOK.Text$Message
-#: FPdfSettings.resx$btnOK.Text$Message
-#: FPlaceholders.resx$btnOK.Text$Message
 #: UiStrings.resx$OK$Message
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
-#: FAdvancedScanSettings.resx$cbWiaOffsetWidth.Text$Message
+#: UiStrings.resx$OffsetWidth$Message
 msgid "Offset width based on alignment (WIA)"
 msgstr "Gjerësia e zhvendosjes bazuar në drejtimin (WIA)"
 
@@ -956,13 +1111,11 @@ msgstr "Gjerësia e zhvendosjes bazuar në drejtimin (WIA)"
 msgid "Old DSM"
 msgstr "DSM e vjetër"
 
-#: FAutoSaveSettings.resx$rdFilePerPage.Text$Message
-#: FBatchScan.resx$rdFilePerPage.Text$Message
+#: UiStrings.resx$OneFilePerPage$Message
 msgid "One file per page"
 msgstr "Një skedar për faqe"
 
-#: FAutoSaveSettings.resx$rdFilePerScan.Text$Message
-#: FBatchScan.resx$rdFilePerScan.Text$Message
+#: UiStrings.resx$OneFilePerScan$Message
 msgid "One file per scan"
 msgstr "Një skedar për skanim"
 
@@ -970,7 +1123,11 @@ msgstr "Një skedar për skanim"
 msgid "One or more files could not be downloaded."
 msgstr "Një ose më shumë skedarë s'mund të shkarkoheshin."
 
-#: NotifyWidget.resx$openFolderToolStripMenuItem.Text$Message
+#: UiStrings.resx$SingleInstanceDesc$Message
+msgid "Only allow a single NAPS2 instance"
+msgstr "Lejo vetëm një instancë të NAPS2"
+
+#: UiStrings.resx$OpenFolder$Message
 msgid "Open Folder"
 msgstr "Hap Dosjen"
 
@@ -978,11 +1135,15 @@ msgstr "Hap Dosjen"
 msgid "Operation in Progress"
 msgstr "Veprimi në progres"
 
+#: SettingsResources.resx$EmailProviderType_OutlookNew$Message
+msgid "Outlook (new)"
+msgstr "Outlook (i ri)"
+
 #: SettingsResources.resx$EmailProviderType_OutlookWeb$Message
 msgid "Outlook Web Access"
 msgstr "Hyrja nga Uebi në Outlook"
 
-#: FBatchScan.resx$groupboxOutput.Text$Message
+#: UiStrings.resx$Output$Message
 msgid "Output"
 msgstr "Dalja"
 
@@ -990,7 +1151,7 @@ msgstr "Dalja"
 msgid "Overwrite File"
 msgstr "Mbishkruaj skedarin"
 
-#: FPdfSettings.resx$lblOwnerPassword.Text$Message
+#: UiStrings.resx$OwnerPasswordLabel$Message
 msgid "Owner Password:"
 msgstr "Fjalëkalimi i pronarit:"
 
@@ -998,8 +1159,8 @@ msgstr "Fjalëkalimi i pronarit:"
 msgid "PDF Document (*.pdf)"
 msgstr "Dokument PDF (*.pdf)"
 
-#: FPdfSettings.resx$$this.Text$Message
 #: UiStrings.resx$PdfSettings$Message
+#: UiStrings.resx$PdfSettingsFormTitle$Message
 msgid "PDF Settings"
 msgstr "Cilësimet e PDF"
 
@@ -1009,35 +1170,37 @@ msgstr "PDF u ruajt."
 
 #: SettingsResources.resx$PdfCompat_PdfA1B$Message
 msgid "PDF/A-1b"
-msgstr ""
+msgstr "PDF/A-1b"
 
 #: SettingsResources.resx$PdfCompat_PdfA2B$Message
 msgid "PDF/A-2b"
-msgstr ""
+msgstr "PDF/A-2b"
 
 #: SettingsResources.resx$PdfCompat_PdfA3B$Message
 msgid "PDF/A-3b"
-msgstr ""
+msgstr "PDF/A-3b"
 
 #: SettingsResources.resx$PdfCompat_PdfA3U$Message
 msgid "PDF/A-3u"
-msgstr ""
+msgstr "PDF/A-3u"
 
 #: MiscResources.resx$FileTypePng$Message
 msgid "PNG File (*.png)"
 msgstr "Skedar PNG (*.png)"
 
-#: FEditProfile.resx$label4.Text$Message
 #: UiStrings.resx$PageSizeLabel$Message
 msgid "Page size:"
 msgstr "Madhësia e faqes:"
 
-#: FEditProfile.resx$label2.Text$Message
+#: UiStrings.resx$PagesReordered$Message
+msgid "Pages reordered."
+msgstr ""
+
 #: UiStrings.resx$PaperSourceLabel$Message
 msgid "Paper source:"
 msgstr "Burimi i letrës:"
 
-#: FPdfPassword.resx$$this.Text$Message
+#: UiStrings.resx$PdfPasswordFormTitle$Message
 msgid "Password"
 msgstr "Fjalëkalimi"
 
@@ -1045,29 +1208,37 @@ msgstr "Fjalëkalimi"
 msgid "Paste"
 msgstr "Ngjit"
 
-#: FAutoSaveSettings.resx$linkPlaceholders.Text$Message
-#: FBatchScan.resx$linkPlaceholders.Text$Message
-#: FEmailSettings.resx$linkPlaceholders.Text$Message
-#: FImageSettings.resx$linkPlaceholders.Text$Message
-#: FPdfSettings.resx$linkPlaceholders.Text$Message
-#: FPlaceholders.resx$$this.Text$Message
-#: FPlaceholders.resx$gboxPlaceholders.Text$Message
+#: UiStrings.resx$PixelDimensionsLabel$Message
+msgid "Pixel dimensions:"
+msgstr ""
+
+#: UiStrings.resx$Placeholders$Message
+#: UiStrings.resx$PlaceholdersFormTitle$Message
 msgid "Placeholders"
 msgstr "Vendmbajtëset"
 
-#: FAdvancedScanSettings.resx$groupBox4.Text$Message
+#: UiStrings.resx$Port$Message
+msgid "Port"
+msgstr "Porta"
+
+#: UiStrings.resx$PostProcessing$Message
 msgid "Post-processing"
 msgstr "Pas përpunimit"
 
-#: FBatchScan.resx$lblStatus.Text$Message
+#: UiStrings.resx$PreemptivelyOcrAfterScanning$Message
+msgid "Pre-emptively run OCR after scanning"
+msgstr "Ekzekuto në mënyrë paraprake OCR mbas skanimit"
+
+#: UiStrings.resx$PressStartWhenReady$Message
 msgid "Press Start when ready."
 msgstr "Shtyp Fillo kur të jetë gati."
 
+#: UiStrings.resx$Preview$Message
 #: UiStrings.resx$PreviewFormTitle$Message
 msgid "Preview"
 msgstr "Shiko paraprakisht"
 
-#: FPlaceholders.resx$label2.Text$Message
+#: UiStrings.resx$PreviewLabel$Message
 msgid "Preview:"
 msgstr "Shiko paraprakisht:"
 
@@ -1080,12 +1251,11 @@ msgstr "Paraardhës"
 msgid "Print"
 msgstr "Printo"
 
-#: FEditProfile.resx$$this.Text$Message
 #: UiStrings.resx$EditProfileFormTitle$Message
 msgid "Profile Settings"
 msgstr "Cilësimet e profilit"
 
-#: FBatchScan.resx$lblProfile.Text$Message
+#: UiStrings.resx$ProfileLabel$Message
 msgid "Profile:"
 msgstr "Profili:"
 
@@ -1094,23 +1264,27 @@ msgstr "Profili:"
 msgid "Profiles"
 msgstr "Profilet"
 
-#: FAutoSaveSettings.resx$cbPromptForFilePath.Text$Message
+#: SettingsResources.resx$SaveButtonDefaultAction_PromptIfSelected$Message
+msgid "Prompt If Selected"
+msgstr "Kërkoje nëse është e zgjedhur"
+
+#: UiStrings.resx$PromptForFilePath$Message
 msgid "Prompt for file path"
 msgstr "Pyet për shtegun e skedarit"
 
-#: FEmailSettings.resx$groupBox1.Text$Message
+#: UiStrings.resx$Provider$Message
 msgid "Provider"
 msgstr "Siguruesi i shërbimit"
 
-#: FBatchPrompt.resx$lblStatus.Text$Message
+#: UiStrings.resx$ReadyForScan$Message
 msgid "Ready for scan {0}."
 msgstr "Gati për skanim {0}."
 
-#: FRecover.resx$btnRecover.Text$Message
+#: UiStrings.resx$Recover$Message
 msgid "Recover"
 msgstr "Rikupero"
 
-#: FRecover.resx$$this.Text$Message
+#: UiStrings.resx$RecoverFormTitle$Message
 msgid "Recover Scanned Images"
 msgstr "Rikupero imazhet e skanuara"
 
@@ -1122,9 +1296,15 @@ msgstr "Po rikuperohet..."
 msgid "Recovery Progress"
 msgstr "Progresi i rekuperimit"
 
-#: FEmailSettings.resx$cbRememberSettings.Text$Message
-#: FImageSettings.resx$cbRememberSettings.Text$Message
-#: FPdfSettings.resx$cbRememberSettings.Text$Message
+#: UiStrings.resx$Redo$Message
+msgid "Redo"
+msgstr "Ribëje"
+
+#: UiStrings.resx$RedoFormat$Message
+msgid "Redo {0}"
+msgstr "Ribëje {0}"
+
+#: UiStrings.resx$RememberTheseSettings$Message
 msgid "Remember these settings"
 msgstr "Mbaj mend këto cilësime"
 
@@ -1140,21 +1320,33 @@ msgstr "Rivendos"
 msgid "Reset Image"
 msgstr "Rivendos imazhin"
 
-#: FEditProfile.resx$label5.Text$Message
+#: UiStrings.resx$ResolutionDpiLabel$Message
+msgid "Resolution (dpi):"
+msgstr ""
+
 #: UiStrings.resx$ResolutionLabel$Message
 msgid "Resolution:"
 msgstr "Rezolucioni:"
 
-#: FAdvancedScanSettings.resx$btnRestoreDefaults.Text$Message
-#: FEmailSettings.resx$btnRestoreDefaults.Text$Message
-#: FImageSettings.resx$btnRestoreDefaults.Text$Message
-#: FPdfSettings.resx$btnRestoreDefaults.Text$Message
+#: UiStrings.resx$RestoreDefaults$Message
 msgid "Restore Defaults"
 msgstr "Rikthe të paracaktuarat"
 
 #: UiStrings.resx$Reverse$Message
 msgid "Reverse"
 msgstr "Kthe mbrapsht"
+
+#: UiStrings.resx$ReverseAll$Message
+msgid "Reverse All"
+msgstr "Ktheji të gjitha së prapthi"
+
+#: UiStrings.resx$ReverseSelected$Message
+msgid "Reverse Selected"
+msgstr "Kthe së prapthi pjesën e zgjedhur"
+
+#: UiStrings.resx$ReverseBackSides$Message
+msgid "Reverse back sides"
+msgstr ""
 
 #: UiStrings.resx$Revert$Message
 msgid "Revert"
@@ -1176,7 +1368,6 @@ msgstr "Rrotullo majtas"
 msgid "Rotate Right"
 msgstr "Rrotullo djathtas"
 
-#: FProgress.resx$btnRunInBG.Text$Message
 #: UiStrings.resx$RunInBackground$Message
 msgid "Run in Background"
 msgstr "Ekzekuto në sfond"
@@ -1185,22 +1376,26 @@ msgstr "Ekzekuto në sfond"
 msgid "Running OCR..."
 msgstr "Po ekzekuton OCR..."
 
-#: FEditProfile.resx$rdSANE.Text$Message
 #: UiStrings.resx$SaneDriver$Message
 msgid "SANE Driver"
 msgstr "Drejtuesi SANE"
 
 #: UiStrings.resx$Save$Message
 msgid "Save"
-msgstr ""
+msgstr "Ruaj"
+
+#: SettingsResources.resx$SaveButtonDefaultAction_SaveAll$Message
+#: UiStrings.resx$SaveAll$Message
+msgid "Save All"
+msgstr "Ruaji të gjitha"
 
 #: UiStrings.resx$SaveAllAsImages$Message
 msgid "Save All as Images"
-msgstr ""
+msgstr "Ruaji të gjitha si Imazhe"
 
 #: UiStrings.resx$SaveAllAsPdf$Message
 msgid "Save All as PDF"
-msgstr ""
+msgstr "Ruaji të gjitha si PDF"
 
 #: MiscResources.resx$SaveImages$Message
 #: UiStrings.resx$SaveImages$Message
@@ -1220,19 +1415,24 @@ msgstr "Ruaj PDF"
 msgid "Save PDF Progress"
 msgstr "Progresi i ruajtjes së PDF"
 
+#: SettingsResources.resx$SaveButtonDefaultAction_SaveSelected$Message
+#: UiStrings.resx$SaveSelected$Message
+msgid "Save Selected"
+msgstr "Ruaj pjesën e zgjedhur"
+
 #: UiStrings.resx$SaveSelectedAsImages$Message
 msgid "Save Selected as Images"
-msgstr ""
+msgstr "Ruaj pjesën e zgjedhur si Imazhe"
 
 #: UiStrings.resx$SaveSelectedAsPdf$Message
 msgid "Save Selected as PDF"
-msgstr ""
+msgstr "Ruaj pjesën e zgjedhur si Imazhe PDF"
 
-#: FBatchScan.resx$rdSaveToSingleFile.Text$Message
+#: UiStrings.resx$SaveToSingleFile$Message
 msgid "Save to a single file"
 msgstr "Ruaj në skedar të vetëm"
 
-#: FBatchScan.resx$rdSaveToMultipleFiles.Text$Message
+#: UiStrings.resx$SaveToMultipleFiles$Message
 msgid "Save to multiple files"
 msgstr "Ruaj në shumë skedarë"
 
@@ -1244,28 +1444,44 @@ msgstr "Po ruan rezultatet në grup..."
 msgid "Saving {0}..."
 msgstr "Po ruan {0}..."
 
-#: TiffViewerCtl.resx$_tsStretch.ToolTipText$Message
+#: UiStrings.resx$ScaleWithWindow$Message
 msgid "Scale With Window"
 msgstr "Shkallëzo me dritaren"
 
-#: FEditProfile.resx$label10.Text$Message
 #: UiStrings.resx$ScaleLabel$Message
 msgid "Scale:"
 msgstr "Shkalla:"
 
-#: FBatchPrompt.resx$btnScan.Text$Message
 #: MiscResources.resx$Scan$Message
 #: UiStrings.resx$Scan$Message
 msgid "Scan"
 msgstr "Skano"
 
-#: FBatchScan.resx$groupboxScanConfig.Text$Message
+#: UiStrings.resx$ScanConfig$Message
 msgid "Scan Configuration"
 msgstr "Konfigurimi i skanimit"
+
+#: SettingsResources.resx$ScanButtonDefaultAction_ScanWithDefaultProfile$Message
+#: UiStrings.resx$ScanWithDefaultProfile$Message
+msgid "Scan With Default Profile"
+msgstr "Skano me profilin e paracaktuar"
+
+#: UiStrings.resx$ScanWithNewProfile$Message
+msgid "Scan With New Profile"
+msgstr "Skano me profilin e ri"
+
+#: UiStrings.resx$ScanWithProfile$Message
+msgid "Scan With Profile {0}"
+msgstr "Skano me profilin {0}"
 
 #: MiscResources.resx$ScannedImage$Message
 msgid "Scanned Image"
 msgstr "Imazhi i skanuar"
+
+#: UiStrings.resx$ScannerSharing$Message
+#: UiStrings.resx$ScannerSharingFormTitle$Message
+msgid "Scanner Sharing"
+msgstr "Disponueshmëria e skanerit"
 
 #: MiscResources.resx$ScanPageProgress$Message
 msgid "Scanning page {0}"
@@ -1280,11 +1496,14 @@ msgstr "Po skanon faqen {0} (skanimi {1})..."
 msgid "Scanning page {0}..."
 msgstr "Po skanon faqen {0}..."
 
-#: FPlaceholders.resx$label9.Text$Message
+#: UiStrings.resx$SearchingForDevices$Message
+msgid "Searching for devices..."
+msgstr "Po kërkon pajisjet..."
+
+#: UiStrings.resx$Second2Digit$Message
 msgid "Second (00-59)"
 msgstr "Sekonda (00-59)"
 
-#: FSelectDevice.resx$btnSelect.Text$Message
 #: UiStrings.resx$Select$Message
 msgid "Select"
 msgstr "Zgjidh"
@@ -1293,7 +1512,10 @@ msgstr "Zgjidh"
 msgid "Select All"
 msgstr "Zgjidhi të gjitha"
 
-#: FSelectDevice.resx$$this.Text$Message
+#: UiStrings.resx$SelectDevice$Message
+msgid "Select Device"
+msgstr "Zgjidh pajisjen"
+
 #: UiStrings.resx$SelectSource$Message
 msgid "Select Source"
 msgstr "Zgjidh burimin"
@@ -1302,17 +1524,20 @@ msgstr "Zgjidh burimin"
 msgid "Select a profile before clicking Scan."
 msgstr "Zgjidh një profil para se të klikosh Skano."
 
-#: FOcrLanguageDownload.resx$label3.Text$Message
 #: UiStrings.resx$OcrSelectLanguageLabel$Message
 msgid "Select one or more languages:"
 msgstr "Zgjidh një ose më shumë gjuhë:"
+
+#: UiStrings.resx$CustomRotationHelp$Message
+msgid "Select the angle to rotate.\n"
+"Or click and drag to draw a line aligned with the page (vertically or horizontally)."
+msgstr ""
 
 #: MiscResources.resx$SelectedCount$Message
 msgid "Selected ({0})"
 msgstr "E zgjedhur ({0})"
 
-#: FAutoSaveSettings.resx$rdSeparateByPatchT.Text$Message
-#: FBatchScan.resx$rdSeparateByPatchT.Text$Message
+#: UiStrings.resx$SeparateByPatchT$Message
 msgid "Separate files by Patch-T"
 msgstr "Ndaj skedarët me Patch-T"
 
@@ -1320,37 +1545,88 @@ msgstr "Ndaj skedarët me Patch-T"
 msgid "Set Default"
 msgstr "Vendos të paracaktuar"
 
+#: UiStrings.resx$Settings$Message
+#: UiStrings.resx$SettingsFormTitle$Message
+msgid "Settings"
+msgstr "Cilësimet"
+
+#: UiStrings.resx$Share$Message
+msgid "Share"
+msgstr "Bëje të disponueshme"
+
+#: UiStrings.resx$ShareAsService$Message
+msgid "Share even when NAPS2 is closed"
+msgstr "Bëje të disponueshme edhe kur NAPS2 është i mbyllur"
+
+#: UiStrings.resx$SharedDeviceFormTitle$Message
+msgid "Shared Scanner Settings"
+msgstr "Cilësimet e skanerit të disponueshëm"
+
+#: UiStrings.resx$ScannerSharingIntro$Message
+msgid "Shared scanners can be used from other computers on the local network by selecting \"ESCL Driver\" in the other computer's NAPS2 profile settings."
+msgstr "Skanerat e disponueshëm në rrjet mund të përdoren nga kompjuterat e tjerë në rrjetin lokal duke zgjedhur \"Drajveri i ESCL\" në cilësimet e profilit të NAPS2."
+
 #: UiStrings.resx$Sharpen$Message
 msgid "Sharpen"
 msgstr "Thekso"
 
-#: FPdfSettings.resx$cbShowOwnerPassword.Text$Message
-#: FPdfSettings.resx$cbShowUserPassword.Text$Message
+#: UiStrings.resx$ShiftKey$Message
+msgid "Shift"
+msgstr ""
+
+#: UiStrings.resx$Shortcut$Message
+msgid "Shortcut"
+msgstr "Shkurtore"
+
+#: UiStrings.resx$Show$Message
 msgid "Show"
 msgstr "Shfaq"
 
-#: FImageSettings.resx$cbSinglePageTiff.Text$Message
+#: UiStrings.resx$ShowProfilesToolbar$Message
+msgid "Show \"Profiles\" toolbar"
+msgstr "Shfaqe rreshtin e mjeteve \"Profilet\""
+
+#: UiStrings.resx$ShowNativeTwainProgress$Message
+msgid "Show native TWAIN progress"
+msgstr "Shfaqe progresin nativ të TWAIN"
+
+#: UiStrings.resx$ShowPageNumbers$Message
+msgid "Show page numbers"
+msgstr "Shfaqi numrat e faqeve"
+
+#: UiStrings.resx$ToggleSidebar$Message
+msgid "Sidebar"
+msgstr "Rreshti anësor"
+
+#: UiStrings.resx$SinglePageFiles$Message
 msgid "Single page files"
 msgstr "Skedarët me një faqe"
 
-#: FBatchScan.resx$rdSingleScan.Text$Message
+#: UiStrings.resx$SingleScan$Message
 msgid "Single scan"
 msgstr "Skanim i vetëm"
 
-#: FImageSettings.resx$cbSkipSavePrompt.Text$Message
-#: FPdfSettings.resx$cbSkipSavePrompt.Text$Message
+#: UiStrings.resx$SkipSavePrompt$Message
 msgid "Skip save prompt"
 msgstr "Kapërce shenjën e ruajtjes"
 
-#: FBatchScan.resx$btnStart.Text$Message
+#: UiStrings.resx$Split$Message
+msgid "Split"
+msgstr "Ndaje"
+
+#: UiStrings.resx$Start$Message
 msgid "Start"
 msgstr "Fillo"
 
-#: FAdvancedScanSettings.resx$cbForcePageSize.Text$Message
+#: UiStrings.resx$StopScannerSharing$Message
+msgid "Stop Scanner Sharing"
+msgstr "Ndalo ndarjen e skanerit"
+
+#: UiStrings.resx$StretchToPageSize$Message
 msgid "Stretch to page size"
 msgstr "Zgjero te madhësia e faqes"
 
-#: FPdfSettings.resx$label5.Text$Message
+#: UiStrings.resx$SubjectLabel$Message
 msgid "Subject:"
 msgstr "Subjekti:"
 
@@ -1358,12 +1634,11 @@ msgstr "Subjekti:"
 msgid "TIFF File (*.tiff, *.tif)"
 msgstr "Skedar TIFF (*.tiff, *.tif)"
 
-#: FEditProfile.resx$rdTWAIN.Text$Message
 #: UiStrings.resx$TwainDriver$Message
 msgid "TWAIN Driver"
 msgstr "Drejtuesi TWAIN"
 
-#: FError.resx$linkDetails.Text$Message
+#: UiStrings.resx$TechnicalDetails$Message
 msgid "Technical Details"
 msgstr "Detajet teknike"
 
@@ -1371,6 +1646,10 @@ msgstr "Detajet teknike"
 #: SdkResources.resx$TesseractNotAvailable$Message
 msgid "The OCR engine is not available. Make sure to install the required package:"
 msgstr "Motori i OCR nuk është i disponueshëm. Sigurohu të instalosh paketën e kërkuar:"
+
+#: SdkResources.resx$OcrTimeout$Message
+msgid "The OCR operation timed out."
+msgstr "Afati i veprimit të OCR skadoi."
 
 #: MiscResources.resx$SaneNotAvailable$Message
 #: SdkResources.resx$SaneNotAvailable$Message
@@ -1394,9 +1673,9 @@ msgstr "Skedari nuk mund të mbishkruhej sepse aktualisht është në përdorim.
 msgid "The file {0} already exists. Do you want to overwrite it?"
 msgstr "Skedari {0} tashmë ekziston. A dëshironi ta mbishkruani?"
 
-#: FPdfPassword.resx$lblPrompt.Text$Message
-msgid "The following file is encrypted and requires a password to open: {0}"
-msgstr "Skedari i mëposhtëm është i shifruar dhe kërkon një fjalëkalim për t'u hapur: {0}"
+#: UiStrings.resx$EncryptedFilePrompt$Message
+msgid "The following file is encrypted and requires a password to open:"
+msgstr "Skedari i mëposhtëm është i shifruar dhe kërkon një fjalëkaim për t'u hapur:"
 
 #: MiscResources.resx$DevicePaperJam$Message
 #: SdkResources.resx$DevicePaperJam$Message
@@ -1443,19 +1722,50 @@ msgstr "Skaneri i zgjedhur është i zënë."
 msgid "The selected scanner is offline."
 msgstr "Skaneri i zgjedhur është jashtë linje."
 
-#: FImageSettings.resx$groupTiff.Text$Message
+#: SdkResources.resx$WorkerCrash$Message
+msgid "The worker process crashed."
+msgstr "Procesi i punës u ndërpre."
+
+#: SdkResources.resx$WorkerCrashWindows$Message
+msgid "The worker process crashed. Check the Windows event viewer."
+msgstr "Procesi i punës u ndërpre. Kontrolloni shikuesin e ngjarjeve të Windows."
+
+#: UiStrings.resx$ThemeLabel$Message
+msgid "Theme:"
+msgstr "Motivi:"
+
+#: SettingsResources.resx$EmailProviderType_Thunderbird$Message
+msgid "Thunderbird"
+msgstr "Thunderbird"
+
+#: UiStrings.resx$TiffOptions$Message
 msgid "Tiff Options"
 msgstr "Opsionet Tiff"
 
-#: FBatchScan.resx$lblTimeBetweenScans.Text$Message
+#: UiStrings.resx$TimeBetweenScansLabel$Message
 msgid "Time between scans (seconds):"
 msgstr "Koha ndërmjet skanimeve (sekonda):"
 
-#: FPdfSettings.resx$label4.Text$Message
+#: UiStrings.resx$TitleLabel$Message
 msgid "Title:"
 msgstr "Titulli:"
 
-#: FAdvancedScanSettings.resx$label1.Text$Message
+#: UiStrings.resx$ManualDuplexHelp$Message
+msgid "To scan both sides of a multi-page document with your feeder scanner, you can select \"Duplex\" as your paper source if your scanner supports it.\n"
+"      \n"
+"If your scanner doesn't support \"Duplex\" scanning, follow these instructions:\n"
+"1. Scan the front sides of the document\n"
+"2. Flip the document over\n"
+"3. Scan the back sides of the document\n"
+"4. Click \"Manual Duplex\"\n"
+"5. Depending on the physical orientation of your scanner, you may need to check \"Reverse back sides\""
+msgstr ""
+
+#: UiStrings.resx$Tools$Message
+msgid "Tools"
+msgstr "Mjetet"
+
+#: UiStrings.resx$TwainImplLabel$Message
 msgid "Twain Implementation:"
 msgstr "Implementimi i Twain:"
 
@@ -1467,6 +1777,22 @@ msgstr "Ligjore SHBA (8.5 x 14 inç)"
 msgid "US Letter (8.5x11 in)"
 msgstr "Letër SHBA (8.5 x 11 inç)"
 
+#: UiStrings.resx$Unassign$Message
+msgid "Unassign"
+msgstr "Mos cakto"
+
+#: UiStrings.resx$Undo$Message
+msgid "Undo"
+msgstr "Zhbëje"
+
+#: UiStrings.resx$UndoFormat$Message
+msgid "Undo {0}"
+msgstr "Zhbëje {0}"
+
+#: SdkResources.resx$UnknownScanner$Message
+msgid "Unknown Scanner"
+msgstr "Skcaner i panjohur"
+
 #: MiscResources.resx$UnsavedChanges$Message
 msgid "Unsaved Changes"
 msgstr "Ndryshimet e pa ruajtura"
@@ -1477,7 +1803,7 @@ msgstr "Progresi i përditësimit"
 
 #: MiscResources.resx$UpdateCheckDisabled$Message
 msgid "Update checking is disabled."
-msgstr ""
+msgstr "Kontrolli i përditësimit është çaktivizuar."
 
 #: MiscResources.resx$Updating$Message
 msgid "Updating..."
@@ -1487,21 +1813,22 @@ msgstr "Po përditëson..."
 msgid "Uploading email..."
 msgstr "Po ngarkon emailin..."
 
-#: FEditProfile.resx$rdbNative.Text$Message
+#: UiStrings.resx$UseJpegCompression$Message
+msgid "Use JPEG compression"
+msgstr ""
+
 #: UiStrings.resx$UseNativeUi$Message
 msgid "Use native UI"
 msgstr "Përdor UI origjinal"
 
-#: FEditProfile.resx$rdbConfig.Text$Message
 #: UiStrings.resx$UsePredefinedSettings$Message
 msgid "Use predefined settings"
 msgstr "Përdor cilësimet e paracaktuara"
 
-#: FPdfSettings.resx$lblUserPassword.Text$Message
+#: UiStrings.resx$UserPasswordLabel$Message
 msgid "User Password:"
 msgstr "Fjalëkalimi i përdoruesit:"
 
-#: FOcrLanguageDownload.resx$label1.Text$Message
 #: UiStrings.resx$OcrDownloadSummaryText$Message
 msgid "Using OCR requires you to download each language you want to scan."
 msgstr "Përdorimi i OCR ju kërkon të shkarkoni çdo gjuhë që dëshironi të skanoni."
@@ -1515,16 +1842,15 @@ msgstr "Versioni {0}"
 msgid "View"
 msgstr "Shfaq"
 
-#: FEditProfile.resx$rdWIA.Text$Message
 #: UiStrings.resx$WiaDriver$Message
 msgid "WIA Driver"
 msgstr "Drejtuesi WIA"
 
-#: FTwainGui.resx$label1.Text$Message
+#: UiStrings.resx$WaitingForTwain$Message
 msgid "Waiting for TWAIN to complete..."
 msgstr "Po pret që të përfundojë TWAIN..."
 
-#: FAuthorize.resx$lblWaiting.Text$Message
+#: UiStrings.resx$WaitingForAuthorization$Message
 msgid "Waiting for authorization..."
 msgstr "Po pret për autorizim..."
 
@@ -1532,19 +1858,19 @@ msgstr "Po pret për autorizim..."
 msgid "Waiting for scan {0}..."
 msgstr "Po pret për skanimin {0}..."
 
-#: FAdvancedScanSettings.resx$label2.Text$Message
+#: UiStrings.resx$WhiteThreshold$Message
 msgid "White Threshold"
 msgstr "Kufiri i bardhë"
 
-#: FAdvancedScanSettings.resx$label4.Text$Message
+#: UiStrings.resx$WiaVersionLabel$Message
 msgid "Wia Version:"
-msgstr ""
+msgstr "Versioni Wia:"
 
-#: FPlaceholders.resx$label3.Text$Message
+#: UiStrings.resx$Year4Digit$Message
 msgid "Year"
 msgstr "Viti"
 
-#: FPlaceholders.resx$label4.Text$Message
+#: UiStrings.resx$Year2Digit$Message
 msgid "Year (00-99)"
 msgstr "Viti (00-99)"
 
@@ -1561,28 +1887,25 @@ msgstr "Nuk ke të drejta për të ruajtur skedarët në këtë vendndodhje."
 msgid "You have unsaved changes. Are you sure you want to exit and discard those changes?"
 msgstr "Ke ndryshime të paruajtura. A je i sigurt se dëshiron të dalësh dhe të mos i ruash ato ndryshime?"
 
-#: TiffViewerCtl.resx$_tsZoom.ToolTipText$Message
 #: UiStrings.resx$Zoom$Message
 msgid "Zoom"
 msgstr "Shkalla e zmadhimit"
 
-#: TiffViewerCtl.resx$_tsZoomActual.ToolTipText$Message
+#: UiStrings.resx$ZoomActual$Message
 msgid "Zoom Actual"
 msgstr "Zmadho aktualen"
 
-#: TiffViewerCtl.resx$_tsZoomPlus.ToolTipText$Message
 #: UiStrings.resx$ZoomIn$Message
 msgid "Zoom In"
 msgstr "Zmadho"
 
-#: TiffViewerCtl.resx$_tsZoomOut.ToolTipText$Message
 #: UiStrings.resx$ZoomOut$Message
 msgid "Zoom Out"
 msgstr "Zvogëlo"
 
 #: SettingsResources.resx$PageSizeUnit_Centimetre$Message
 msgid "cm"
-msgstr ""
+msgstr "cm"
 
 #: SettingsResources.resx$PageSizeUnit_Inch$Message
 msgid "in"
@@ -1590,7 +1913,7 @@ msgstr "inç"
 
 #: SettingsResources.resx$PageSizeUnit_Millimetre$Message
 msgid "mm"
-msgstr ""
+msgstr "mm"
 
 #: MiscResources.resx$OfN$Message
 msgid "of {0}"
@@ -1598,28 +1921,33 @@ msgstr "nga {0}"
 
 #: SettingsResources.resx$TwainImpl_X64$Message
 msgid "x64"
-msgstr ""
+msgstr "x64"
 
 #: MiscResources.resx$NamedPageSizeFormat$Message
 msgid "{0} ({1}x{2} {3})"
-msgstr ""
+msgstr "{0} ({1}x{2} {3})"
 
-#: FProgress.resx$labelNumber.Text$Message
 #: MiscResources.resx$ProgressFormat$Message
 msgid "{0} / {1}"
-msgstr ""
+msgstr "{0} / {1}"
 
-#: FDownloadProgress.resx$labelSub.Text$Message
 #: MiscResources.resx$SizeProgress$Message
 msgid "{0} / {1} MB"
-msgstr ""
+msgstr "{0} / {1} MB"
 
-#: FDownloadProgress.resx$labelTop.Text$Message
 #: MiscResources.resx$FilesProgressFormat$Message
 msgid "{0} / {1} files"
 msgstr "{0} / {1} skedarë"
 
-#: FRecover.resx$lblPrompt.Text$Message
+#: UiStrings.resx$DevicesFound$Message
+msgid "{0} devices found."
+msgstr "U gjetën {0} pajisje."
+
+#: SettingsResources.resx$DpiFormat$Message
+msgid "{0} dpi"
+msgstr "{0} dpi"
+
+#: UiStrings.resx$RecoverPrompt$Message
 msgid "{0} image(s) scanned on {1} at {2} may not have been saved, and are recoverable. Do you want to recover them?"
 msgstr "{0} imazh(e) i(të) skanuar në {1} në {2} mund të mos jenë ruajtur, dhe janë të rikuperueshme. A dëshironi t'i rikuperoni ato?"
 

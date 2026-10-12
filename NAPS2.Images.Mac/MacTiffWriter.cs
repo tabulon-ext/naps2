@@ -2,7 +2,7 @@ using NAPS2.Util;
 
 namespace NAPS2.Images.Mac;
 
-public class MacTiffWriter : ITiffWriter
+internal class MacTiffWriter : ITiffWriter
 {
     public bool SaveTiff(IList<IMemoryImage> images, string path,
         TiffCompressionType compression = TiffCompressionType.Auto, ProgressHandler progress = default)
@@ -30,7 +30,8 @@ public class MacTiffWriter : ITiffWriter
         lock (MacImageContext.ConstructorLock)
         {
             data = new NSMutableData();
-            // TODO: Fix unsupported warning
+            // TODO: We get a warning for UTType
+#pragma warning disable CA1416,CA1422
 #if MONOMAC
             dest = CGImageDestination.FromData(
 #else
@@ -63,7 +64,7 @@ public class MacTiffWriter : ITiffWriter
                         new NSNumber((int) comp),
                         NSBitmapImageRep.CompressionMethod);
                 }
-                dest.AddImage(imageToWrite.Rep.CGImage, props);
+                dest.AddImage(imageToWrite.Rep.CGImage!, props);
             }
             finally
             {

@@ -7,14 +7,8 @@ namespace NAPS2.ImportExport;
 
 public class PrintDocumentPrinter : IScannedImagePrinter
 {
-    private readonly ImageContext _imageContext;
-
-    public PrintDocumentPrinter(ImageContext imageContext)
-    {
-        _imageContext = imageContext;
-    }
-
-    public async Task<bool> PromptToPrint(IList<ProcessedImage> images, IList<ProcessedImage> selectedImages)
+    public async Task<bool> PromptToPrint(
+        Eto.Forms.Window parentWindow, IList<ProcessedImage> images, IList<ProcessedImage> selectedImages)
     {
         if (!images.Any())
         {
@@ -22,6 +16,8 @@ public class PrintDocumentPrinter : IScannedImagePrinter
         }
         var printDialog = new PrintDialog
         {
+            // TODO: If we migrate this to WPF we might be able to enable print previews
+            // WinForms has UseEXDialog which will use the modern windows dialog but has no way to populate the preview
             AllowSelection = selectedImages.Any(),
             AllowSomePages = true,
             PrinterSettings =
@@ -57,7 +53,7 @@ public class PrintDocumentPrinter : IScannedImagePrinter
                 imagesToPrint = images.Skip(start).Take(length).ToList();
                 break;
             default:
-                imagesToPrint = new List<ProcessedImage>();
+                imagesToPrint = [];
                 break;
         }
         if (imagesToPrint.Count == 0)
@@ -67,56 +63,45 @@ public class PrintDocumentPrinter : IScannedImagePrinter
 
         return await Task.Run(() =>
         {
-            try
+            var printDocument = new PrintDocument();
+            int i = 0;
+            printDocument.PrintPage += (sender, e) =>
             {
-                var printDocument = new PrintDocument();
-                int i = 0;
-                printDocument.PrintPage += (sender, e) =>
+                var image = imagesToPrint[i].Render();
+                try
                 {
-                    var image = imagesToPrint[i].Render();
-                    try
+                    var pb = e.PageBounds;
+                    if (Math.Sign(image.Width - image.Height) != Math.Sign(pb.Width - pb.Height))
                     {
-                        var pb = e.PageBounds;
-                        if (Math.Sign(image.Width - image.Height) != Math.Sign(pb.Width - pb.Height))
-                        {
-                            // Flip portrait/landscape to match output
-                            image = image.PerformTransform(new RotationTransform(90));
-                        }
-
-                        // Fit the image into the output rect while maintaining its aspect ratio
-                        var rect = image.Width / pb.Width < image.Height / pb.Height
-                            ? new Rectangle(pb.Left, pb.Top, image.Width * pb.Height / image.Height, pb.Height)
-                            : new Rectangle(pb.Left, pb.Top, pb.Width, image.Height * pb.Width / image.Width);
-
-                        e.Graphics!.DrawImage(image.AsBitmap(), rect);
-                    }
-                    finally
-                    {
-                        image.Dispose();
+                        // Flip portrait/landscape to match output
+                        image = image.PerformTransform(new RotationTransform(90));
                     }
 
-                    e.HasMorePages = (++i < imagesToPrint.Count);
-                };
-                printDocument.PrinterSettings = printerSettings;
-                printDocument.Print();
+                    // Fit the image into the output rect while maintaining its aspect ratio
+                    var rect = image.Width / pb.Width < image.Height / pb.Height
+                        ? new Rectangle(pb.Left, pb.Top, image.Width * pb.Height / image.Height, pb.Height)
+                        : new Rectangle(pb.Left, pb.Top, pb.Width, image.Height * pb.Width / image.Width);
 
-                Log.Event(EventType.Print, new EventParams
-                {
-                    Name = MiscResources.Print,
-                    Pages = images.Count,
-                    DeviceName = printDocument.PrinterSettings.PrinterName
-                });
-
-                return true;
-            }
-            finally
-            {
-                // TODO: Clone & dispose
-                foreach (var image in images)
+                    e.Graphics!.DrawImage(image.AsBitmap(), rect);
+                }
+                finally
                 {
                     image.Dispose();
                 }
-            }
+
+                e.HasMorePages = (++i < imagesToPrint.Count);
+            };
+            printDocument.PrinterSettings = printerSettings;
+            printDocument.Print();
+
+            Log.Event(EventType.Print, new EventParams
+            {
+                Name = MiscResources.Print,
+                Pages = images.Count,
+                DeviceName = printDocument.PrinterSettings.PrinterName
+            });
+
+            return true;
         });
     }
 }

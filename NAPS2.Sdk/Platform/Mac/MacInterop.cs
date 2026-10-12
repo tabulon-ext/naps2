@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace NAPS2.Platform.Mac;
 
-public static class MacInterop
+internal static class MacInterop
 {
     [DllImport("libSystem.dylib")]
     public static extern IntPtr dlopen(string filename, int flags);
@@ -15,4 +15,7 @@ public static class MacInterop
 
     [DllImport("libSystem.dylib")]
     public static extern int setenv(string name, string value, int overwrite);
+
+    [DllImport("/usr/lib/libicucore.dylib")]
+    public static extern void ulocdata_getPaperSize(string localeId, out int height, out int width, ref int status);
 }

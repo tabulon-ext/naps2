@@ -1,82 +1,110 @@
 ﻿using System.Collections.Concurrent;
 using GrpcDotNetNamedPipes;
+using Microsoft.Extensions.Logging;
+using NAPS2.Scan;
+using NAPS2.Unmanaged;
 
 namespace NAPS2.Remoting.Worker;
 
 /// <summary>
-/// A class to manage the lifecycle of NAPS2.Worker.exe instances and hook up the WCF channels.
+/// A class to manage the lifecycle of worker processes and hook up the named pipe channels.
 /// </summary>
-public class WorkerFactory : IWorkerFactory
+internal class WorkerFactory : IWorkerFactory
 {
-    public const string WORKER_EXE_NAME = "NAPS2.Worker.exe";
     public const string PIPE_NAME_FORMAT = "NAPS2.Worker.{0}";
+    private const int PIPE_CONNECTION_TIMEOUT = 10_000;
+    private const int TAKE_WORKER_TIMEOUT = 10_000;
+    private readonly Dictionary<string, string> _environmentVariables;
 
-    public static string?[] SearchDirs => new[]
+    private Dictionary<WorkerType, BlockingCollection<WorkerContext>>? _workerQueues;
+
+    public static WorkerFactory CreateDefault()
     {
-        AssemblyHelper.LibFolder,
-        AssemblyHelper.EntryFolder
-    };
-
-    private readonly FileStorageManager _fileStorageManager;
-
-    private string? _workerExePath;
-    private BlockingCollection<WorkerContext>? _workerQueue;
-
-    public WorkerFactory(FileStorageManager fileStorageManager)
-    {
-        _fileStorageManager = fileStorageManager;
-    }
-
-    private string WorkerExePath
-    {
-        get
+        var env = new Dictionary<string, string>();
+#if NET6_0_OR_GREATER
+        if (OperatingSystem.IsMacOS())
         {
-            if (_workerExePath == null)
+            // The intended way to load sane dependencies (libusb, libjpeg) is by enumerating SaneLibraryDeps and for
+            // each, calling dlopen. Then when we load sane it will use those loaded libraries.
+            // However, while that works on my arm64 macOS 13, it doesn't on my x64 macOS 10.15. I'm not sure why.
+            // But setting DYLD_LIBRARY_PATH on the sane worker process does work.
+            // TODO: This means there may be some cases where in-process sane won't work, which could affect SDK users.
+            var sanePath = NativeLibrary.FindLibraryPath(PlatformCompat.System.SaneLibraryName);
+            if (sanePath.Contains('/'))
             {
-                foreach (var dir in SearchDirs.WhereNotNull())
-                {
-                    _workerExePath = Path.Combine(dir, WORKER_EXE_NAME);
-                    if (File.Exists(_workerExePath))
-                    {
-                        break;
-                    }
-                }
+                env["DYLD_LIBRARY_PATH"] = Path.GetFullPath(Path.GetDirectoryName(sanePath)!);
             }
-
-            return _workerExePath!;
         }
+        if (!OperatingSystem.IsWindows())
+        {
+            return new WorkerFactory(Environment.ProcessPath!, null, env);
+        }
+#endif
+        var exePath = Path.Combine(AssemblyHelper.EntryFolder, "NAPS2.exe");
+        string[] candidateWorkerPaths =
+        {
+#if DEBUG
+            Path.Combine(AssemblyHelper.EntryFolder,
+                @"..\..\..\..\..\NAPS2.App.Worker\bin\Debug\net10.0-windows\win-x86\NAPS2.Worker.exe"),
+#endif
+            Path.Combine(AssemblyHelper.EntryFolder, "NAPS2.Worker.exe"),
+            Path.Combine(AssemblyHelper.EntryFolder, "lib", "NAPS2.Worker.exe")
+        };
+        string workerExePath = "";
+        foreach (var candidateWorkerPath in candidateWorkerPaths)
+        {
+            workerExePath = candidateWorkerPath;
+            if (File.Exists(workerExePath)) break;
+        }
+        return new WorkerFactory(exePath, workerExePath, env);
     }
 
-    private Process StartWorkerProcess()
+    public WorkerFactory(string nativeWorkerExePath, string? winX86WorkerExePath = null,
+        Dictionary<string, string>? environmentVariables = null)
+    {
+        NativeWorkerExePath = nativeWorkerExePath;
+        WinX86WorkerExePath = winX86WorkerExePath;
+        _environmentVariables = environmentVariables ?? new Dictionary<string, string>();
+    }
+
+    public string NativeWorkerExePath { get; }
+    public string? WinX86WorkerExePath { get; }
+
+    private Process StartWorkerProcess(WorkerType workerType)
     {
         var parentId = Process.GetCurrentProcess().Id;
-        Process? proc;
-        if (PlatformCompat.System.UseSeparateWorkerExe)
+        ProcessStartInfo startInfo;
+        if (workerType == WorkerType.WinX86)
         {
-            proc = Process.Start(new ProcessStartInfo
+            if (!PlatformCompat.System.SupportsWinX86Worker || WinX86WorkerExePath == null)
             {
-                FileName = WorkerExePath,
+                throw new InvalidOperationException("Unexpected worker configuration");
+            }
+            startInfo = new ProcessStartInfo
+            {
+                FileName = PlatformCompat.System.WinX86WorkerAlias ?? WinX86WorkerExePath,
                 Arguments = $"{parentId}",
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 UseShellExecute = false
-            });
+            };
         }
         else
         {
-#if NET6_0_OR_GREATER
-            proc = Process.Start(new ProcessStartInfo
+            startInfo = new ProcessStartInfo
             {
-                FileName = Environment.ProcessPath,
+                FileName = PlatformCompat.System.NativeWorkerAlias ?? NativeWorkerExePath,
                 Arguments = $"worker {parentId}",
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 UseShellExecute = false
-            });
-#else
-            throw new Exception("Unexpected worker configuration");
-#endif
+            };
         }
+        foreach (var name in _environmentVariables.Keys)
+        {
+            startInfo.EnvironmentVariables[name] = _environmentVariables[name];
+        }
+        var proc = Process.Start(startInfo);
         if (proc == null)
         {
             throw new Exception("Could not start worker process");
@@ -96,10 +124,13 @@ public class WorkerFactory : IWorkerFactory
             }
         }
 
+        // TODO: Since we set RedirectStandardOutput, we should consume stdout to prevent the buffer from filling up and
+        // stalling the worker process
         var readyStr = proc.StandardOutput.ReadLine();
         if (readyStr?.Trim() == "error")
         {
-            throw new InvalidOperationException("The worker could not start due to an error. See the worker logs.");
+            var error = proc.StandardOutput.ReadToEnd();
+            throw new InvalidOperationException($"The worker could not start due to an error: {error}");
         }
 
         if (readyStr?.Trim() != "ready")
@@ -110,39 +141,112 @@ public class WorkerFactory : IWorkerFactory
         return proc;
     }
 
-    private void StartWorkerService()
+    private void StartWorkerService(ScanningContext scanningContext, WorkerType workerType, bool spare)
     {
         Task.Run(() =>
         {
-            var proc = StartWorkerProcess();
-            var channel = new NamedPipeChannel(".", string.Format(PIPE_NAME_FORMAT, proc.Id));
-            _workerQueue!.Add(new WorkerContext(new WorkerServiceAdapter(channel), proc));
+            try
+            {
+                var proc = StartWorkerProcess(workerType);
+                var options = new NamedPipeChannelOptions
+                {
+                    ConnectionTimeout = PIPE_CONNECTION_TIMEOUT
+                };
+                var channel = new NamedPipeChannel(".", string.Format(PIPE_NAME_FORMAT, proc.Id), options);
+                _workerQueues![workerType]
+                    .Add(new WorkerContext(scanningContext, workerType, new WorkerServiceAdapter(channel), proc));
+            }
+            catch (Exception ex)
+            {
+                // If we're just starting a spare worker, don't log errors (e.g. if we're using the SDK and don't even
+                // need a worker)
+                if (!spare)
+                {
+                    scanningContext.Logger.LogError(ex, "Could not start worker");
+                }
+            }
         });
     }
 
-    private WorkerContext NextWorker()
+    private WorkerContext NextWorker(ScanningContext scanningContext, WorkerType workerType)
     {
-        StartWorkerService();
-        return _workerQueue!.Take();
+        StartWorkerService(scanningContext, workerType, false);
+        if (!_workerQueues![workerType]!.TryTake(out var worker, TAKE_WORKER_TIMEOUT))
+        {
+            throw new InvalidOperationException("Could not start a worker process; see logs for details");
+        }
+        return worker;
     }
 
-    public void Init()
+    public void Init(ScanningContext scanningContext, WorkerFactoryInitOptions? options = null)
     {
-        if (_workerQueue == null)
+        if (!File.Exists(NativeWorkerExePath))
         {
-            _workerQueue = new BlockingCollection<WorkerContext>();
-            StartWorkerService();
+            scanningContext.Logger.LogDebug($"Native worker exe does not exist: {NativeWorkerExePath}");
+        }
+        if (WinX86WorkerExePath != null && !File.Exists(WinX86WorkerExePath))
+        {
+            scanningContext.Logger.LogDebug($"WinX86 worker exe does not exist: {WinX86WorkerExePath}");
+        }
+
+        options ??= new WorkerFactoryInitOptions();
+        if (_workerQueues == null)
+        {
+            _workerQueues = new()
+            {
+                { WorkerType.Native, new BlockingCollection<WorkerContext>() },
+                { WorkerType.WinX86, new BlockingCollection<WorkerContext>() }
+            };
+            if (options.StartSpareWorkers)
+            {
+                // We start a "spare" worker so that when we need one, it's immediately ready (and then we'll start another
+                // spare for the next request).
+                StartWorkerService(scanningContext, WorkerType.Native, true);
+                if (PlatformCompat.System.SupportsWinX86Worker)
+                {
+                    // On windows as we need 32-bit and 64-bit workers for different things, we will have two spare workers,
+                    // which isn't ideal but not a big deal.
+                    StartWorkerService(scanningContext, WorkerType.WinX86, true);
+                }
+            }
         }
     }
 
-    public WorkerContext Create()
+    public WorkerContext Create(ScanningContext scanningContext, WorkerType workerType)
     {
-        if (_workerQueue == null)
+        if (_workerQueues == null)
         {
             throw new InvalidOperationException("WorkerFactory has not been initialized");
         }
-        var worker = NextWorker();
-        worker.Service.Init(_fileStorageManager.FolderPath);
+        var worker = NextWorker(scanningContext, workerType);
+        worker.Service.Init(scanningContext.FileStorageManager?.FolderPath);
         return worker;
+    }
+
+    public void RecreateSpareWorkers()
+    {
+        if (_workerQueues == null) return;
+        foreach (var queue in _workerQueues.Values)
+        {
+            if (queue.TryTake(out var worker))
+            {
+                worker.Stop().AssertNoAwait();
+                StartWorkerService(worker.ScanningContext, worker.Type, true);
+            }
+        }
+    }
+
+    public void StopSpareWorkers()
+    {
+        if (_workerQueues == null) return;
+        var stopTasks = new List<Task>();
+        foreach (var queue in _workerQueues.Values)
+        {
+            while (queue.TryTake(out var worker))
+            {
+                stopTasks.Add(worker.Stop());
+            }
+        }
+        Task.WhenAll(stopTasks).Wait();
     }
 }
